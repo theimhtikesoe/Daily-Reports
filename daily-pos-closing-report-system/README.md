@@ -141,6 +141,8 @@ App URL:
 - `unclassified_amount`
 - `cash_entries` (array of cash payment amounts)
 - `card_entries` (array of card payment amounts)
+- `total_discount`
+- `discount_entries` (array of discount amounts)
 
 ## Security Notes
 

@@ -23,8 +23,10 @@ const els = {
   difference: document.getElementById('difference'),
   cashEntriesList: document.getElementById('cashEntriesList'),
   cardEntriesList: document.getElementById('cardEntriesList'),
+  discountEntriesList: document.getElementById('discountEntriesList'),
   cashEntriesTotal: document.getElementById('cashEntriesTotal'),
   cardEntriesTotal: document.getElementById('cardEntriesTotal'),
+  discountEntriesTotal: document.getElementById('discountEntriesTotal'),
   reportsTableBody: document.querySelector('#reportsTable tbody'),
   unclassifiedHint: document.getElementById('unclassifiedHint')
 };
@@ -114,15 +116,18 @@ function renderEntryList(listElement, entries) {
   });
 }
 
-function applyPaymentDetails({ cash_entries, card_entries }) {
+function applyPaymentDetails({ cash_entries, card_entries, discount_entries }) {
   const cashEntries = normalizeEntries(cash_entries);
   const cardEntries = normalizeEntries(card_entries);
+  const discountEntries = normalizeEntries(discount_entries);
 
   renderEntryList(els.cashEntriesList, cashEntries);
   renderEntryList(els.cardEntriesList, cardEntries);
+  renderEntryList(els.discountEntriesList, discountEntries);
 
   const cashTotal = cashEntries.reduce((sum, amount) => sum + amount, 0);
   const cardTotal = cardEntries.reduce((sum, amount) => sum + amount, 0);
+  const discountTotal = discountEntries.reduce((sum, amount) => sum + amount, 0);
 
   if (els.cashEntriesTotal) {
     els.cashEntriesTotal.textContent = formatCurrency(cashTotal);
@@ -130,10 +135,13 @@ function applyPaymentDetails({ cash_entries, card_entries }) {
   if (els.cardEntriesTotal) {
     els.cardEntriesTotal.textContent = formatCurrency(cardTotal);
   }
+  if (els.discountEntriesTotal) {
+    els.discountEntriesTotal.textContent = formatCurrency(discountTotal);
+  }
 }
 
 function clearPaymentDetails() {
-  applyPaymentDetails({ cash_entries: [], card_entries: [] });
+  applyPaymentDetails({ cash_entries: [], card_entries: [], discount_entries: [] });
 }
 
 function getReportFileBaseName() {

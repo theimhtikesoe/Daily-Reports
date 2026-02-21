@@ -240,6 +240,94 @@ function extractPaymentEntries(receipt, paymentTypeMap) {
   ];
 }
 
+function extractDiscountValue(entry) {
+  const rawAmount =
+    entry?.money_amount ??
+    entry?.amount_money?.amount ??
+    entry?.amount_money ??
+    entry?.amount ??
+    entry?.discount_money ??
+    entry?.discount_amount ??
+    entry?.total_discount_money ??
+    entry?.value ??
+    0;
+
+  return normalizeMoney(rawAmount);
+}
+
+function extractDiscountAmountFromReceipt(receipt) {
+  const receiptLevelCandidates = [
+    receipt.total_discounts_money,
+    receipt.total_discount_money,
+    receipt.total_discount,
+    receipt.discount_money,
+    receipt.discount_amount,
+    receipt.discount
+  ];
+
+  for (const candidate of receiptLevelCandidates) {
+    const amount = Math.abs(normalizeMoney(candidate));
+    if (amount > 0) {
+      return roundCurrency(amount);
+    }
+  }
+
+  let total = 0;
+
+  const receiptDiscountLists = [
+    receipt.discounts,
+    receipt.applied_discounts
+  ];
+
+  for (const list of receiptDiscountLists) {
+    if (!Array.isArray(list)) {
+      continue;
+    }
+    for (const discount of list) {
+      total += Math.abs(extractDiscountValue(discount));
+    }
+  }
+
+  const lineItems = receipt.line_items || receipt.items || [];
+  if (Array.isArray(lineItems)) {
+    for (const line of lineItems) {
+      const lineLevelCandidates = [
+        line.total_discounts_money,
+        line.total_discount_money,
+        line.discount_money,
+        line.discount_amount,
+        line.discount
+      ];
+
+      let lineDiscount = 0;
+      for (const candidate of lineLevelCandidates) {
+        const amount = Math.abs(normalizeMoney(candidate));
+        if (amount > 0) {
+          lineDiscount = amount;
+          break;
+        }
+      }
+
+      if (lineDiscount > 0) {
+        total += lineDiscount;
+        continue;
+      }
+
+      const lineDiscountLists = [line.discounts, line.applied_discounts];
+      for (const list of lineDiscountLists) {
+        if (!Array.isArray(list)) {
+          continue;
+        }
+        for (const discount of list) {
+          total += Math.abs(extractDiscountValue(discount));
+        }
+      }
+    }
+  }
+
+  return roundCurrency(total);
+}
+
 async function fetchSalesSummaryByDate(date) {
   const paymentTypeMap = await fetchPaymentTypeMap();
   const receipts = await fetchClosedReceiptsByDate(date);
@@ -247,16 +335,24 @@ async function fetchSalesSummaryByDate(date) {
   const totals = {
     total_cash: 0,
     total_card: 0,
+    total_discount: 0,
     total_orders: 0,
     unclassified_amount: 0,
     cash_entries: [],
-    card_entries: []
+    card_entries: [],
+    discount_entries: []
   };
 
   const closedReceipts = receipts.filter(isCompletedReceipt);
 
   for (const receipt of closedReceipts) {
     const paymentEntries = extractPaymentEntries(receipt, paymentTypeMap);
+    const discountAmount = extractDiscountAmountFromReceipt(receipt);
+
+    if (discountAmount > 0) {
+      totals.total_discount += discountAmount;
+      totals.discount_entries.push(roundCurrency(discountAmount));
+    }
 
     for (const entry of paymentEntries) {
       const paymentCategory = classifyPaymentType(entry.paymentTypeLabel);
@@ -274,6 +370,7 @@ async function fetchSalesSummaryByDate(date) {
 
   totals.total_cash = roundCurrency(totals.total_cash);
   totals.total_card = roundCurrency(totals.total_card);
+  totals.total_discount = roundCurrency(totals.total_discount);
   totals.total_orders = closedReceipts.length;
 
   const netSale = calculateNetSale({
@@ -289,7 +386,9 @@ async function fetchSalesSummaryByDate(date) {
     total_orders: totals.total_orders,
     unclassified_amount: roundCurrency(totals.unclassified_amount),
     cash_entries: totals.cash_entries,
-    card_entries: totals.card_entries
+    card_entries: totals.card_entries,
+    total_discount: totals.total_discount,
+    discount_entries: totals.discount_entries
   };
 }
 
