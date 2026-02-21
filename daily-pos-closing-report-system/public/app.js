@@ -249,34 +249,113 @@ function ensureManualInputsEnabled() {
   });
 }
 
-async function loadSavedReport() {
-  clearMessage();
+function normalizeDate(value) {
+  return String(value || '').slice(0, 10);
+}
+
+async function fetchSavedReportByDate(date) {
+  const response = await fetch(`/api/reports/${date}`);
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to load report');
+  }
+
+  return response.json();
+}
+
+async function fillOpeningCashFromPreviousReport(date) {
+  const params = new URLSearchParams({
+    to: date,
+    limit: '100'
+  });
+
+  const response = await fetch(`/api/reports?${params.toString()}`);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to load previous report');
+  }
+
+  const rows = Array.isArray(data) ? data : [];
+  const previous = rows.find((row) => normalizeDate(row.date) < date);
+  if (!previous) {
+    return null;
+  }
+
+  const openingCash = round2(parseNumber(previous.expected_cash));
+  els.openingCash.value = openingCash.toFixed(2);
+  recalculate();
+
+  return {
+    openingCash,
+    sourceDate: normalizeDate(previous.date)
+  };
+}
+
+async function loadReportForDate(date, options = {}) {
+  const { showMessage = true, carryForwardOpeningCash = true } = options;
+
   ensureManualInputsEnabled();
 
-  if (!els.reportDate.value) {
-    setMessage('Please choose a report date first.', 'warning');
-    return;
+  if (!date) {
+    if (showMessage) {
+      setMessage('Please choose a report date first.', 'warning');
+    }
+    return null;
   }
 
   try {
-    const response = await fetch(`/api/reports/${els.reportDate.value}`);
-    if (response.status === 404) {
+    const report = await fetchSavedReportByDate(date);
+    if (!report) {
       resetSyncedFields();
       resetManualFields();
-      setMessage('No saved report found for this date.', 'secondary');
-      return;
+
+      let carryForward = null;
+      if (carryForwardOpeningCash) {
+        carryForward = await fillOpeningCashFromPreviousReport(date);
+      }
+
+      if (showMessage) {
+        if (carryForward) {
+          setMessage(
+            `No saved report. Opening Cash auto-filled from ${carryForward.sourceDate} Expected Cash.`,
+            'secondary'
+          );
+        } else {
+          setMessage('No saved report found for this date.', 'secondary');
+        }
+      }
+
+      return null;
     }
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to load report');
-    }
-
-    const report = await response.json();
     applyReportData(report);
-    setMessage('Saved report loaded.', 'success');
+    if (showMessage) {
+      setMessage('Saved report loaded.', 'success');
+    }
+    return report;
   } catch (error) {
-    setMessage(error.message, 'danger');
+    if (showMessage) {
+      setMessage(error.message, 'danger');
+    }
+    throw error;
+  }
+}
+
+async function loadSavedReport() {
+  clearMessage();
+
+  try {
+    await loadReportForDate(els.reportDate.value, {
+      showMessage: true,
+      carryForwardOpeningCash: true
+    });
+  } catch (error) {
+    // message already handled in loadReportForDate
   }
 }
 
@@ -365,16 +444,17 @@ function renderReportsTable(reports) {
 
   if (!reports.length) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="8" class="text-center text-muted">No reports found</td>';
+    tr.innerHTML = '<td colspan="9" class="text-center text-muted">No reports found</td>';
     els.reportsTableBody.appendChild(tr);
     return;
   }
 
   for (const report of reports) {
     const tr = document.createElement('tr');
+    const reportDate = normalizeDate(report.date);
     const difference = parseNumber(report.difference);
     tr.innerHTML = `
-      <td>${String(report.date).slice(0, 10)}</td>
+      <td>${reportDate}</td>
       <td>${formatCurrency(report.net_sale)}</td>
       <td>${formatCurrency(report.cash_total)}</td>
       <td>${formatCurrency(report.card_total)}</td>
@@ -382,6 +462,11 @@ function renderReportsTable(reports) {
       <td>${formatCurrency(report.expense)}</td>
       <td>${formatCurrency(report.expected_cash)}</td>
       <td class="${difference > 0 ? 'diff-positive' : difference < 0 ? 'diff-negative' : ''}">${formatCurrency(difference)}</td>
+      <td class="no-export">
+        <button type="button" class="btn btn-sm btn-outline-dark print-past-btn" data-date="${reportDate}">
+          Print
+        </button>
+      </td>
     `;
     els.reportsTableBody.appendChild(tr);
   }
@@ -458,6 +543,38 @@ function bindEvents() {
   els.printButton.addEventListener('click', printReport);
   els.downloadImageButton.addEventListener('click', downloadReportAsImage);
   els.downloadPdfButton.addEventListener('click', downloadReportAsPdf);
+  els.reportsTableBody.addEventListener('click', async (event) => {
+    const button = event.target.closest('.print-past-btn');
+    if (!button) {
+      return;
+    }
+
+    const reportDate = button.dataset.date;
+    if (!reportDate) {
+      return;
+    }
+
+    setButtonLoading(button, 'Loading...', true);
+    clearMessage();
+
+    try {
+      els.reportDate.value = reportDate;
+      const report = await loadReportForDate(reportDate, {
+        showMessage: false,
+        carryForwardOpeningCash: false
+      });
+
+      if (!report) {
+        throw new Error('Past report not found.');
+      }
+
+      printReport();
+    } catch (error) {
+      setMessage(error.message || 'Failed to print past report.', 'danger');
+    } finally {
+      setButtonLoading(button, 'Loading...', false);
+    }
+  });
 
   els.filterReports.addEventListener('click', async () => {
     try {
@@ -468,9 +585,10 @@ function bindEvents() {
     }
   });
 
-  els.reportDate.addEventListener('change', () => {
+  els.reportDate.addEventListener('change', async () => {
     clearMessage();
     els.unclassifiedHint.textContent = '';
+    await loadSavedReport();
   });
 }
 
