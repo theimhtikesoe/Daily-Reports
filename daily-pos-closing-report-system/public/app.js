@@ -1,9 +1,13 @@
 const els = {
   message: document.getElementById('message'),
   reportDate: document.getElementById('reportDate'),
+  reportSection: document.getElementById('reportSection'),
   loadButton: document.getElementById('loadButton'),
   syncButton: document.getElementById('syncButton'),
   saveButton: document.getElementById('saveButton'),
+  printButton: document.getElementById('printButton'),
+  downloadImageButton: document.getElementById('downloadImageButton'),
+  downloadPdfButton: document.getElementById('downloadPdfButton'),
   filterReports: document.getElementById('filterReports'),
   fromDate: document.getElementById('fromDate'),
   toDate: document.getElementById('toDate'),
@@ -72,6 +76,107 @@ function formatCurrency(value) {
     style: 'currency',
     currency: 'THB'
   }).format(parseNumber(value));
+}
+
+function getReportFileBaseName() {
+  const date = els.reportDate.value || todayLocalDate();
+  return `daily-report-${date}`.replace(/[^\w.-]+/g, '_');
+}
+
+function setButtonLoading(button, loadingText, isLoading) {
+  if (!button) {
+    return;
+  }
+
+  if (!button.dataset.defaultText) {
+    button.dataset.defaultText = button.textContent;
+  }
+
+  button.disabled = isLoading;
+  button.textContent = isLoading ? loadingText : button.dataset.defaultText;
+}
+
+async function captureReportSection() {
+  if (!els.reportSection) {
+    throw new Error('Report section not found.');
+  }
+
+  if (typeof window.html2canvas !== 'function') {
+    throw new Error('Export library is not loaded.');
+  }
+
+  return window.html2canvas(els.reportSection, {
+    backgroundColor: '#ffffff',
+    scale: 2,
+    useCORS: true,
+    ignoreElements: (element) => element.classList?.contains('no-export')
+  });
+}
+
+function printReport() {
+  clearMessage();
+  window.print();
+}
+
+async function downloadReportAsImage() {
+  clearMessage();
+  setButtonLoading(els.downloadImageButton, 'Generating...', true);
+
+  try {
+    const canvas = await captureReportSection();
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = `${getReportFileBaseName()}.png`;
+    link.click();
+    setMessage('Image downloaded successfully.', 'success');
+  } catch (error) {
+    setMessage(error.message || 'Failed to download image.', 'danger');
+  } finally {
+    setButtonLoading(els.downloadImageButton, 'Generating...', false);
+  }
+}
+
+async function downloadReportAsPdf() {
+  clearMessage();
+  setButtonLoading(els.downloadPdfButton, 'Generating...', true);
+
+  try {
+    if (!window.jspdf?.jsPDF) {
+      throw new Error('PDF library is not loaded.');
+    }
+
+    const canvas = await captureReportSection();
+    const imageData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    const margin = 8;
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const contentWidth = pageWidth - margin * 2;
+    const contentHeight = pageHeight - margin * 2;
+    const imageHeight = (canvas.height * contentWidth) / canvas.width;
+
+    let heightLeft = imageHeight;
+    let offsetY = 0;
+
+    pdf.addImage(imageData, 'PNG', margin, margin + offsetY, contentWidth, imageHeight, undefined, 'FAST');
+    heightLeft -= contentHeight;
+
+    while (heightLeft > 0) {
+      offsetY = heightLeft - imageHeight;
+      pdf.addPage();
+      pdf.addImage(imageData, 'PNG', margin, margin + offsetY, contentWidth, imageHeight, undefined, 'FAST');
+      heightLeft -= contentHeight;
+    }
+
+    pdf.save(`${getReportFileBaseName()}.pdf`);
+    setMessage('PDF downloaded successfully.', 'success');
+  } catch (error) {
+    setMessage(error.message || 'Failed to download PDF.', 'danger');
+  } finally {
+    setButtonLoading(els.downloadPdfButton, 'Generating...', false);
+  }
 }
 
 function recalculate() {
@@ -350,6 +455,9 @@ function bindEvents() {
   els.loadButton.addEventListener('click', loadSavedReport);
   els.syncButton.addEventListener('click', syncFromLoyverse);
   els.saveButton.addEventListener('click', saveReport);
+  els.printButton.addEventListener('click', printReport);
+  els.downloadImageButton.addEventListener('click', downloadReportAsImage);
+  els.downloadPdfButton.addEventListener('click', downloadReportAsPdf);
 
   els.filterReports.addEventListener('click', async () => {
     try {

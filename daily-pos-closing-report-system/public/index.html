@@ -23,15 +23,15 @@
   <main class="container pb-5">
     <div id="message" class="alert d-none" role="alert"></div>
 
-    <section class="card shadow-sm mb-4">
+    <section id="reportSection" class="card shadow-sm mb-4">
       <div class="card-body">
         <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-3 mb-3">
           <div class="flex-grow-1">
             <label for="reportDate" class="form-label">Report Date</label>
             <input id="reportDate" type="date" class="form-control" />
           </div>
-          <button id="loadButton" class="btn btn-outline-secondary">Load Saved Report</button>
-          <button id="syncButton" class="btn btn-primary">Sync From Loyverse</button>
+          <button id="loadButton" class="btn btn-outline-secondary no-export">Load Saved Report</button>
+          <button id="syncButton" class="btn btn-primary no-export">Sync From Loyverse</button>
         </div>
 
         <div class="row g-3 mb-3">
@@ -86,7 +86,10 @@
         </div>
 
         <div class="d-flex flex-wrap align-items-center gap-3 mt-4">
-          <button id="saveButton" class="btn btn-success">Save Daily Report</button>
+          <button id="saveButton" class="btn btn-success no-export">Save Daily Report</button>
+          <button id="printButton" class="btn btn-outline-dark no-export">Print Report</button>
+          <button id="downloadImageButton" class="btn btn-outline-primary no-export">Download Image</button>
+          <button id="downloadPdfButton" class="btn btn-outline-danger no-export">Download PDF</button>
           <span id="unclassifiedHint" class="text-muted small"></span>
         </div>
       </div>
@@ -138,6 +141,8 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

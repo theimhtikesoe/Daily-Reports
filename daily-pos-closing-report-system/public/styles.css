@@ -34,3 +34,37 @@ body {
   color: var(--negative);
   font-weight: 600;
 }
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  .app-header,
+  #message,
+  main > section:not(#reportSection),
+  .no-export {
+    display: none !important;
+  }
+
+  .container {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #reportSection {
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+
+  #reportSection .card-body {
+    padding: 0 !important;
+  }
+
+  .card {
+    box-shadow: none !important;
+  }
+}
