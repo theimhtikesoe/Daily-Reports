@@ -264,36 +264,49 @@ body {
 
   .manual-inputs-row {
     display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 7px !important;
-    align-items: end !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px 10px !important;
+    align-items: stretch !important;
+    margin: 0 !important;
+    --bs-gutter-x: 0 !important;
+    --bs-gutter-y: 0 !important;
   }
 
   .manual-inputs-row > [class*="col-"] {
     width: auto !important;
     max-width: none !important;
     flex: 0 0 auto !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    margin: 0 !important;
+    padding: 6px 8px !important;
+    border: 1px solid #cfad7a !important;
+    border-radius: 6px !important;
+    background: #fff8eb !important;
   }
 
   .manual-inputs-row .form-label {
-    display: flex !important;
-    align-items: flex-end !important;
-    min-height: 1.95rem !important;
-    margin-bottom: 3px !important;
+    display: block !important;
+    min-height: auto !important;
+    margin: 0 0 4px !important;
+    line-height: 1.2 !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
   }
 
   .manual-inputs-row .form-control {
-    min-height: 36px !important;
-    height: 36px !important;
-    padding: 4px 8px !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    padding: 4px 7px !important;
+    font-size: 12px !important;
   }
 
   .cash-focus-col .form-label {
     color: #613d11 !important;
     font-weight: 800 !important;
-    white-space: nowrap !important;
+  }
+
+  #openingCash,
+  #actualCashCounted {
+    border-width: 1.5px !important;
   }
 
   .cash-focus-label-line {
