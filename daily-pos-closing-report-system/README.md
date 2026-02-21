@@ -139,6 +139,8 @@ App URL:
 - `net_sale`
 - `total_orders`
 - `unclassified_amount`
+- `cash_entries` (array of cash payment amounts)
+- `card_entries` (array of card payment amounts)
 
 ## Security Notes
 

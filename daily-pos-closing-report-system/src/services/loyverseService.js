@@ -248,7 +248,9 @@ async function fetchSalesSummaryByDate(date) {
     total_cash: 0,
     total_card: 0,
     total_orders: 0,
-    unclassified_amount: 0
+    unclassified_amount: 0,
+    cash_entries: [],
+    card_entries: []
   };
 
   const closedReceipts = receipts.filter(isCompletedReceipt);
@@ -260,8 +262,10 @@ async function fetchSalesSummaryByDate(date) {
       const paymentCategory = classifyPaymentType(entry.paymentTypeLabel);
       if (paymentCategory === 'cash') {
         totals.total_cash += entry.amount;
+        totals.cash_entries.push(roundCurrency(entry.amount));
       } else if (paymentCategory === 'card') {
         totals.total_card += entry.amount;
+        totals.card_entries.push(roundCurrency(entry.amount));
       } else {
         totals.unclassified_amount += entry.amount;
       }
@@ -283,7 +287,9 @@ async function fetchSalesSummaryByDate(date) {
     card_total: totals.total_card,
     net_sale: netSale,
     total_orders: totals.total_orders,
-    unclassified_amount: roundCurrency(totals.unclassified_amount)
+    unclassified_amount: roundCurrency(totals.unclassified_amount),
+    cash_entries: totals.cash_entries,
+    card_entries: totals.card_entries
   };
 }
 

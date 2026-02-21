@@ -21,6 +21,10 @@ const els = {
   actualCashCounted: document.getElementById('actualCashCounted'),
   expectedCash: document.getElementById('expectedCash'),
   difference: document.getElementById('difference'),
+  cashEntriesList: document.getElementById('cashEntriesList'),
+  cardEntriesList: document.getElementById('cardEntriesList'),
+  cashEntriesTotal: document.getElementById('cashEntriesTotal'),
+  cardEntriesTotal: document.getElementById('cardEntriesTotal'),
   reportsTableBody: document.querySelector('#reportsTable tbody'),
   unclassifiedHint: document.getElementById('unclassifiedHint')
 };
@@ -76,6 +80,60 @@ function formatCurrency(value) {
     style: 'currency',
     currency: 'THB'
   }).format(parseNumber(value));
+}
+
+function normalizeEntries(entries) {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+
+  return entries
+    .map((entry) => round2(parseNumber(entry)))
+    .filter((amount) => Number.isFinite(amount) && amount !== 0);
+}
+
+function renderEntryList(listElement, entries) {
+  if (!listElement) {
+    return;
+  }
+
+  listElement.innerHTML = '';
+
+  if (!entries.length) {
+    const li = document.createElement('li');
+    li.className = 'text-muted';
+    li.textContent = '-';
+    listElement.appendChild(li);
+    return;
+  }
+
+  entries.forEach((amount) => {
+    const li = document.createElement('li');
+    li.textContent = formatCurrency(amount);
+    listElement.appendChild(li);
+  });
+}
+
+function applyPaymentDetails({ cash_entries, card_entries }) {
+  const cashEntries = normalizeEntries(cash_entries);
+  const cardEntries = normalizeEntries(card_entries);
+
+  renderEntryList(els.cashEntriesList, cashEntries);
+  renderEntryList(els.cardEntriesList, cardEntries);
+
+  const cashTotal = cashEntries.reduce((sum, amount) => sum + amount, 0);
+  const cardTotal = cardEntries.reduce((sum, amount) => sum + amount, 0);
+
+  if (els.cashEntriesTotal) {
+    els.cashEntriesTotal.textContent = formatCurrency(cashTotal);
+  }
+  if (els.cardEntriesTotal) {
+    els.cardEntriesTotal.textContent = formatCurrency(cardTotal);
+  }
+}
+
+function clearPaymentDetails() {
+  applyPaymentDetails({ cash_entries: [], card_entries: [] });
 }
 
 function getReportFileBaseName() {
@@ -249,6 +307,54 @@ function ensureManualInputsEnabled() {
   });
 }
 
+function applySyncSummaryToFields(data) {
+  els.cashTotal.value = round2(parseNumber(data.cash_total)).toFixed(2);
+  els.cardTotal.value = round2(parseNumber(data.card_total)).toFixed(2);
+  els.netSale.value = round2(parseNumber(data.net_sale)).toFixed(2);
+  els.totalOrders.value = parseInt(data.total_orders || 0, 10);
+
+  if (parseNumber(data.unclassified_amount) > 0) {
+    els.unclassifiedHint.textContent =
+      `Unclassified payment amount: ${formatCurrency(data.unclassified_amount)} (not included in Cash/Card totals).`;
+  } else {
+    els.unclassifiedHint.textContent = '';
+  }
+
+  recalculate();
+}
+
+async function fetchLoyverseSummaryByDate(date) {
+  const response = await fetch(`/api/loyverse/sync?date=${encodeURIComponent(date)}`);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Sync failed');
+  }
+
+  return data;
+}
+
+async function loadPaymentDetailsForDate(date, options = {}) {
+  const { updateSummary = false, silent = true } = options;
+
+  try {
+    const data = await fetchLoyverseSummaryByDate(date);
+    applyPaymentDetails(data);
+
+    if (updateSummary) {
+      applySyncSummaryToFields(data);
+    }
+
+    return data;
+  } catch (error) {
+    clearPaymentDetails();
+    if (!silent) {
+      throw error;
+    }
+    return null;
+  }
+}
+
 function normalizeDate(value) {
   return String(value || '').slice(0, 10);
 }
@@ -313,6 +419,7 @@ async function loadReportForDate(date, options = {}) {
     if (!report) {
       resetSyncedFields();
       resetManualFields();
+      clearPaymentDetails();
 
       let carryForward = null;
       if (carryForwardOpeningCash) {
@@ -334,6 +441,7 @@ async function loadReportForDate(date, options = {}) {
     }
 
     applyReportData(report);
+    await loadPaymentDetailsForDate(date, { updateSummary: false, silent: true });
     if (showMessage) {
       setMessage('Saved report loaded.', 'success');
     }
@@ -372,26 +480,7 @@ async function syncFromLoyverse() {
   els.syncButton.textContent = 'Syncing...';
 
   try {
-    const response = await fetch(`/api/loyverse/sync?date=${encodeURIComponent(els.reportDate.value)}`);
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Sync failed');
-    }
-
-    els.cashTotal.value = round2(parseNumber(data.cash_total)).toFixed(2);
-    els.cardTotal.value = round2(parseNumber(data.card_total)).toFixed(2);
-    els.netSale.value = round2(parseNumber(data.net_sale)).toFixed(2);
-    els.totalOrders.value = parseInt(data.total_orders || 0, 10);
-
-    if (parseNumber(data.unclassified_amount) > 0) {
-      els.unclassifiedHint.textContent =
-        `Unclassified payment amount: ${formatCurrency(data.unclassified_amount)} (not included in Cash/Card totals).`;
-    } else {
-      els.unclassifiedHint.textContent = '';
-    }
-
-    recalculate();
+    await loadPaymentDetailsForDate(els.reportDate.value, { updateSummary: true, silent: false });
     setMessage('Loyverse data synced successfully.', 'success');
   } catch (error) {
     setMessage(error.message, 'danger');
@@ -599,6 +688,7 @@ async function initializePage() {
 
   resetManualFields();
   resetSyncedFields();
+  clearPaymentDetails();
   ensureManualInputsEnabled();
 
   bindEvents();

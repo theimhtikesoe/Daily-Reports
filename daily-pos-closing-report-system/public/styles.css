@@ -96,6 +96,38 @@ body {
   font-weight: 700;
 }
 
+.detail-box {
+  border: 1px solid var(--paper-line);
+  border-radius: 0.75rem;
+  background: linear-gradient(180deg, #fffdf9, #fff6e8);
+  min-height: 210px;
+  overflow: hidden;
+}
+
+.detail-box-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--paper-line);
+  background: linear-gradient(180deg, #f8e8cc, #f1d9af);
+  color: #5a3a11;
+  font-weight: 700;
+}
+
+.detail-list {
+  margin: 0;
+  padding: 10px 18px 14px 34px;
+  max-height: 230px;
+  overflow-y: auto;
+}
+
+.detail-list li {
+  padding: 2px 0;
+  color: #3f3124;
+  font-weight: 600;
+}
+
 #reportsTable thead th {
   background: linear-gradient(180deg, #f3e2c7, #ead0a8);
   color: #51330b;
@@ -208,6 +240,23 @@ body {
 
   #reportSection .form-control[readonly] {
     background: #f7e9d1 !important;
+  }
+
+  .detail-box {
+    border: 1px solid #cfad7a !important;
+    background: #fffaf1 !important;
+    min-height: 180px !important;
+  }
+
+  .detail-box-head {
+    background: #f2ddb8 !important;
+    color: #5d3a0f !important;
+    border-bottom: 1px solid #cfad7a !important;
+  }
+
+  .detail-list {
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .diff-positive {
