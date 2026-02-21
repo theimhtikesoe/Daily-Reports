@@ -1,6 +1,11 @@
 const axios = require('axios');
 const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
 const { calculateNetSale, normalizeMoney, roundCurrency } = require('../utils/calculations');
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const loyverseClient = axios.create({
   baseURL: process.env.LOYVERSE_API_BASE_URL || 'https://api.loyverse.com/v1.0',
@@ -28,9 +33,13 @@ function getDateBounds(date) {
     throw new Error('Invalid date format. Use YYYY-MM-DD.');
   }
 
+  const tz = process.env.LOYVERSE_TIMEZONE || 'Asia/Bangkok';
+  const startLocal = dayjs.tz(`${date} 00:00:00.000`, tz);
+  const endLocal = dayjs.tz(`${date} 23:59:59.999`, tz);
+
   return {
-    startIso: parsed.startOf('day').toISOString(),
-    endIso: parsed.endOf('day').toISOString()
+    startIso: startLocal.toISOString(),
+    endIso: endLocal.toISOString()
   };
 }
 
