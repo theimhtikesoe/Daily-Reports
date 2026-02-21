@@ -1,6 +1,6 @@
 const dayjs = require('dayjs');
 const { query, getDialect } = require('../config/db');
-const { fetchSalesSummaryByDate } = require('../services/loyverseService');
+const { fetchNetSaleByDate } = require('../services/loyverseService');
 const { calculateReportValues, toNumber } = require('../utils/calculations');
 const { calculatePeriodBusinessSummary } = require('../services/settlementService');
 
@@ -32,7 +32,7 @@ async function syncFromLoyverse(req, res, next) {
     const { date } = req.query;
     validateDateOrThrow(date);
 
-    const summary = await fetchSalesSummaryByDate(date);
+    const summary = await fetchNetSaleByDate(date);
     res.json(summary);
   } catch (error) {
     next(error);

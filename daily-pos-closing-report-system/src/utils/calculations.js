@@ -58,6 +58,10 @@ function calculateReportValues(input) {
   const cardTotal = toNumber(input.card_total);
   const expense = toNumber(input.expense);
   const actualCashCounted = toNumber(input.actual_cash_counted);
+  const hasManualNetSale =
+    input.net_sale !== undefined &&
+    input.net_sale !== null &&
+    String(input.net_sale).trim() !== '';
 
   const expectedCash = calculateExpectedCash({
     opening_cash: openingCash,
@@ -70,10 +74,12 @@ function calculateReportValues(input) {
     expected_cash: expectedCash
   });
 
-  const netSale = calculateNetSale({
-    cash_total: cashTotal,
-    card_total: cardTotal
-  });
+  const netSale = hasManualNetSale
+    ? roundCurrency(toNumber(input.net_sale))
+    : calculateNetSale({
+        cash_total: cashTotal,
+        card_total: cardTotal
+      });
 
   return {
     opening_cash: roundCurrency(openingCash),
