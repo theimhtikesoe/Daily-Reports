@@ -206,7 +206,7 @@ async function downloadReportAsPdf() {
     const canvas = await captureReportSection();
     const imageData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdf = new jsPDF('l', 'mm', 'a4');
 
     const margin = 8;
     const pageWidth = pdf.internal.pageSize.getWidth();
