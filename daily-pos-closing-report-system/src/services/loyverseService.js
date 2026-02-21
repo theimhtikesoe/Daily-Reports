@@ -124,6 +124,53 @@ function classifyPaymentType(paymentTypeText) {
   return 'other';
 }
 
+function hasRefundData(receipt) {
+  const refundedFlags = [
+    receipt.is_refunded,
+    receipt.refunded,
+    receipt.is_returned
+  ];
+  if (refundedFlags.some((flag) => flag === true)) {
+    return true;
+  }
+
+  if (receipt.refunded_at || receipt.returned_at) {
+    return true;
+  }
+
+  const refundCollections = [
+    receipt.refunds,
+    receipt.refund_items,
+    receipt.returns
+  ];
+
+  return refundCollections.some((collection) => Array.isArray(collection) && collection.length > 0);
+}
+
+function isVoidedReceipt(receipt) {
+  const status = String(receipt.status || '').toUpperCase();
+  const voidStatuses = new Set(['VOIDED', 'VOID', 'CANCELLED', 'CANCELED', 'DELETED']);
+
+  return (
+    voidStatuses.has(status) ||
+    receipt.voided_at ||
+    receipt.cancelled_at ||
+    receipt.canceled_at ||
+    receipt.deleted_at ||
+    receipt.is_voided === true
+  );
+}
+
+function isCompletedReceipt(receipt) {
+  if (isVoidedReceipt(receipt) || hasRefundData(receipt)) {
+    return false;
+  }
+
+  const status = String(receipt.status || '').toUpperCase();
+  const completedStatuses = new Set(['', 'CLOSED', 'COMPLETED', 'PAID']);
+  return completedStatuses.has(status);
+}
+
 function extractPaymentEntries(receipt, paymentTypeMap) {
   const payments =
     receipt.payments ||
@@ -195,10 +242,7 @@ async function fetchSalesSummaryByDate(date) {
     unclassified_amount: 0
   };
 
-  const closedReceipts = receipts.filter((receipt) => {
-    const status = String(receipt.status || '').toUpperCase();
-    return status === 'CLOSED' || status === '';
-  });
+  const closedReceipts = receipts.filter(isCompletedReceipt);
 
   for (const receipt of closedReceipts) {
     const paymentEntries = extractPaymentEntries(receipt, paymentTypeMap);
@@ -235,5 +279,10 @@ async function fetchSalesSummaryByDate(date) {
 }
 
 module.exports = {
-  fetchSalesSummaryByDate
+  fetchSalesSummaryByDate,
+  fetchClosedReceiptsByDate,
+  fetchPaymentTypeMap,
+  extractPaymentEntries,
+  classifyPaymentType,
+  isCompletedReceipt
 };

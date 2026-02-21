@@ -2,6 +2,7 @@ const dayjs = require('dayjs');
 const { query, getDialect } = require('../config/db');
 const { fetchSalesSummaryByDate } = require('../services/loyverseService');
 const { calculateReportValues, toNumber } = require('../utils/calculations');
+const { calculatePeriodBusinessSummary } = require('../services/settlementService');
 
 const isPostgres = getDialect() === 'postgres';
 
@@ -210,10 +211,60 @@ async function getLast7DayNetSales(req, res, next) {
   }
 }
 
+async function getReportsSummary(req, res, next) {
+  try {
+    const { from, to } = req.query;
+    const conditions = [];
+    const params = [];
+    let index = 1;
+
+    if (from) {
+      validateDateOrThrow(from);
+      conditions.push(`date >= ${placeholder(index)}`);
+      params.push(from);
+      index += 1;
+    }
+
+    if (to) {
+      validateDateOrThrow(to);
+      conditions.push(`date <= ${placeholder(index)}`);
+      params.push(to);
+      index += 1;
+    }
+
+    let sql = 'SELECT date, cash_total, card_total, expense, tip FROM daily_reports';
+    if (conditions.length > 0) {
+      sql += ` WHERE ${conditions.join(' AND ')}`;
+    }
+    sql += ' ORDER BY date ASC';
+
+    const rows = await query(sql, params);
+
+    const summary = calculatePeriodBusinessSummary(
+      rows.map((row) => ({
+        cashSales: toNumber(row.cash_total),
+        cardSales: toNumber(row.card_total),
+        expenses: toNumber(row.expense),
+        tips: toNumber(row.tip)
+      }))
+    );
+
+    return res.json({
+      from: from || null,
+      to: to || null,
+      days: rows.length,
+      ...summary
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   syncFromLoyverse,
   getReportByDate,
   upsertReport,
   listReports,
-  getLast7DayNetSales
+  getLast7DayNetSales,
+  getReportsSummary
 };
