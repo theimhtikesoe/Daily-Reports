@@ -84,17 +84,55 @@ function formatCurrency(value) {
   }).format(parseNumber(value));
 }
 
+function formatPercentage(value) {
+  const normalized = round2(parseNumber(value));
+  const clean = normalized % 1 === 0 ? String(normalized.toFixed(0)) : String(normalized.toFixed(2));
+  return `${clean.replace(/\.?0+$/, '')}%`;
+}
+
+function parsePercentage(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  let normalized = String(value).trim();
+  if (normalized.endsWith('%')) {
+    normalized = normalized.slice(0, -1);
+  }
+
+  const parsed = Number(normalized.replace(/,/g, ''));
+  if (!Number.isFinite(parsed) || parsed === 0) {
+    return null;
+  }
+
+  return round2(Math.abs(parsed));
+}
+
 function normalizeEntries(entries) {
   if (!Array.isArray(entries)) {
     return [];
   }
 
   return entries
-    .map((entry) => round2(parseNumber(entry)))
-    .filter((amount) => Number.isFinite(amount) && amount !== 0);
+    .map((entry) => {
+      if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+        return {
+          amount: round2(parseNumber(entry.amount)),
+          percentage: parsePercentage(entry.percentage ?? entry.percent ?? entry.rate)
+        };
+      }
+
+      return {
+        amount: round2(parseNumber(entry)),
+        percentage: null
+      };
+    })
+    .filter((entry) => Number.isFinite(entry.amount) && entry.amount !== 0);
 }
 
-function renderEntryList(listElement, entries) {
+function renderEntryList(listElement, entries, options = {}) {
+  const { showPercentage = false } = options;
+
   if (!listElement) {
     return;
   }
@@ -109,25 +147,35 @@ function renderEntryList(listElement, entries) {
     return;
   }
 
-  entries.forEach((amount) => {
+  entries.forEach((entry) => {
     const li = document.createElement('li');
-    li.textContent = formatCurrency(amount);
+    if (showPercentage && entry.percentage !== null) {
+      li.textContent = `${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
+    } else {
+      li.textContent = formatCurrency(entry.amount);
+    }
     listElement.appendChild(li);
   });
 }
 
-function applyPaymentDetails({ cash_entries, card_entries, discount_entries }) {
+function applyPaymentDetails({ cash_entries, card_entries, discount_entries, discount_entry_details, total_discount }) {
   const cashEntries = normalizeEntries(cash_entries);
   const cardEntries = normalizeEntries(card_entries);
-  const discountEntries = normalizeEntries(discount_entries);
+  const discountEntries = normalizeEntries(
+    Array.isArray(discount_entry_details) && discount_entry_details.length
+      ? discount_entry_details
+      : discount_entries
+  );
 
   renderEntryList(els.cashEntriesList, cashEntries);
   renderEntryList(els.cardEntriesList, cardEntries);
-  renderEntryList(els.discountEntriesList, discountEntries);
+  renderEntryList(els.discountEntriesList, discountEntries, { showPercentage: true });
 
-  const cashTotal = cashEntries.reduce((sum, amount) => sum + amount, 0);
-  const cardTotal = cardEntries.reduce((sum, amount) => sum + amount, 0);
-  const discountTotal = discountEntries.reduce((sum, amount) => sum + amount, 0);
+  const cashTotal = cashEntries.reduce((sum, entry) => sum + entry.amount, 0);
+  const cardTotal = cardEntries.reduce((sum, entry) => sum + entry.amount, 0);
+  const discountTotalFromEntries = discountEntries.reduce((sum, entry) => sum + entry.amount, 0);
+  const discountTotalFromApi = round2(parseNumber(total_discount));
+  const discountTotal = discountTotalFromApi > 0 ? discountTotalFromApi : discountTotalFromEntries;
 
   if (els.cashEntriesTotal) {
     els.cashEntriesTotal.textContent = formatCurrency(cashTotal);
@@ -141,7 +189,13 @@ function applyPaymentDetails({ cash_entries, card_entries, discount_entries }) {
 }
 
 function clearPaymentDetails() {
-  applyPaymentDetails({ cash_entries: [], card_entries: [], discount_entries: [] });
+  applyPaymentDetails({
+    cash_entries: [],
+    card_entries: [],
+    discount_entries: [],
+    discount_entry_details: [],
+    total_discount: 0
+  });
 }
 
 function getReportFileBaseName() {

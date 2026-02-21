@@ -143,6 +143,7 @@ App URL:
 - `card_entries` (array of card payment amounts)
 - `total_discount`
 - `discount_entries` (array of discount amounts)
+- `discount_entry_details` (array of `{ amount, percentage }`)
 
 ## Security Notes
 

@@ -255,7 +255,71 @@ function extractDiscountValue(entry) {
   return normalizeMoney(rawAmount);
 }
 
-function extractDiscountAmountFromReceipt(receipt) {
+function extractDiscountPercentage(entry) {
+  if (!entry || typeof entry !== 'object') {
+    return null;
+  }
+
+  const directCandidates = [
+    entry.percentage,
+    entry.percent,
+    entry.rate,
+    entry.discount_rate,
+    entry.value_percentage
+  ];
+
+  for (const candidate of directCandidates) {
+    const normalized =
+      typeof candidate === 'string'
+        ? candidate.replace('%', '').trim()
+        : candidate;
+    const parsed = Number(normalized);
+    if (Number.isFinite(parsed) && parsed !== 0) {
+      return roundCurrency(Math.abs(parsed));
+    }
+  }
+
+  const typeText = [
+    entry.type,
+    entry.discount_type,
+    entry.value_type,
+    entry.calculation_type,
+    entry.amount_type
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toUpperCase();
+
+  const valueCandidateRaw =
+    typeof entry.value === 'string'
+      ? entry.value.replace('%', '').trim()
+      : entry.value;
+  const valueCandidate = Number(valueCandidateRaw);
+  if (typeText.includes('PERCENT') && Number.isFinite(valueCandidate) && valueCandidate !== 0) {
+    return roundCurrency(Math.abs(valueCandidate));
+  }
+
+  return null;
+}
+
+function createDiscountEntry(amount, percentage = null) {
+  const normalizedAmount = roundCurrency(Math.abs(amount));
+  if (normalizedAmount <= 0) {
+    return null;
+  }
+
+  const normalizedPercentage =
+    percentage === null || percentage === undefined
+      ? null
+      : roundCurrency(Math.abs(Number(percentage)));
+
+  return {
+    amount: normalizedAmount,
+    percentage: Number.isFinite(normalizedPercentage) && normalizedPercentage > 0 ? normalizedPercentage : null
+  };
+}
+
+function extractDiscountEntriesFromReceipt(receipt) {
   const receiptLevelCandidates = [
     receipt.total_discounts_money,
     receipt.total_discount_money,
@@ -265,14 +329,7 @@ function extractDiscountAmountFromReceipt(receipt) {
     receipt.discount
   ];
 
-  for (const candidate of receiptLevelCandidates) {
-    const amount = Math.abs(normalizeMoney(candidate));
-    if (amount > 0) {
-      return roundCurrency(amount);
-    }
-  }
-
-  let total = 0;
+  const entries = [];
 
   const receiptDiscountLists = [
     receipt.discounts,
@@ -284,7 +341,11 @@ function extractDiscountAmountFromReceipt(receipt) {
       continue;
     }
     for (const discount of list) {
-      total += Math.abs(extractDiscountValue(discount));
+      const amount = Math.abs(extractDiscountValue(discount));
+      const entry = createDiscountEntry(amount, extractDiscountPercentage(discount));
+      if (entry) {
+        entries.push(entry);
+      }
     }
   }
 
@@ -299,17 +360,17 @@ function extractDiscountAmountFromReceipt(receipt) {
         line.discount
       ];
 
-      let lineDiscount = 0;
+      let lineDiscount = null;
       for (const candidate of lineLevelCandidates) {
         const amount = Math.abs(normalizeMoney(candidate));
         if (amount > 0) {
-          lineDiscount = amount;
+          lineDiscount = createDiscountEntry(amount, extractDiscountPercentage(line));
           break;
         }
       }
 
-      if (lineDiscount > 0) {
-        total += lineDiscount;
+      if (lineDiscount) {
+        entries.push(lineDiscount);
         continue;
       }
 
@@ -319,13 +380,31 @@ function extractDiscountAmountFromReceipt(receipt) {
           continue;
         }
         for (const discount of list) {
-          total += Math.abs(extractDiscountValue(discount));
+          const amount = Math.abs(extractDiscountValue(discount));
+          const percentage = extractDiscountPercentage(discount) ?? extractDiscountPercentage(line);
+          const entry = createDiscountEntry(amount, percentage);
+          if (entry) {
+            entries.push(entry);
+          }
         }
       }
     }
   }
 
-  return roundCurrency(total);
+  if (entries.length > 0) {
+    return entries;
+  }
+
+  const fallbackPercentage = extractDiscountPercentage(receipt);
+  for (const candidate of receiptLevelCandidates) {
+    const amount = Math.abs(normalizeMoney(candidate));
+    const entry = createDiscountEntry(amount, fallbackPercentage);
+    if (entry) {
+      return [entry];
+    }
+  }
+
+  return [];
 }
 
 async function fetchSalesSummaryByDate(date) {
@@ -340,18 +419,20 @@ async function fetchSalesSummaryByDate(date) {
     unclassified_amount: 0,
     cash_entries: [],
     card_entries: [],
-    discount_entries: []
+    discount_entries: [],
+    discount_entry_details: []
   };
 
   const closedReceipts = receipts.filter(isCompletedReceipt);
 
   for (const receipt of closedReceipts) {
     const paymentEntries = extractPaymentEntries(receipt, paymentTypeMap);
-    const discountAmount = extractDiscountAmountFromReceipt(receipt);
+    const discountEntries = extractDiscountEntriesFromReceipt(receipt);
 
-    if (discountAmount > 0) {
-      totals.total_discount += discountAmount;
-      totals.discount_entries.push(roundCurrency(discountAmount));
+    for (const discountEntry of discountEntries) {
+      totals.total_discount += discountEntry.amount;
+      totals.discount_entries.push(discountEntry.amount);
+      totals.discount_entry_details.push(discountEntry);
     }
 
     for (const entry of paymentEntries) {
@@ -388,7 +469,8 @@ async function fetchSalesSummaryByDate(date) {
     cash_entries: totals.cash_entries,
     card_entries: totals.card_entries,
     total_discount: totals.total_discount,
-    discount_entries: totals.discount_entries
+    discount_entries: totals.discount_entries,
+    discount_entry_details: totals.discount_entry_details
   };
 }
 
