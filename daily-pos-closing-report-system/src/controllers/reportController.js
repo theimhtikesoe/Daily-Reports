@@ -248,7 +248,7 @@ async function getReportsSummary(req, res, next) {
       index += 1;
     }
 
-    let sql = 'SELECT date, cash_total, card_total, expense, tip FROM daily_reports';
+    let sql = 'SELECT date, cash_total, card_total, expense, tip, safe_box_amount FROM daily_reports';
     if (conditions.length > 0) {
       sql += ` WHERE ${conditions.join(' AND ')}`;
     }
@@ -261,7 +261,8 @@ async function getReportsSummary(req, res, next) {
         cashSales: toNumber(row.cash_total),
         cardSales: toNumber(row.card_total),
         expenses: toNumber(row.expense),
-        tips: toNumber(row.tip)
+        tips: toNumber(row.tip),
+        safeBoxAmount: toNumber(row.safe_box_amount)
       }))
     );
 

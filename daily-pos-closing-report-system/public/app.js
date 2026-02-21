@@ -23,6 +23,7 @@ const els = {
   actualCashCounted: document.getElementById('actualCashCounted'),
   expectedCash: document.getElementById('expectedCash'),
   difference: document.getElementById('difference'),
+  safeBoxApplied: document.getElementById('safeBoxApplied'),
   cashEntriesList: document.getElementById('cashEntriesList'),
   cardEntriesList: document.getElementById('cardEntriesList'),
   discountEntriesList: document.getElementById('discountEntriesList'),
@@ -302,6 +303,7 @@ async function downloadReportAsPdf() {
 }
 
 function recalculate() {
+  const safeBoxLabel = String(els.safeBoxLabel.value || '').trim() || '1K Bill';
   const openingCash = parseNumber(els.openingCash.value);
   const cashTotal = parseNumber(els.cashTotal.value);
   const expense = parseNumber(els.expense.value);
@@ -316,6 +318,9 @@ function recalculate() {
   els.expectedCash.value = expectedCash.toFixed(2);
   els.difference.value = difference.toFixed(2);
   els.netSale.value = netSale.toFixed(2);
+  if (els.safeBoxApplied) {
+    els.safeBoxApplied.value = `${safeBoxLabel}: ${formatCurrency(safeBoxAmount)}`;
+  }
 
   els.difference.classList.remove('diff-positive', 'diff-negative');
   if (difference > 0) {
@@ -613,6 +618,8 @@ function renderReportsTable(reports) {
     const tr = document.createElement('tr');
     const reportDate = normalizeDate(report.date);
     const difference = parseNumber(report.difference);
+    const safeBoxLabel = String(report.safe_box_label || '').trim() || '1K Bill';
+    const safeBoxAmount = parseNumber(report.safe_box_amount);
     tr.innerHTML = `
       <td>${reportDate}</td>
       <td>${formatCurrency(report.net_sale)}</td>
@@ -620,7 +627,7 @@ function renderReportsTable(reports) {
       <td>${formatCurrency(report.card_total)}</td>
       <td>${parseInt(report.total_orders || 0, 10)}</td>
       <td>${formatCurrency(report.expense)}</td>
-      <td>${formatCurrency(report.safe_box_amount)}</td>
+      <td>${safeBoxLabel}: ${formatCurrency(safeBoxAmount)}</td>
       <td>${formatCurrency(report.expected_cash)}</td>
       <td class="${difference > 0 ? 'diff-positive' : difference < 0 ? 'diff-negative' : ''}">${formatCurrency(difference)}</td>
       <td class="no-export">
@@ -697,6 +704,7 @@ function bindEvents() {
   document.querySelectorAll('.calc-input').forEach((input) => {
     input.addEventListener('input', recalculate);
   });
+  els.safeBoxLabel.addEventListener('input', recalculate);
 
   els.loadButton.addEventListener('click', loadSavedReport);
   els.syncButton.addEventListener('click', syncFromLoyverse);

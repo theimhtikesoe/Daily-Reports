@@ -51,8 +51,9 @@ function calculatePeriodBusinessSummary(days) {
       const cardSales = toNumber(day.cardSales ?? day.card_total);
       const expenses = toNumber(day.expenses ?? day.expense);
       const tips = toNumber(day.tips ?? day.tip);
+      const safeBoxAmount = toNumber(day.safeBoxAmount ?? day.safe_box_amount);
 
-      if (cashSales < 0 || cardSales < 0 || expenses < 0 || tips < 0) {
+      if (cashSales < 0 || cardSales < 0 || expenses < 0 || tips < 0 || safeBoxAmount < 0) {
         throw new Error(`days[${index}] values must be non-negative`);
       }
 
@@ -60,9 +61,10 @@ function calculatePeriodBusinessSummary(days) {
       acc.cardTotal += cardSales;
       acc.expenseTotal += expenses;
       acc.tipsTotal += tips;
+      acc.safeBoxTotal += safeBoxAmount;
       return acc;
     },
-    { cashTotal: 0, cardTotal: 0, expenseTotal: 0, tipsTotal: 0 }
+    { cashTotal: 0, cardTotal: 0, expenseTotal: 0, tipsTotal: 0, safeBoxTotal: 0 }
   );
 
   const revenueTotal = roundCurrency(totals.cashTotal + totals.cardTotal);
@@ -74,7 +76,8 @@ function calculatePeriodBusinessSummary(days) {
     revenueTotal,
     expenseTotal: roundCurrency(totals.expenseTotal),
     netRevenueAfterExpense,
-    tipsTotal: roundCurrency(totals.tipsTotal)
+    tipsTotal: roundCurrency(totals.tipsTotal),
+    safeBoxTotal: roundCurrency(totals.safeBoxTotal)
   };
 }
 
