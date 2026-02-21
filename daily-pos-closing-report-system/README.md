@@ -45,8 +45,8 @@ daily-pos-closing-report-system/
 ## Features
 
 - Date selector for daily report
-- Sync `net_sale` from Loyverse receipts API by selected date
-- Manual payment totals input: Cash and Card
+- Sync sales totals from Loyverse receipts API by selected date
+- Payment split totals: Cash and Card
 - Auto-calculated:
   - Net Sale = Cash + Card
   - Expected Cash = Opening Cash + Cash Total - Expense
@@ -134,8 +134,11 @@ App URL:
 `GET /api/loyverse/sync` response:
 
 - `date`
+- `cash_total`
+- `card_total`
 - `net_sale`
 - `total_orders`
+- `unclassified_amount`
 
 ## Security Notes
 

@@ -22,7 +22,6 @@ const els = {
 };
 
 let chart;
-let netSaleSyncedFromApi = false;
 
 function todayLocalDate() {
   const now = new Date();
@@ -88,9 +87,7 @@ function recalculate() {
 
   els.expectedCash.value = expectedCash.toFixed(2);
   els.difference.value = difference.toFixed(2);
-  if (!netSaleSyncedFromApi) {
-    els.netSale.value = netSale.toFixed(2);
-  }
+  els.netSale.value = netSale.toFixed(2);
 
   els.difference.classList.remove('diff-positive', 'diff-negative');
   if (difference > 0) {
@@ -105,7 +102,6 @@ function getReportPayload() {
     date: els.reportDate.value,
     cash_total: parseNumber(els.cashTotal.value),
     card_total: parseNumber(els.cardTotal.value),
-    net_sale: parseNumber(els.netSale.value),
     total_orders: parseInt(els.totalOrders.value || '0', 10),
     expense: parseNumber(els.expense.value),
     tip: parseNumber(els.tip.value),
@@ -123,7 +119,6 @@ function applyReportData(report) {
   els.tip.value = round2(parseNumber(report.tip)).toFixed(2);
   els.openingCash.value = round2(parseNumber(report.opening_cash)).toFixed(2);
   els.actualCashCounted.value = round2(parseNumber(report.actual_cash_counted)).toFixed(2);
-  netSaleSyncedFromApi = true;
   recalculate();
 }
 
@@ -136,7 +131,6 @@ function resetManualFields() {
 }
 
 function resetSyncedFields() {
-  netSaleSyncedFromApi = false;
   els.cashTotal.value = '0.00';
   els.cardTotal.value = '0.00';
   els.totalOrders.value = '0';
@@ -144,7 +138,7 @@ function resetSyncedFields() {
 }
 
 function ensureManualInputsEnabled() {
-  [els.cashTotal, els.cardTotal, els.expense, els.tip, els.openingCash, els.actualCashCounted].forEach((input) => {
+  [els.expense, els.tip, els.openingCash, els.actualCashCounted].forEach((input) => {
     input.readOnly = false;
     input.disabled = false;
   });
@@ -201,13 +195,20 @@ async function syncFromLoyverse() {
       throw new Error(data.message || 'Sync failed');
     }
 
-    netSaleSyncedFromApi = true;
+    els.cashTotal.value = round2(parseNumber(data.cash_total)).toFixed(2);
+    els.cardTotal.value = round2(parseNumber(data.card_total)).toFixed(2);
     els.netSale.value = round2(parseNumber(data.net_sale)).toFixed(2);
     els.totalOrders.value = parseInt(data.total_orders || 0, 10);
-    els.unclassifiedHint.textContent = '';
+
+    if (parseNumber(data.unclassified_amount) > 0) {
+      els.unclassifiedHint.textContent =
+        `Unclassified payment amount: ${formatCurrency(data.unclassified_amount)} (not included in Cash/Card totals).`;
+    } else {
+      els.unclassifiedHint.textContent = '';
+    }
 
     recalculate();
-    setMessage('Net sale synced from Loyverse successfully.', 'success');
+    setMessage('Loyverse data synced successfully.', 'success');
   } catch (error) {
     setMessage(error.message, 'danger');
   } finally {
@@ -360,7 +361,6 @@ function bindEvents() {
   });
 
   els.reportDate.addEventListener('change', () => {
-    netSaleSyncedFromApi = false;
     clearMessage();
     els.unclassifiedHint.textContent = '';
   });

@@ -287,18 +287,8 @@ async function fetchSalesSummaryByDate(date) {
   };
 }
 
-async function fetchNetSaleByDate(date) {
-  const summary = await fetchSalesSummaryByDate(date);
-  return {
-    date: summary.date,
-    net_sale: summary.net_sale,
-    total_orders: summary.total_orders
-  };
-}
-
 module.exports = {
   fetchSalesSummaryByDate,
-  fetchNetSaleByDate,
   fetchClosedReceiptsByDate,
   fetchPaymentTypeMap,
   extractPaymentEntries,
