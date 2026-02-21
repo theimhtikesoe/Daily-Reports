@@ -106,7 +106,7 @@ Required keys:
 Optional:
 
 - `LOYVERSE_API_BASE_URL` (default `https://api.loyverse.com/v1.0`)
-- `LOYVERSE_MONEY_DIVISOR` (default `100` for minor units)
+- `LOYVERSE_MONEY_DIVISOR` (default `1`; set to `100` only if your API returns minor units)
 - `AUTO_SYNC_ENABLED` (`true`/`false`)
 - `AUTO_SYNC_TIME` (cron expression, default `59 23 * * *`)
 

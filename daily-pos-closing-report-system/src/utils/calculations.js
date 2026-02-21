@@ -30,10 +30,10 @@ function toNumber(value) {
 }
 
 function normalizeMoney(rawValue) {
-  const divisor = Number(process.env.LOYVERSE_MONEY_DIVISOR || 100);
+  const divisor = Number(process.env.LOYVERSE_MONEY_DIVISOR || 1);
   let amount = toNumber(rawValue);
 
-  if (divisor > 1 && Number.isInteger(amount) && Math.abs(amount) >= divisor) {
+  if (Number.isFinite(divisor) && divisor > 1 && Number.isInteger(amount) && Math.abs(amount) >= divisor) {
     amount = amount / divisor;
   }
 

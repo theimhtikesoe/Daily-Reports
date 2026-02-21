@@ -30,7 +30,26 @@ function todayLocalDate() {
 }
 
 function parseNumber(value) {
-  const n = Number(value);
+  if (value === null || value === undefined) {
+    return 0;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  let normalized = String(value).trim();
+  if (normalized === '') {
+    return 0;
+  }
+
+  if (/^-?\d+,\d+$/.test(normalized) && !normalized.includes('.')) {
+    normalized = normalized.replace(',', '.');
+  } else {
+    normalized = normalized.replace(/,/g, '');
+  }
+
+  const n = Number(normalized);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -116,8 +135,16 @@ function resetSyncedFields() {
   els.totalOrders.value = '0';
 }
 
+function ensureManualInputsEnabled() {
+  [els.expense, els.tip, els.openingCash, els.actualCashCounted].forEach((input) => {
+    input.readOnly = false;
+    input.disabled = false;
+  });
+}
+
 async function loadSavedReport() {
   clearMessage();
+  ensureManualInputsEnabled();
 
   if (!els.reportDate.value) {
     setMessage('Please choose a report date first.', 'warning');
@@ -148,6 +175,7 @@ async function loadSavedReport() {
 
 async function syncFromLoyverse() {
   clearMessage();
+  ensureManualInputsEnabled();
 
   if (!els.reportDate.value) {
     setMessage('Please choose a report date first.', 'warning');
@@ -342,6 +370,7 @@ async function initializePage() {
 
   resetManualFields();
   resetSyncedFields();
+  ensureManualInputsEnabled();
 
   bindEvents();
 

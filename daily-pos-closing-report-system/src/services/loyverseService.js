@@ -53,7 +53,8 @@ async function fetchPaymentTypeMap() {
         continue;
       }
       map.set(id, {
-        name: type.name || type.type || type.payment_type || ''
+        name: type.name || type.payment_type || '',
+        type: type.type || ''
       });
     }
 
@@ -133,17 +134,22 @@ function extractPaymentEntries(receipt, paymentTypeMap) {
   if (Array.isArray(payments) && payments.length > 0) {
     return payments.map((payment) => {
       const paymentTypeId = payment.payment_type_id || payment.paymentTypeId || payment.type_id;
-      const mappedName = paymentTypeId ? paymentTypeMap.get(paymentTypeId)?.name : '';
+      const mapped = paymentTypeId ? paymentTypeMap.get(paymentTypeId) : null;
 
-      const paymentTypeLabel =
-        payment.payment_type ||
-        payment.payment_type_name ||
-        payment.name ||
-        payment.type ||
-        mappedName ||
-        '';
+      const paymentTypeLabel = [
+        payment.payment_type,
+        payment.payment_type_name,
+        payment.name,
+        payment.type,
+        mapped?.name,
+        mapped?.type
+      ]
+        .filter(Boolean)
+        .join(' ');
 
       const rawAmount =
+        payment.money_amount ??
+        payment.amount_money?.amount ??
         payment.amount_money ??
         payment.amount ??
         payment.collected_money ??
@@ -160,13 +166,20 @@ function extractPaymentEntries(receipt, paymentTypeMap) {
 
   return [
     {
-      paymentTypeLabel:
-        receipt.payment_type ||
-        receipt.payment_type_name ||
-        receipt.tender_type ||
-        receipt.payment_method ||
-        '',
-      amount: normalizeMoney(receipt.total_money ?? receipt.total ?? 0)
+      paymentTypeLabel: [
+        receipt.payment_type,
+        receipt.payment_type_name,
+        receipt.tender_type,
+        receipt.payment_method
+      ]
+        .filter(Boolean)
+        .join(' '),
+      amount: normalizeMoney(
+        receipt.total_money ??
+        receipt.total ??
+        receipt.total_paid_money ??
+        0
+      )
     }
   ];
 }
