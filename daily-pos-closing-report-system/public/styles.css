@@ -73,6 +73,37 @@ body {
   letter-spacing: 0.2px;
 }
 
+.manual-inputs-row .form-label {
+  min-height: 2.4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  line-height: 1.2;
+}
+
+.cash-focus-col {
+  position: relative;
+}
+
+.cash-focus-col .form-label {
+  color: #6f4512;
+}
+
+.cash-focus-label-line {
+  display: block;
+}
+
+.cash-focus-col .form-control {
+  background: linear-gradient(180deg, #fff8ed, #fdf0dc);
+  border-color: #d2ad73;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.cash-focus-col .form-control:focus {
+  border-color: #aa6d14;
+  box-shadow: 0 0 0 0.2rem rgba(182, 120, 30, 0.22);
+}
+
 #reportSection .form-control {
   background: #fffcf7;
   border: 1px solid var(--paper-line);
@@ -231,11 +262,26 @@ body {
     color: #654015 !important;
   }
 
+  .manual-inputs-row .form-label {
+    min-height: 2.2rem !important;
+    line-height: 1.15 !important;
+  }
+
+  .cash-focus-col .form-label {
+    color: #613d11 !important;
+    font-weight: 800 !important;
+  }
+
   #reportSection .form-control {
     border: 1px solid #ceaa73 !important;
     background: #ffffff !important;
     color: #2d261f !important;
     font-weight: 700 !important;
+  }
+
+  .cash-focus-col .form-control {
+    background: #fef0da !important;
+    border-color: #bb8a42 !important;
   }
 
   #reportSection .form-control[readonly] {

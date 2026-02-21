@@ -54,7 +54,7 @@
         </div>
 
         <h2 class="h5 mt-4 mb-3">Manual Inputs</h2>
-        <div class="row g-3 mb-3">
+        <div class="row g-3 mb-3 manual-inputs-row">
           <div class="col-md-3">
             <label for="expense" class="form-label">Expense</label>
             <input id="expense" type="text" inputmode="decimal" class="form-control calc-input" />
@@ -63,12 +63,15 @@
             <label for="tip" class="form-label">Tip</label>
             <input id="tip" type="text" inputmode="decimal" class="form-control" />
           </div>
-          <div class="col-md-3">
+          <div class="col-md-3 cash-focus-col">
             <label for="openingCash" class="form-label">Opening Cash</label>
             <input id="openingCash" type="text" inputmode="decimal" class="form-control calc-input" />
           </div>
-          <div class="col-md-3">
-            <label for="actualCashCounted" class="form-label">Actual Cash Counted</label>
+          <div class="col-md-3 cash-focus-col">
+            <label for="actualCashCounted" class="form-label">
+              <span class="cash-focus-label-line">Actual Cash</span>
+              <span class="cash-focus-label-line">Counted</span>
+            </label>
             <input id="actualCashCounted" type="text" inputmode="decimal" class="form-control calc-input" />
           </div>
         </div>
