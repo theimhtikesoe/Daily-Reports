@@ -5,13 +5,14 @@ const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const apiRoutes = require('./routes/apiRoutes');
-const { ensureDatabase, initializeSchema, testConnection } = require('./config/db');
+const { ensureDatabase, initializeSchema, testConnection, getDialect } = require('./config/db');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { scheduleDailySyncJob } = require('./jobs/dailySyncJob');
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
 const isVercelRuntime = Boolean(process.env.VERCEL || process.env.VERCEL_URL);
+const dbDialect = getDialect();
 
 app.use(helmet({
   contentSecurityPolicy: false
@@ -36,7 +37,11 @@ app.use(errorHandler);
 
 function shouldAutoInitDb() {
   return String(
-    process.env.DB_AUTO_INIT ?? (process.env.NODE_ENV === 'production' ? 'false' : 'true')
+    process.env.DB_AUTO_INIT ?? (
+      dbDialect === 'postgres'
+        ? 'true'
+        : (process.env.NODE_ENV === 'production' ? 'false' : 'true')
+    )
   ).toLowerCase() === 'true';
 }
 

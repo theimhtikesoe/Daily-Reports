@@ -5,7 +5,7 @@ Production-ready web application for daily store closing with Loyverse integrati
 ## Tech Stack
 
 - Backend: Node.js + Express
-- Database: MySQL
+- Database: PostgreSQL (Vercel managed) or MySQL
 - Frontend: Bootstrap + Vanilla JS
 - Charts: Chart.js
 
@@ -18,6 +18,7 @@ daily-pos-closing-report-system/
 │   ├── index.html
 │   └── styles.css
 ├── sql/
+│   ├── schema.postgres.sql
 │   └── schema.sql
 ├── src/
 │   ├── config/
@@ -62,7 +63,7 @@ daily-pos-closing-report-system/
 
 ## Database Schema
 
-Run SQL from `sql/schema.sql` or let the app auto-create on startup.
+Run SQL from `sql/schema.postgres.sql` (PostgreSQL) or `sql/schema.sql` (MySQL), or let the app auto-create on startup.
 
 Main table: `daily_reports` with fields:
 
@@ -91,12 +92,14 @@ cp .env.example .env
 
 Required keys:
 
+- `DATABASE_URL` (for PostgreSQL mode, recommended on Vercel)
+- OR MySQL keys:
 - `DB_HOST`
 - `DB_PORT`
 - `DB_USER`
 - `DB_PASSWORD`
 - `DB_NAME`
-- `DB_AUTO_INIT` (`true` for local bootstrap, `false` for managed production DB)
+- `DB_AUTO_INIT` (`true` to auto-create schema on startup)
 - `DB_REQUIRE_ON_STARTUP` (`true` to fail-fast if DB is unreachable on boot)
 - `LOYVERSE_API_TOKEN`
 
@@ -142,19 +145,21 @@ AUTO_SYNC_ENABLED=true
 AUTO_SYNC_TIME=59 23 * * *
 ```
 
-## Vercel + Managed MySQL
+## Vercel + Managed Postgres
 
 For Vercel deployment, set:
 
-- `DB_AUTO_INIT=false`
+- `DATABASE_URL` (provided by Vercel DB integration)
+- `DB_AUTO_INIT=true`
 - `DB_REQUIRE_ON_STARTUP=false`
-- all DB credentials for your managed MySQL
 - Loyverse variables
 
-Then import schema once to your DB:
+Schema is auto-created when `DB_AUTO_INIT=true`.
+
+If you want manual schema import:
 
 ```bash
-mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < sql/schema.sql
+psql "$DATABASE_URL" -f sql/schema.postgres.sql
 ```
 
 When enabled, server will auto-sync today's Loyverse totals and upsert the current day report.

@@ -1,7 +1,13 @@
 const dayjs = require('dayjs');
-const { query } = require('../config/db');
+const { query, getDialect } = require('../config/db');
 const { fetchSalesSummaryByDate } = require('../services/loyverseService');
 const { calculateReportValues, toNumber } = require('../utils/calculations');
+
+const isPostgres = getDialect() === 'postgres';
+
+function placeholder(index) {
+  return isPostgres ? `$${index}` : '?';
+}
 
 function isValidDate(date) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) {
@@ -37,7 +43,7 @@ async function getReportByDate(req, res, next) {
     const { date } = req.params;
     validateDateOrThrow(date);
 
-    const rows = await query('SELECT * FROM daily_reports WHERE date = ?', [date]);
+    const rows = await query(`SELECT * FROM daily_reports WHERE date = ${placeholder(1)}`, [date]);
 
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Report not found for this date' });
@@ -63,6 +69,54 @@ async function upsertReport(req, res, next) {
 
     const reportValues = calculateReportValues(payload);
     const tip = toNumber(payload.tip);
+
+    const values = [
+      payload.date,
+      reportValues.net_sale,
+      reportValues.cash_total,
+      reportValues.card_total,
+      totalOrders,
+      reportValues.expense,
+      tip,
+      reportValues.opening_cash,
+      reportValues.actual_cash_counted,
+      reportValues.expected_cash,
+      reportValues.difference
+    ];
+
+    if (isPostgres) {
+      const savedRows = await query(
+        `INSERT INTO daily_reports (
+          date,
+          net_sale,
+          cash_total,
+          card_total,
+          total_orders,
+          expense,
+          tip,
+          opening_cash,
+          actual_cash_counted,
+          expected_cash,
+          difference
+        ) VALUES (${placeholder(1)}, ${placeholder(2)}, ${placeholder(3)}, ${placeholder(4)}, ${placeholder(5)}, ${placeholder(6)}, ${placeholder(7)}, ${placeholder(8)}, ${placeholder(9)}, ${placeholder(10)}, ${placeholder(11)})
+        ON CONFLICT (date) DO UPDATE SET
+          net_sale = EXCLUDED.net_sale,
+          cash_total = EXCLUDED.cash_total,
+          card_total = EXCLUDED.card_total,
+          total_orders = EXCLUDED.total_orders,
+          expense = EXCLUDED.expense,
+          tip = EXCLUDED.tip,
+          opening_cash = EXCLUDED.opening_cash,
+          actual_cash_counted = EXCLUDED.actual_cash_counted,
+          expected_cash = EXCLUDED.expected_cash,
+          difference = EXCLUDED.difference,
+          updated_at = CURRENT_TIMESTAMP
+        RETURNING *`,
+        values
+      );
+
+      return res.status(201).json(savedRows[0]);
+    }
 
     await query(
       `INSERT INTO daily_reports (
@@ -90,22 +144,10 @@ async function upsertReport(req, res, next) {
         expected_cash = VALUES(expected_cash),
         difference = VALUES(difference),
         updated_at = CURRENT_TIMESTAMP`,
-      [
-        payload.date,
-        reportValues.net_sale,
-        reportValues.cash_total,
-        reportValues.card_total,
-        totalOrders,
-        reportValues.expense,
-        tip,
-        reportValues.opening_cash,
-        reportValues.actual_cash_counted,
-        reportValues.expected_cash,
-        reportValues.difference
-      ]
+      values
     );
 
-    const savedRows = await query('SELECT * FROM daily_reports WHERE date = ?', [payload.date]);
+    const savedRows = await query(`SELECT * FROM daily_reports WHERE date = ${placeholder(1)}`, [payload.date]);
     return res.status(201).json(savedRows[0]);
   } catch (error) {
     return next(error);
@@ -123,24 +165,27 @@ async function listReports(req, res, next) {
 
     const conditions = [];
     const params = [];
+    let index = 1;
 
     if (from) {
       validateDateOrThrow(from);
-      conditions.push('date >= ?');
+      conditions.push(`date >= ${placeholder(index)}`);
       params.push(from);
+      index += 1;
     }
 
     if (to) {
       validateDateOrThrow(to);
-      conditions.push('date <= ?');
+      conditions.push(`date <= ${placeholder(index)}`);
       params.push(to);
+      index += 1;
     }
 
     let sql = 'SELECT * FROM daily_reports';
     if (conditions.length > 0) {
       sql += ` WHERE ${conditions.join(' AND ')}`;
     }
-    sql += ' ORDER BY date DESC LIMIT ?';
+    sql += ` ORDER BY date DESC LIMIT ${placeholder(index)}`;
     params.push(limit);
 
     const rows = await query(sql, params);
