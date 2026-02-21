@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS daily_reports (
   total_orders INTEGER NOT NULL DEFAULT 0,
   expense NUMERIC(12,2) NOT NULL DEFAULT 0,
   tip NUMERIC(12,2) NOT NULL DEFAULT 0,
+  safe_box_label VARCHAR(120) NOT NULL DEFAULT '1K Bill',
+  safe_box_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
   opening_cash NUMERIC(12,2) NOT NULL DEFAULT 0,
   actual_cash_counted NUMERIC(12,2) NOT NULL DEFAULT 0,
   expected_cash NUMERIC(12,2) NOT NULL DEFAULT 0,

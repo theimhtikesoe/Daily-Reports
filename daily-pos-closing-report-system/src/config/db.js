@@ -4,6 +4,20 @@ const mysql = require('mysql2/promise');
 const { Pool: PostgresPool } = require('pg');
 
 const DIALECT = process.env.DATABASE_URL || process.env.POSTGRES_URL ? 'postgres' : 'mysql';
+const SAFE_BOX_BACKFILL_DATE = '2026-02-20';
+
+const DAILY_REPORTS_REQUIRED_COLUMNS = [
+  {
+    name: 'safe_box_label',
+    mysqlDefinition: "VARCHAR(120) NOT NULL DEFAULT '1K Bill'",
+    postgresDefinition: "VARCHAR(120) NOT NULL DEFAULT '1K Bill'"
+  },
+  {
+    name: 'safe_box_amount',
+    mysqlDefinition: 'DECIMAL(12,2) NOT NULL DEFAULT 0',
+    postgresDefinition: 'NUMERIC(12,2) NOT NULL DEFAULT 0'
+  }
+];
 
 function parseDbPort(value) {
   const parsed = Number(value || 3306);
@@ -81,6 +95,83 @@ function getSchemaFilePath() {
   return path.join(__dirname, '../../sql/schema.sql');
 }
 
+async function hasDailyReportColumn(columnName) {
+  if (DIALECT === 'postgres') {
+    const result = await getPostgresPool().query(
+      `SELECT 1
+       FROM information_schema.columns
+       WHERE table_schema = current_schema()
+         AND table_name = $1
+         AND column_name = $2
+       LIMIT 1`,
+      ['daily_reports', columnName]
+    );
+    return result.rowCount > 0;
+  }
+
+  const mysqlConfig = getMysqlConfig();
+  const [rows] = await getMysqlPool().query(
+    `SELECT 1
+     FROM information_schema.columns
+     WHERE table_schema = ?
+       AND table_name = ?
+       AND column_name = ?
+     LIMIT 1`,
+    [mysqlConfig.database, 'daily_reports', columnName]
+  );
+
+  return rows.length > 0;
+}
+
+async function ensureDailyReportsColumns() {
+  for (const column of DAILY_REPORTS_REQUIRED_COLUMNS) {
+    const exists = await hasDailyReportColumn(column.name);
+    if (exists) {
+      continue;
+    }
+
+    if (DIALECT === 'postgres') {
+      await getPostgresPool().query(
+        `ALTER TABLE daily_reports ADD COLUMN ${column.name} ${column.postgresDefinition}`
+      );
+      continue;
+    }
+
+    await getMysqlPool().query(
+      `ALTER TABLE daily_reports ADD COLUMN \`${column.name}\` ${column.mysqlDefinition}`
+    );
+  }
+}
+
+async function applySafeBoxBackfill() {
+  if (DIALECT === 'postgres') {
+    await getPostgresPool().query(
+      `UPDATE daily_reports
+       SET safe_box_label = COALESCE(NULLIF(TRIM(safe_box_label), ''), '1K Bill'),
+           safe_box_amount = 7000,
+           expected_cash = ROUND(opening_cash + cash_total - expense - 7000, 2),
+           difference = ROUND(actual_cash_counted - (opening_cash + cash_total - expense - 7000), 2),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE date = $1
+         AND safe_box_amount = 0`,
+      [SAFE_BOX_BACKFILL_DATE]
+    );
+    return;
+  }
+
+  await getMysqlPool().query(
+    `UPDATE daily_reports
+     SET safe_box_label = IFNULL(NULLIF(TRIM(safe_box_label), ''), '1K Bill'),
+         safe_box_amount = 7000,
+         expected_cash = ROUND(opening_cash + cash_total - expense - 7000, 2),
+         difference = ROUND(actual_cash_counted - (opening_cash + cash_total - expense - 7000), 2),
+         updated_at = CURRENT_TIMESTAMP
+     WHERE date = ?
+       AND safe_box_amount = 0`,
+    [SAFE_BOX_BACKFILL_DATE]
+  );
+}
+
 async function ensureDatabase() {
   assertDbConfigured();
 
@@ -121,6 +212,9 @@ async function initializeSchema() {
       await getMysqlPool().query(statement);
     }
   }
+
+  await ensureDailyReportsColumns();
+  await applySafeBoxBackfill();
 }
 
 async function query(sql, params = []) {

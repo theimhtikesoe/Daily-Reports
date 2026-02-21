@@ -17,6 +17,8 @@ const els = {
   netSale: document.getElementById('netSale'),
   expense: document.getElementById('expense'),
   tip: document.getElementById('tip'),
+  safeBoxLabel: document.getElementById('safeBoxLabel'),
+  safeBoxAmount: document.getElementById('safeBoxAmount'),
   openingCash: document.getElementById('openingCash'),
   actualCashCounted: document.getElementById('actualCashCounted'),
   expectedCash: document.getElementById('expectedCash'),
@@ -303,10 +305,11 @@ function recalculate() {
   const openingCash = parseNumber(els.openingCash.value);
   const cashTotal = parseNumber(els.cashTotal.value);
   const expense = parseNumber(els.expense.value);
+  const safeBoxAmount = parseNumber(els.safeBoxAmount.value);
   const actualCashCounted = parseNumber(els.actualCashCounted.value);
   const cardTotal = parseNumber(els.cardTotal.value);
 
-  const expectedCash = round2(openingCash + cashTotal - expense);
+  const expectedCash = round2(openingCash + cashTotal - expense - safeBoxAmount);
   const difference = round2(actualCashCounted - expectedCash);
   const netSale = round2(cashTotal + cardTotal);
 
@@ -330,6 +333,8 @@ function getReportPayload() {
     total_orders: parseInt(els.totalOrders.value || '0', 10),
     expense: parseNumber(els.expense.value),
     tip: parseNumber(els.tip.value),
+    safe_box_label: String(els.safeBoxLabel.value || '').trim() || '1K Bill',
+    safe_box_amount: parseNumber(els.safeBoxAmount.value),
     opening_cash: parseNumber(els.openingCash.value),
     actual_cash_counted: parseNumber(els.actualCashCounted.value)
   };
@@ -342,6 +347,8 @@ function applyReportData(report) {
   els.netSale.value = round2(parseNumber(report.net_sale)).toFixed(2);
   els.expense.value = round2(parseNumber(report.expense)).toFixed(2);
   els.tip.value = round2(parseNumber(report.tip)).toFixed(2);
+  els.safeBoxLabel.value = String(report.safe_box_label || '').trim() || '1K Bill';
+  els.safeBoxAmount.value = round2(parseNumber(report.safe_box_amount)).toFixed(2);
   els.openingCash.value = round2(parseNumber(report.opening_cash)).toFixed(2);
   els.actualCashCounted.value = round2(parseNumber(report.actual_cash_counted)).toFixed(2);
   recalculate();
@@ -350,6 +357,8 @@ function applyReportData(report) {
 function resetManualFields() {
   els.expense.value = '0.00';
   els.tip.value = '0.00';
+  els.safeBoxLabel.value = '1K Bill';
+  els.safeBoxAmount.value = '0.00';
   els.openingCash.value = '0.00';
   els.actualCashCounted.value = '0.00';
   recalculate();
@@ -363,7 +372,7 @@ function resetSyncedFields() {
 }
 
 function ensureManualInputsEnabled() {
-  [els.expense, els.tip, els.openingCash, els.actualCashCounted].forEach((input) => {
+  [els.expense, els.tip, els.safeBoxLabel, els.safeBoxAmount, els.openingCash, els.actualCashCounted].forEach((input) => {
     input.readOnly = false;
     input.disabled = false;
   });
@@ -595,7 +604,7 @@ function renderReportsTable(reports) {
 
   if (!reports.length) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="9" class="text-center text-muted">No reports found</td>';
+    tr.innerHTML = '<td colspan="10" class="text-center text-muted">No reports found</td>';
     els.reportsTableBody.appendChild(tr);
     return;
   }
@@ -611,6 +620,7 @@ function renderReportsTable(reports) {
       <td>${formatCurrency(report.card_total)}</td>
       <td>${parseInt(report.total_orders || 0, 10)}</td>
       <td>${formatCurrency(report.expense)}</td>
+      <td>${formatCurrency(report.safe_box_amount)}</td>
       <td>${formatCurrency(report.expected_cash)}</td>
       <td class="${difference > 0 ? 'diff-positive' : difference < 0 ? 'diff-negative' : ''}">${formatCurrency(difference)}</td>
       <td class="no-export">

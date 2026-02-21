@@ -27,6 +27,11 @@ function validateDateOrThrow(date) {
   }
 }
 
+function normalizeSafeBoxLabel(value) {
+  const normalized = String(value ?? '').trim();
+  return normalized || '1K Bill';
+}
+
 async function syncFromLoyverse(req, res, next) {
   try {
     const { date } = req.query;
@@ -70,6 +75,7 @@ async function upsertReport(req, res, next) {
 
     const reportValues = calculateReportValues(payload);
     const tip = toNumber(payload.tip);
+    const safeBoxLabel = normalizeSafeBoxLabel(payload.safe_box_label);
 
     const values = [
       payload.date,
@@ -79,6 +85,8 @@ async function upsertReport(req, res, next) {
       totalOrders,
       reportValues.expense,
       tip,
+      safeBoxLabel,
+      reportValues.safe_box_amount,
       reportValues.opening_cash,
       reportValues.actual_cash_counted,
       reportValues.expected_cash,
@@ -95,11 +103,13 @@ async function upsertReport(req, res, next) {
           total_orders,
           expense,
           tip,
+          safe_box_label,
+          safe_box_amount,
           opening_cash,
           actual_cash_counted,
           expected_cash,
           difference
-        ) VALUES (${placeholder(1)}, ${placeholder(2)}, ${placeholder(3)}, ${placeholder(4)}, ${placeholder(5)}, ${placeholder(6)}, ${placeholder(7)}, ${placeholder(8)}, ${placeholder(9)}, ${placeholder(10)}, ${placeholder(11)})
+        ) VALUES (${placeholder(1)}, ${placeholder(2)}, ${placeholder(3)}, ${placeholder(4)}, ${placeholder(5)}, ${placeholder(6)}, ${placeholder(7)}, ${placeholder(8)}, ${placeholder(9)}, ${placeholder(10)}, ${placeholder(11)}, ${placeholder(12)}, ${placeholder(13)})
         ON CONFLICT (date) DO UPDATE SET
           net_sale = EXCLUDED.net_sale,
           cash_total = EXCLUDED.cash_total,
@@ -107,6 +117,8 @@ async function upsertReport(req, res, next) {
           total_orders = EXCLUDED.total_orders,
           expense = EXCLUDED.expense,
           tip = EXCLUDED.tip,
+          safe_box_label = EXCLUDED.safe_box_label,
+          safe_box_amount = EXCLUDED.safe_box_amount,
           opening_cash = EXCLUDED.opening_cash,
           actual_cash_counted = EXCLUDED.actual_cash_counted,
           expected_cash = EXCLUDED.expected_cash,
@@ -128,11 +140,13 @@ async function upsertReport(req, res, next) {
         total_orders,
         expense,
         tip,
+        safe_box_label,
+        safe_box_amount,
         opening_cash,
         actual_cash_counted,
         expected_cash,
         difference
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         net_sale = VALUES(net_sale),
         cash_total = VALUES(cash_total),
@@ -140,6 +154,8 @@ async function upsertReport(req, res, next) {
         total_orders = VALUES(total_orders),
         expense = VALUES(expense),
         tip = VALUES(tip),
+        safe_box_label = VALUES(safe_box_label),
+        safe_box_amount = VALUES(safe_box_amount),
         opening_cash = VALUES(opening_cash),
         actual_cash_counted = VALUES(actual_cash_counted),
         expected_cash = VALUES(expected_cash),
