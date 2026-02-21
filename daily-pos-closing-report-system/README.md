@@ -96,6 +96,8 @@ Required keys:
 - `DB_USER`
 - `DB_PASSWORD`
 - `DB_NAME`
+- `DB_AUTO_INIT` (`true` for local bootstrap, `false` for managed production DB)
+- `DB_REQUIRE_ON_STARTUP` (`true` to fail-fast if DB is unreachable on boot)
 - `LOYVERSE_API_TOKEN`
 
 Optional:
@@ -138,6 +140,21 @@ Set in `.env`:
 ```env
 AUTO_SYNC_ENABLED=true
 AUTO_SYNC_TIME=59 23 * * *
+```
+
+## Vercel + Managed MySQL
+
+For Vercel deployment, set:
+
+- `DB_AUTO_INIT=false`
+- `DB_REQUIRE_ON_STARTUP=false`
+- all DB credentials for your managed MySQL
+- Loyverse variables
+
+Then import schema once to your DB:
+
+```bash
+mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < sql/schema.sql
 ```
 
 When enabled, server will auto-sync today's Loyverse totals and upsert the current day report.

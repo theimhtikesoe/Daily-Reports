@@ -5,12 +5,13 @@ const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const apiRoutes = require('./routes/apiRoutes');
-const { ensureDatabase, initializeSchema } = require('./config/db');
+const { ensureDatabase, initializeSchema, testConnection } = require('./config/db');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { scheduleDailySyncJob } = require('./jobs/dailySyncJob');
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
+const isVercelRuntime = Boolean(process.env.VERCEL || process.env.VERCEL_URL);
 
 app.use(helmet({
   contentSecurityPolicy: false
@@ -33,10 +34,41 @@ app.get('*', (req, res) => {
 
 app.use(errorHandler);
 
+function shouldAutoInitDb() {
+  return String(
+    process.env.DB_AUTO_INIT ?? (process.env.NODE_ENV === 'production' ? 'false' : 'true')
+  ).toLowerCase() === 'true';
+}
+
+function shouldRequireDbOnStartup() {
+  return String(
+    process.env.DB_REQUIRE_ON_STARTUP ?? (isVercelRuntime ? 'false' : 'true')
+  ).toLowerCase() === 'true';
+}
+
+async function initializeDatabaseOnStartup() {
+  try {
+    if (shouldAutoInitDb()) {
+      await ensureDatabase();
+      await initializeSchema();
+    }
+
+    await testConnection();
+    console.log('[DB] Startup connection check passed');
+  } catch (error) {
+    if (shouldRequireDbOnStartup()) {
+      throw error;
+    }
+
+    console.warn('[DB] Startup check skipped:', error.message);
+  }
+}
+
 async function startServer() {
-  await ensureDatabase();
-  await initializeSchema();
-  scheduleDailySyncJob();
+  await initializeDatabaseOnStartup();
+  if (!isVercelRuntime) {
+    scheduleDailySyncJob();
+  }
 
   app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
@@ -45,5 +77,7 @@ async function startServer() {
 
 startServer().catch((error) => {
   console.error('Failed to start application:', error);
-  process.exit(1);
+  if (!isVercelRuntime) {
+    process.exit(1);
+  }
 });
