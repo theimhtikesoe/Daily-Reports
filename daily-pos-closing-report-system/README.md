@@ -49,14 +49,14 @@ daily-pos-closing-report-system/
 - Payment split totals: Cash and Card
 - Auto-calculated:
   - Net Sale = Cash + Card
-  - Expected Cash = Opening Cash + Cash Total - Expense
-  - Difference = Actual Cash Counted - Expected Cash
+  - Expected Cash = Actual Cash Counted + 1K Bill Total
+  - Difference = Expected Cash - (Opening Cash + Cash Total - Expense)
 - Manual inputs:
   - Expense
   - Tip
   - 1,000 MMK Bills (Qty)
   - Opening Cash
-  - Actual Cash Counted (auto-calculated from denomination totals)
+  - Actual Cash Counted
 - Save or update daily report (upsert by date)
 - Historical report list with date filters
 - Last 7 days net sale chart
