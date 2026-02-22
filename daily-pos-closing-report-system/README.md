@@ -50,7 +50,7 @@ daily-pos-closing-report-system/
 - Auto-calculated:
   - Net Sale = Cash + Card
   - Expected Cash = Opening Cash + Net Sale
-  - Difference = (Actual Cash Counted + 1K Bill Total) - Expected Cash
+  - Difference = (Net Sale + Opening Cash) - (1K Bill Total + Card + Expense + Actual Cash Counted)
 - Manual inputs:
   - Expense
   - Tip

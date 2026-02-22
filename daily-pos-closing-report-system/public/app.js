@@ -426,10 +426,12 @@ function recalculate() {
   const oneKBillTotal = oneKBillCountToAmount(oneKBillCount);
   const openingCash = parseNumber(els.openingCash.value);
   const netSale = round2(parseNumber(els.netSale.value));
+  const cardTotal = parseNumber(els.cardTotal.value);
+  const expense = parseNumber(els.expense.value);
   const actualCashCounted = parseNumber(els.actualCashCounted.value);
-  const effectiveActualCash = round2(actualCashCounted + oneKBillTotal);
   const expectedCash = round2(openingCash + netSale);
-  const difference = round2(effectiveActualCash - expectedCash);
+  const outflowTotal = round2(oneKBillTotal + cardTotal + expense + actualCashCounted);
+  const difference = round2(expectedCash - outflowTotal);
 
   els.expectedCash.value = expectedCash.toFixed(2);
   els.difference.value = difference.toFixed(2);
@@ -742,10 +744,12 @@ function renderReportsTable(reports) {
       : oneKBillCountToAmount(oneKBillCount);
     const openingCash = round2(parseNumber(report.opening_cash));
     const netSale = round2(parseNumber(report.net_sale));
+    const cardTotal = round2(parseNumber(report.card_total));
+    const expense = round2(parseNumber(report.expense));
     const actualCashCounted = round2(parseNumber(report.actual_cash_counted));
     const expectedCash = round2(openingCash + netSale);
-    const effectiveActualCash = round2(actualCashCounted + oneKBillTotal);
-    const difference = round2(effectiveActualCash - expectedCash);
+    const outflowTotal = round2(oneKBillTotal + cardTotal + expense + actualCashCounted);
+    const difference = round2(expectedCash - outflowTotal);
     tr.innerHTML = `
       <td>${reportDate}</td>
       <td>${formatCurrency(report.net_sale)}</td>

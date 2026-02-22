@@ -76,11 +76,8 @@ function calculateReportValues(input) {
     net_sale: netSale
   });
 
-  const effectiveActualCash = roundCurrency(actualCashCounted + safeBoxAmount);
-  const difference = calculateDifference({
-    actual_cash_counted: effectiveActualCash,
-    expected_cash: expectedCash
-  });
+  const outflowTotal = roundCurrency(safeBoxAmount + cardTotal + expense + actualCashCounted);
+  const difference = roundCurrency(expectedCash - outflowTotal);
 
   return {
     opening_cash: roundCurrency(openingCash),
