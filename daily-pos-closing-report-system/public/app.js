@@ -425,19 +425,14 @@ function recalculate() {
   const oneKBillCount = parseOneKBillCount(els.oneKBillCount.value);
   const oneKBillTotal = oneKBillCountToAmount(oneKBillCount);
   const openingCash = parseNumber(els.openingCash.value);
-  const cashTotal = parseNumber(els.cashTotal.value);
-  const expense = parseNumber(els.expense.value);
+  const netSale = round2(parseNumber(els.netSale.value));
   const actualCashCounted = parseNumber(els.actualCashCounted.value);
-  const cardTotal = parseNumber(els.cardTotal.value);
-
-  const salesExpectedCash = round2(openingCash + cashTotal - expense);
-  const expectedCash = round2(actualCashCounted + oneKBillTotal);
-  const difference = round2(expectedCash - salesExpectedCash);
-  const netSale = round2(cashTotal + cardTotal);
+  const effectiveActualCash = round2(actualCashCounted + oneKBillTotal);
+  const expectedCash = round2(openingCash + netSale);
+  const difference = round2(effectiveActualCash - expectedCash);
 
   els.expectedCash.value = expectedCash.toFixed(2);
   els.difference.value = difference.toFixed(2);
-  els.netSale.value = netSale.toFixed(2);
   if (els.safeBoxApplied) {
     els.safeBoxApplied.value = `${formatOneKBillCount(oneKBillCount)} x 1,000 = ${formatCurrency(oneKBillTotal)}`;
   }
@@ -592,11 +587,7 @@ async function fillOpeningCashFromPreviousReport(date) {
     return null;
   }
 
-  const previousOneKTotal = hasOwn(previous, '1k_total')
-    ? round2(parseNumber(previous['1k_total']))
-    : oneKBillCountToAmount(resolveOneKBillCount(previous));
-  const openingCashFromCount = round2(parseNumber(previous.actual_cash_counted) + previousOneKTotal);
-  const openingCash = openingCashFromCount || round2(parseNumber(previous.expected_cash));
+  const openingCash = round2(parseNumber(previous.expected_cash));
   els.openingCash.value = openingCash.toFixed(2);
   recalculate();
 
@@ -750,12 +741,11 @@ function renderReportsTable(reports) {
       ? round2(parseNumber(report['1k_total']))
       : oneKBillCountToAmount(oneKBillCount);
     const openingCash = round2(parseNumber(report.opening_cash));
-    const cashTotal = round2(parseNumber(report.cash_total));
-    const expense = round2(parseNumber(report.expense));
+    const netSale = round2(parseNumber(report.net_sale));
     const actualCashCounted = round2(parseNumber(report.actual_cash_counted));
-    const expectedCash = round2(actualCashCounted + oneKBillTotal);
-    const salesExpectedCash = round2(openingCash + cashTotal - expense);
-    const difference = round2(expectedCash - salesExpectedCash);
+    const expectedCash = round2(openingCash + netSale);
+    const effectiveActualCash = round2(actualCashCounted + oneKBillTotal);
+    const difference = round2(effectiveActualCash - expectedCash);
     tr.innerHTML = `
       <td>${reportDate}</td>
       <td>${formatCurrency(report.net_sale)}</td>

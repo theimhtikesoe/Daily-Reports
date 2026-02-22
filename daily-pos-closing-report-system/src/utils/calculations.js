@@ -40,10 +40,8 @@ function normalizeMoney(rawValue) {
   return roundCurrency(amount);
 }
 
-function calculateExpectedCash({ opening_cash = 0, cash_total = 0, expense = 0, safe_box_amount = 0 }) {
-  return roundCurrency(
-    toNumber(opening_cash) + toNumber(cash_total) - toNumber(expense) - toNumber(safe_box_amount)
-  );
+function calculateExpectedCash({ opening_cash = 0, net_sale = 0 }) {
+  return roundCurrency(toNumber(opening_cash) + toNumber(net_sale));
 }
 
 function calculateDifference({ actual_cash_counted = 0, expected_cash = 0 }) {
@@ -66,24 +64,23 @@ function calculateReportValues(input) {
     input.net_sale !== null &&
     String(input.net_sale).trim() !== '';
 
-  const expectedCash = calculateExpectedCash({
-    opening_cash: openingCash,
-    cash_total: cashTotal,
-    expense,
-    safe_box_amount: safeBoxAmount
-  });
-
-  const difference = calculateDifference({
-    actual_cash_counted: actualCashCounted,
-    expected_cash: expectedCash
-  });
-
   const netSale = hasManualNetSale
     ? roundCurrency(toNumber(input.net_sale))
     : calculateNetSale({
         cash_total: cashTotal,
         card_total: cardTotal
       });
+
+  const expectedCash = calculateExpectedCash({
+    opening_cash: openingCash,
+    net_sale: netSale
+  });
+
+  const effectiveActualCash = roundCurrency(actualCashCounted + safeBoxAmount);
+  const difference = calculateDifference({
+    actual_cash_counted: effectiveActualCash,
+    expected_cash: expectedCash
+  });
 
   return {
     opening_cash: roundCurrency(openingCash),
