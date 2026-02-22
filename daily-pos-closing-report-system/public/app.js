@@ -17,8 +17,7 @@ const els = {
   netSale: document.getElementById('netSale'),
   expense: document.getElementById('expense'),
   tip: document.getElementById('tip'),
-  safeBoxLabel: document.getElementById('safeBoxLabel'),
-  safeBoxAmount: document.getElementById('safeBoxAmount'),
+  oneKBillCount: document.getElementById('oneKBillCount'),
   openingCash: document.getElementById('openingCash'),
   actualCashCounted: document.getElementById('actualCashCounted'),
   differenceBeforeSafeBox: document.getElementById('differenceBeforeSafeBox'),
@@ -37,6 +36,7 @@ const els = {
 
 let chart;
 const A4_LANDSCAPE_RATIO = 297 / 210;
+const ONE_K_BILL_VALUE = 1000;
 
 function todayLocalDate() {
   const now = new Date();
@@ -72,32 +72,35 @@ function round2(value) {
   return Number((value || 0).toFixed(2));
 }
 
-function resolveSafeBoxAmount(report) {
-  const explicit = round2(parseNumber(report?.safe_box_amount));
-  if (explicit !== 0) {
-    return explicit;
+function resolveOneKBillCount(report) {
+  const explicitAmount = round2(parseNumber(report?.safe_box_amount));
+  if (explicitAmount > 0) {
+    return Math.max(0, Math.round(explicitAmount / ONE_K_BILL_VALUE));
   }
 
   const date = normalizeDate(report?.date || els.reportDate.value);
   if (date === '2026-02-20') {
-    return 7000;
+    return 7;
   }
 
   return 0;
 }
 
-function resolveSafeBoxLabel(report) {
-  const explicit = String(report?.safe_box_label || '').trim();
-  if (explicit) {
-    return explicit;
+function parseOneKBillCount(value) {
+  const parsed = Math.floor(parseNumber(value));
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return 0;
   }
+  return parsed;
+}
 
-  const date = normalizeDate(report?.date || els.reportDate.value);
-  if (date === '2026-02-20') {
-    return '1K Bill';
-  }
+function oneKBillCountToAmount(count) {
+  return round2(parseOneKBillCount(count) * ONE_K_BILL_VALUE);
+}
 
-  return '1K Bill';
+function formatOneKBillCount(count) {
+  const qty = parseOneKBillCount(count);
+  return String(qty);
 }
 
 function setMessage(text, variant = 'info') {
@@ -371,11 +374,11 @@ async function downloadReportAsPdf() {
 }
 
 function recalculate() {
-  const safeBoxLabel = String(els.safeBoxLabel.value || '').trim() || '1K Bill';
+  const oneKBillCount = parseOneKBillCount(els.oneKBillCount.value);
+  const safeBoxAmount = oneKBillCountToAmount(oneKBillCount);
   const openingCash = parseNumber(els.openingCash.value);
   const cashTotal = parseNumber(els.cashTotal.value);
   const expense = parseNumber(els.expense.value);
-  const safeBoxAmount = parseNumber(els.safeBoxAmount.value);
   const actualCashCounted = parseNumber(els.actualCashCounted.value);
   const cardTotal = parseNumber(els.cardTotal.value);
 
@@ -399,7 +402,7 @@ function recalculate() {
   els.difference.value = difference.toFixed(2);
   els.netSale.value = netSale.toFixed(2);
   if (els.safeBoxApplied) {
-    els.safeBoxApplied.value = `${safeBoxLabel}: ${formatCurrency(safeBoxAmount)}`;
+    els.safeBoxApplied.value = `1K Bill x ${formatOneKBillCount(oneKBillCount)} = ${formatCurrency(safeBoxAmount)}`;
   }
 
   els.difference.classList.remove('diff-positive', 'diff-negative');
@@ -411,6 +414,8 @@ function recalculate() {
 }
 
 function getReportPayload() {
+  const oneKBillCount = parseOneKBillCount(els.oneKBillCount.value);
+  const safeBoxAmount = oneKBillCountToAmount(oneKBillCount);
   return {
     date: els.reportDate.value,
     cash_total: parseNumber(els.cashTotal.value),
@@ -418,24 +423,22 @@ function getReportPayload() {
     total_orders: parseInt(els.totalOrders.value || '0', 10),
     expense: parseNumber(els.expense.value),
     tip: parseNumber(els.tip.value),
-    safe_box_label: String(els.safeBoxLabel.value || '').trim() || '1K Bill',
-    safe_box_amount: parseNumber(els.safeBoxAmount.value),
+    safe_box_label: '1K Bill',
+    safe_box_amount: safeBoxAmount,
     opening_cash: parseNumber(els.openingCash.value),
     actual_cash_counted: parseNumber(els.actualCashCounted.value)
   };
 }
 
 function applyReportData(report) {
-  const safeBoxAmount = resolveSafeBoxAmount(report);
-  const safeBoxLabel = resolveSafeBoxLabel(report);
+  const oneKBillCount = resolveOneKBillCount(report);
   els.cashTotal.value = round2(parseNumber(report.cash_total)).toFixed(2);
   els.cardTotal.value = round2(parseNumber(report.card_total)).toFixed(2);
   els.totalOrders.value = parseInt(report.total_orders || 0, 10);
   els.netSale.value = round2(parseNumber(report.net_sale)).toFixed(2);
   els.expense.value = round2(parseNumber(report.expense)).toFixed(2);
   els.tip.value = round2(parseNumber(report.tip)).toFixed(2);
-  els.safeBoxLabel.value = safeBoxLabel;
-  els.safeBoxAmount.value = safeBoxAmount.toFixed(2);
+  els.oneKBillCount.value = formatOneKBillCount(oneKBillCount);
   els.openingCash.value = round2(parseNumber(report.opening_cash)).toFixed(2);
   els.actualCashCounted.value = round2(parseNumber(report.actual_cash_counted)).toFixed(2);
   recalculate();
@@ -444,8 +447,7 @@ function applyReportData(report) {
 function resetManualFields() {
   els.expense.value = '0.00';
   els.tip.value = '0.00';
-  els.safeBoxLabel.value = '1K Bill';
-  els.safeBoxAmount.value = '0.00';
+  els.oneKBillCount.value = '0';
   els.openingCash.value = '0.00';
   els.actualCashCounted.value = '0.00';
   recalculate();
@@ -459,7 +461,7 @@ function resetSyncedFields() {
 }
 
 function ensureManualInputsEnabled() {
-  [els.expense, els.tip, els.safeBoxLabel, els.safeBoxAmount, els.openingCash, els.actualCashCounted].forEach((input) => {
+  [els.expense, els.tip, els.oneKBillCount, els.openingCash, els.actualCashCounted].forEach((input) => {
     input.readOnly = false;
     input.disabled = false;
   });
@@ -699,8 +701,8 @@ function renderReportsTable(reports) {
   for (const report of reports) {
     const tr = document.createElement('tr');
     const reportDate = normalizeDate(report.date);
-    const safeBoxLabel = resolveSafeBoxLabel(report);
-    const safeBoxAmount = resolveSafeBoxAmount(report);
+    const oneKBillCount = resolveOneKBillCount(report);
+    const safeBoxAmount = oneKBillCountToAmount(oneKBillCount);
     const openingCash = round2(parseNumber(report.opening_cash));
     const cashTotal = round2(parseNumber(report.cash_total));
     const expense = round2(parseNumber(report.expense));
@@ -714,7 +716,7 @@ function renderReportsTable(reports) {
       <td>${formatCurrency(report.card_total)}</td>
       <td>${parseInt(report.total_orders || 0, 10)}</td>
       <td>${formatCurrency(report.expense)}</td>
-      <td>${safeBoxLabel}: ${formatCurrency(safeBoxAmount)}</td>
+      <td>1K Bill x ${formatOneKBillCount(oneKBillCount)} (${formatCurrency(safeBoxAmount)})</td>
       <td>${formatCurrency(expectedCash)}</td>
       <td class="${difference > 0 ? 'diff-positive' : difference < 0 ? 'diff-negative' : ''}">${formatCurrency(difference)}</td>
       <td class="no-export">
@@ -791,7 +793,6 @@ function bindEvents() {
   document.querySelectorAll('.calc-input').forEach((input) => {
     input.addEventListener('input', recalculate);
   });
-  els.safeBoxLabel.addEventListener('input', recalculate);
 
   els.loadButton.addEventListener('click', loadSavedReport);
   els.syncButton.addEventListener('click', syncFromLoyverse);

@@ -125,16 +125,19 @@ body {
   position: relative;
 }
 
+.one-k-bill-col .form-label,
 .safe-box-col .form-label {
   color: #7f4d18;
 }
 
+.one-k-bill-col .form-control,
 .safe-box-col .form-control {
   background: linear-gradient(180deg, #fff7eb, #fde9cb);
   border-color: #c9964d;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
+.one-k-bill-col .form-control:focus,
 .safe-box-col .form-control:focus {
   border-color: #9a6114;
   box-shadow: 0 0 0 0.2rem rgba(160, 101, 20, 0.2);
@@ -397,6 +400,7 @@ body {
     border-color: #bb8a42 !important;
   }
 
+  .one-k-bill-col .form-control,
   .safe-box-col .form-control {
     background: #fff0d8 !important;
     border-color: #bf8e47 !important;

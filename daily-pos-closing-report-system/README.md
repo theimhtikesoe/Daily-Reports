@@ -54,8 +54,7 @@ daily-pos-closing-report-system/
 - Manual inputs:
   - Expense
   - Tip
-  - Safe Box Name
-  - Safe Box Amount
+  - 1K Bill (Qty, auto-converted to Safe Box Amount)
   - Opening Cash
   - Actual Cash Counted
 - Save or update daily report (upsert by date)
