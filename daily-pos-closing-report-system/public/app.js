@@ -215,7 +215,11 @@ function normalizeEntries(entries) {
 }
 
 function renderEntryList(listElement, entries, options = {}) {
-  const { showPercentage = false } = options;
+  const {
+    showPercentage = false,
+    percentageOnly = false,
+    percentageFallbackText = 'N/A%'
+  } = options;
 
   if (!listElement) {
     return;
@@ -233,8 +237,16 @@ function renderEntryList(listElement, entries, options = {}) {
 
   entries.forEach((entry) => {
     const li = document.createElement('li');
-    if (showPercentage && entry.percentage !== null) {
-      li.textContent = `${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
+    if (showPercentage) {
+      if (entry.percentage !== null) {
+        li.textContent = percentageOnly
+          ? formatPercentage(entry.percentage)
+          : `${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
+      } else if (percentageOnly) {
+        li.textContent = percentageFallbackText;
+      } else {
+        li.textContent = formatCurrency(entry.amount);
+      }
     } else {
       li.textContent = formatCurrency(entry.amount);
     }
@@ -253,7 +265,10 @@ function applyPaymentDetails({ cash_entries, card_entries, discount_entries, dis
 
   renderEntryList(els.cashEntriesList, cashEntries);
   renderEntryList(els.cardEntriesList, cardEntries);
-  renderEntryList(els.discountEntriesList, discountEntries, { showPercentage: true });
+  renderEntryList(els.discountEntriesList, discountEntries, {
+    showPercentage: true,
+    percentageOnly: true
+  });
 
   const cashTotal = cashEntries.reduce((sum, entry) => sum + entry.amount, 0);
   const cardTotal = cardEntries.reduce((sum, entry) => sum + entry.amount, 0);

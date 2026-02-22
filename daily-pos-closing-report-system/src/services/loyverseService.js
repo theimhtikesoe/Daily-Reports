@@ -265,7 +265,10 @@ function extractDiscountPercentage(entry) {
     entry.percent,
     entry.rate,
     entry.discount_rate,
-    entry.value_percentage
+    entry.value_percentage,
+    entry.discount_percentage,
+    entry.percent_off,
+    entry.discount_percent
   ];
 
   for (const candidate of directCandidates) {
@@ -297,6 +300,26 @@ function extractDiscountPercentage(entry) {
   const valueCandidate = Number(valueCandidateRaw);
   if (typeText.includes('PERCENT') && Number.isFinite(valueCandidate) && valueCandidate !== 0) {
     return roundCurrency(Math.abs(valueCandidate));
+  }
+
+  const textFields = [
+    entry.name,
+    entry.title,
+    entry.label,
+    entry.description,
+    entry.reason,
+    entry.note
+  ]
+    .filter(Boolean)
+    .map((value) => String(value))
+    .join(' ');
+
+  const match = textFields.match(/(\d+(?:\.\d+)?)\s*%/);
+  if (match) {
+    const parsed = Number(match[1]);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return roundCurrency(Math.abs(parsed));
+    }
   }
 
   return null;
