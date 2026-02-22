@@ -36,6 +36,7 @@ const els = {
 };
 
 let chart;
+const A4_LANDSCAPE_RATIO = 297 / 210;
 
 function todayLocalDate() {
   const now = new Date();
@@ -265,6 +266,41 @@ async function captureReportSection() {
   });
 }
 
+function createLandscapeCanvas(sourceCanvas) {
+  const padding = Math.max(Math.round(Math.max(sourceCanvas.width, sourceCanvas.height) * 0.03), 36);
+
+  let targetWidth = Math.max(sourceCanvas.width + padding * 2, 2600);
+  let targetHeight = Math.round(targetWidth / A4_LANDSCAPE_RATIO);
+
+  if (targetHeight < sourceCanvas.height + padding * 2) {
+    targetHeight = sourceCanvas.height + padding * 2;
+    targetWidth = Math.round(targetHeight * A4_LANDSCAPE_RATIO);
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('Failed to build export canvas.');
+  }
+
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, targetWidth, targetHeight);
+
+  const availableWidth = targetWidth - padding * 2;
+  const availableHeight = targetHeight - padding * 2;
+  const scale = Math.min(availableWidth / sourceCanvas.width, availableHeight / sourceCanvas.height);
+  const drawWidth = sourceCanvas.width * scale;
+  const drawHeight = sourceCanvas.height * scale;
+  const drawX = (targetWidth - drawWidth) / 2;
+  const drawY = (targetHeight - drawHeight) / 2;
+
+  context.drawImage(sourceCanvas, drawX, drawY, drawWidth, drawHeight);
+  return canvas;
+}
+
 function printReport() {
   clearMessage();
   window.print();
@@ -275,12 +311,13 @@ async function downloadReportAsImage() {
   setButtonLoading(els.downloadImageButton, 'Generating...', true);
 
   try {
-    const canvas = await captureReportSection();
+    const capturedCanvas = await captureReportSection();
+    const landscapeCanvas = createLandscapeCanvas(capturedCanvas);
     const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
+    link.href = landscapeCanvas.toDataURL('image/png');
     link.download = `${getReportFileBaseName()}.png`;
     link.click();
-    setMessage('Image downloaded successfully.', 'success');
+    setMessage('Landscape image downloaded successfully.', 'success');
   } catch (error) {
     setMessage(error.message || 'Failed to download image.', 'danger');
   } finally {
@@ -297,8 +334,9 @@ async function downloadReportAsPdf() {
       throw new Error('PDF library is not loaded.');
     }
 
-    const canvas = await captureReportSection();
-    const imageData = canvas.toDataURL('image/png');
+    const capturedCanvas = await captureReportSection();
+    const landscapeCanvas = createLandscapeCanvas(capturedCanvas);
+    const imageData = landscapeCanvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('l', 'mm', 'a4');
 
@@ -307,23 +345,24 @@ async function downloadReportAsPdf() {
     const pageHeight = pdf.internal.pageSize.getHeight();
     const contentWidth = pageWidth - margin * 2;
     const contentHeight = pageHeight - margin * 2;
-    const imageHeight = (canvas.height * contentWidth) / canvas.width;
+    const imageRatio = landscapeCanvas.width / landscapeCanvas.height;
+    const contentRatio = contentWidth / contentHeight;
 
-    let heightLeft = imageHeight;
-    let offsetY = 0;
+    let renderWidth = contentWidth;
+    let renderHeight = contentHeight;
 
-    pdf.addImage(imageData, 'PNG', margin, margin + offsetY, contentWidth, imageHeight, undefined, 'FAST');
-    heightLeft -= contentHeight;
-
-    while (heightLeft > 0) {
-      offsetY = heightLeft - imageHeight;
-      pdf.addPage();
-      pdf.addImage(imageData, 'PNG', margin, margin + offsetY, contentWidth, imageHeight, undefined, 'FAST');
-      heightLeft -= contentHeight;
+    if (imageRatio > contentRatio) {
+      renderHeight = renderWidth / imageRatio;
+    } else {
+      renderWidth = renderHeight * imageRatio;
     }
 
+    const renderX = (pageWidth - renderWidth) / 2;
+    const renderY = (pageHeight - renderHeight) / 2;
+    pdf.addImage(imageData, 'PNG', renderX, renderY, renderWidth, renderHeight, undefined, 'FAST');
+
     pdf.save(`${getReportFileBaseName()}.pdf`);
-    setMessage('PDF downloaded successfully.', 'success');
+    setMessage('Landscape PDF downloaded successfully.', 'success');
   } catch (error) {
     setMessage(error.message || 'Failed to download PDF.', 'danger');
   } finally {
