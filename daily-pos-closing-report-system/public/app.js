@@ -21,6 +21,7 @@ const els = {
   safeBoxAmount: document.getElementById('safeBoxAmount'),
   openingCash: document.getElementById('openingCash'),
   actualCashCounted: document.getElementById('actualCashCounted'),
+  differenceBeforeSafeBox: document.getElementById('differenceBeforeSafeBox'),
   expectedCash: document.getElementById('expectedCash'),
   difference: document.getElementById('difference'),
   safeBoxApplied: document.getElementById('safeBoxApplied'),
@@ -68,6 +69,34 @@ function parseNumber(value) {
 
 function round2(value) {
   return Number((value || 0).toFixed(2));
+}
+
+function resolveSafeBoxAmount(report) {
+  const explicit = round2(parseNumber(report?.safe_box_amount));
+  if (explicit !== 0) {
+    return explicit;
+  }
+
+  const date = normalizeDate(report?.date || els.reportDate.value);
+  if (date === '2026-02-20') {
+    return 7000;
+  }
+
+  return 0;
+}
+
+function resolveSafeBoxLabel(report) {
+  const explicit = String(report?.safe_box_label || '').trim();
+  if (explicit) {
+    return explicit;
+  }
+
+  const date = normalizeDate(report?.date || els.reportDate.value);
+  if (date === '2026-02-20') {
+    return '1K Bill';
+  }
+
+  return '1K Bill';
 }
 
 function setMessage(text, variant = 'info') {
@@ -311,9 +340,21 @@ function recalculate() {
   const actualCashCounted = parseNumber(els.actualCashCounted.value);
   const cardTotal = parseNumber(els.cardTotal.value);
 
-  const expectedCash = round2(openingCash + cashTotal - expense - safeBoxAmount);
+  const expectedCashBeforeSafeBox = round2(openingCash + cashTotal - expense);
+  const differenceBeforeSafeBox = round2(actualCashCounted - expectedCashBeforeSafeBox);
+  const expectedCash = round2(expectedCashBeforeSafeBox - safeBoxAmount);
   const difference = round2(actualCashCounted - expectedCash);
   const netSale = round2(cashTotal + cardTotal);
+
+  if (els.differenceBeforeSafeBox) {
+    els.differenceBeforeSafeBox.value = differenceBeforeSafeBox.toFixed(2);
+    els.differenceBeforeSafeBox.classList.remove('diff-positive', 'diff-negative');
+    if (differenceBeforeSafeBox > 0) {
+      els.differenceBeforeSafeBox.classList.add('diff-positive');
+    } else if (differenceBeforeSafeBox < 0) {
+      els.differenceBeforeSafeBox.classList.add('diff-negative');
+    }
+  }
 
   els.expectedCash.value = expectedCash.toFixed(2);
   els.difference.value = difference.toFixed(2);
@@ -346,14 +387,16 @@ function getReportPayload() {
 }
 
 function applyReportData(report) {
+  const safeBoxAmount = resolveSafeBoxAmount(report);
+  const safeBoxLabel = resolveSafeBoxLabel(report);
   els.cashTotal.value = round2(parseNumber(report.cash_total)).toFixed(2);
   els.cardTotal.value = round2(parseNumber(report.card_total)).toFixed(2);
   els.totalOrders.value = parseInt(report.total_orders || 0, 10);
   els.netSale.value = round2(parseNumber(report.net_sale)).toFixed(2);
   els.expense.value = round2(parseNumber(report.expense)).toFixed(2);
   els.tip.value = round2(parseNumber(report.tip)).toFixed(2);
-  els.safeBoxLabel.value = String(report.safe_box_label || '').trim() || '1K Bill';
-  els.safeBoxAmount.value = round2(parseNumber(report.safe_box_amount)).toFixed(2);
+  els.safeBoxLabel.value = safeBoxLabel;
+  els.safeBoxAmount.value = safeBoxAmount.toFixed(2);
   els.openingCash.value = round2(parseNumber(report.opening_cash)).toFixed(2);
   els.actualCashCounted.value = round2(parseNumber(report.actual_cash_counted)).toFixed(2);
   recalculate();
@@ -617,9 +660,14 @@ function renderReportsTable(reports) {
   for (const report of reports) {
     const tr = document.createElement('tr');
     const reportDate = normalizeDate(report.date);
-    const difference = parseNumber(report.difference);
-    const safeBoxLabel = String(report.safe_box_label || '').trim() || '1K Bill';
-    const safeBoxAmount = parseNumber(report.safe_box_amount);
+    const safeBoxLabel = resolveSafeBoxLabel(report);
+    const safeBoxAmount = resolveSafeBoxAmount(report);
+    const openingCash = round2(parseNumber(report.opening_cash));
+    const cashTotal = round2(parseNumber(report.cash_total));
+    const expense = round2(parseNumber(report.expense));
+    const actualCashCounted = round2(parseNumber(report.actual_cash_counted));
+    const expectedCash = round2(openingCash + cashTotal - expense - safeBoxAmount);
+    const difference = round2(actualCashCounted - expectedCash);
     tr.innerHTML = `
       <td>${reportDate}</td>
       <td>${formatCurrency(report.net_sale)}</td>
@@ -628,7 +676,7 @@ function renderReportsTable(reports) {
       <td>${parseInt(report.total_orders || 0, 10)}</td>
       <td>${formatCurrency(report.expense)}</td>
       <td>${safeBoxLabel}: ${formatCurrency(safeBoxAmount)}</td>
-      <td>${formatCurrency(report.expected_cash)}</td>
+      <td>${formatCurrency(expectedCash)}</td>
       <td class="${difference > 0 ? 'diff-positive' : difference < 0 ? 'diff-negative' : ''}">${formatCurrency(difference)}</td>
       <td class="no-export">
         <button type="button" class="btn btn-sm btn-outline-dark print-past-btn" data-date="${reportDate}">

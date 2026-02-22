@@ -354,6 +354,15 @@ body {
     font-size: 12px !important;
   }
 
+  #differenceBeforeSafeBox,
+  #expectedCash,
+  #difference,
+  #safeBoxApplied {
+    min-height: 34px !important;
+    height: 34px !important;
+    font-size: 12px !important;
+  }
+
   .cash-focus-col .form-label {
     color: #613d11 !important;
     font-weight: 800 !important;
