@@ -20,7 +20,6 @@ const els = {
   oneKBillCount: document.getElementById('oneKBillCount'),
   openingCash: document.getElementById('openingCash'),
   actualCashCounted: document.getElementById('actualCashCounted'),
-  differenceBeforeSafeBox: document.getElementById('differenceBeforeSafeBox'),
   expectedCash: document.getElementById('expectedCash'),
   difference: document.getElementById('difference'),
   safeBoxApplied: document.getElementById('safeBoxApplied'),
@@ -37,6 +36,12 @@ const els = {
 let chart;
 const A4_LANDSCAPE_RATIO = 297 / 210;
 const ONE_K_BILL_VALUE = 1000;
+const OPTIONAL_DENOMINATION_INPUTS = {
+  5000: ['fiveKBillCount', 'bill5kQty', 'qty5k'],
+  10000: ['tenKBillCount', 'bill10kQty', 'qty10k'],
+  20000: ['twentyKBillCount', 'bill20kQty', 'qty20k'],
+  50000: ['fiftyKBillCount', 'bill50kQty', 'qty50k']
+};
 
 function todayLocalDate() {
   const now = new Date();
@@ -72,10 +77,23 @@ function round2(value) {
   return Number((value || 0).toFixed(2));
 }
 
+function hasOwn(obj, key) {
+  return Boolean(obj) && Object.prototype.hasOwnProperty.call(obj, key);
+}
+
 function resolveOneKBillCount(report) {
-  const explicitAmount = round2(parseNumber(report?.safe_box_amount));
-  if (explicitAmount > 0) {
-    return Math.max(0, Math.round(explicitAmount / ONE_K_BILL_VALUE));
+  if (hasOwn(report, '1k_qty')) {
+    return parseOneKBillCount(report['1k_qty']);
+  }
+
+  const explicitTotal = round2(parseNumber(report?.['1k_total']));
+  if (explicitTotal > 0) {
+    return Math.max(0, Math.round(explicitTotal / ONE_K_BILL_VALUE));
+  }
+
+  const legacySafeBoxAmount = round2(parseNumber(report?.safe_box_amount));
+  if (legacySafeBoxAmount > 0) {
+    return Math.max(0, Math.round(legacySafeBoxAmount / ONE_K_BILL_VALUE));
   }
 
   const date = normalizeDate(report?.date || els.reportDate.value);
@@ -101,6 +119,36 @@ function oneKBillCountToAmount(count) {
 function formatOneKBillCount(count) {
   const qty = parseOneKBillCount(count);
   return String(qty);
+}
+
+function readOptionalQuantityById(ids = []) {
+  for (const id of ids) {
+    const input = document.getElementById(id);
+    if (input) {
+      return parseOneKBillCount(input.value);
+    }
+  }
+  return 0;
+}
+
+function calculateDenominationSummary() {
+  const oneKQty = parseOneKBillCount(els.oneKBillCount.value);
+  const oneKTotal = round2(oneKQty * ONE_K_BILL_VALUE);
+
+  let otherDenominationTotal = 0;
+  for (const [valueText, ids] of Object.entries(OPTIONAL_DENOMINATION_INPUTS)) {
+    const value = parseNumber(valueText);
+    const qty = readOptionalQuantityById(ids);
+    otherDenominationTotal += qty * value;
+  }
+
+  const actualCashCounted = round2(oneKTotal + otherDenominationTotal);
+  return {
+    oneKQty,
+    oneKTotal,
+    otherDenominationTotal: round2(otherDenominationTotal),
+    actualCashCounted
+  };
 }
 
 function setMessage(text, variant = 'info') {
@@ -374,35 +422,31 @@ async function downloadReportAsPdf() {
 }
 
 function recalculate() {
-  const oneKBillCount = parseOneKBillCount(els.oneKBillCount.value);
-  const safeBoxAmount = oneKBillCountToAmount(oneKBillCount);
+  const denomination = calculateDenominationSummary();
   const openingCash = parseNumber(els.openingCash.value);
   const cashTotal = parseNumber(els.cashTotal.value);
   const expense = parseNumber(els.expense.value);
-  const actualCashCounted = parseNumber(els.actualCashCounted.value);
+  const actualCashCountedRaw = denomination.actualCashCounted;
   const cardTotal = parseNumber(els.cardTotal.value);
 
-  const expectedCashBeforeSafeBox = round2(openingCash + cashTotal - expense);
-  const differenceBeforeSafeBox = round2(actualCashCounted - expectedCashBeforeSafeBox);
-  const expectedCash = round2(expectedCashBeforeSafeBox - safeBoxAmount);
-  const difference = round2(actualCashCounted - expectedCash);
+  const expectedCash = round2(openingCash + cashTotal - expense);
+  const difference = round2(actualCashCountedRaw - expectedCash);
   const netSale = round2(cashTotal + cardTotal);
 
-  if (els.differenceBeforeSafeBox) {
-    els.differenceBeforeSafeBox.value = differenceBeforeSafeBox.toFixed(2);
-    els.differenceBeforeSafeBox.classList.remove('diff-positive', 'diff-negative');
-    if (differenceBeforeSafeBox > 0) {
-      els.differenceBeforeSafeBox.classList.add('diff-positive');
-    } else if (differenceBeforeSafeBox < 0) {
-      els.differenceBeforeSafeBox.classList.add('diff-negative');
-    }
+  // User request: show former "Difference (Before Safe Box)" value inside Actual Cash Counted.
+  els.actualCashCounted.value = difference.toFixed(2);
+  els.actualCashCounted.classList.remove('diff-positive', 'diff-negative');
+  if (difference > 0) {
+    els.actualCashCounted.classList.add('diff-positive');
+  } else if (difference < 0) {
+    els.actualCashCounted.classList.add('diff-negative');
   }
 
   els.expectedCash.value = expectedCash.toFixed(2);
   els.difference.value = difference.toFixed(2);
   els.netSale.value = netSale.toFixed(2);
   if (els.safeBoxApplied) {
-    els.safeBoxApplied.value = `1K Bill x ${formatOneKBillCount(oneKBillCount)} = ${formatCurrency(safeBoxAmount)}`;
+    els.safeBoxApplied.value = `${formatOneKBillCount(denomination.oneKQty)} x 1,000 = ${formatCurrency(denomination.oneKTotal)}`;
   }
 
   els.difference.classList.remove('diff-positive', 'diff-negative');
@@ -414,8 +458,7 @@ function recalculate() {
 }
 
 function getReportPayload() {
-  const oneKBillCount = parseOneKBillCount(els.oneKBillCount.value);
-  const safeBoxAmount = oneKBillCountToAmount(oneKBillCount);
+  const denomination = calculateDenominationSummary();
   return {
     date: els.reportDate.value,
     cash_total: parseNumber(els.cashTotal.value),
@@ -423,10 +466,12 @@ function getReportPayload() {
     total_orders: parseInt(els.totalOrders.value || '0', 10),
     expense: parseNumber(els.expense.value),
     tip: parseNumber(els.tip.value),
+    '1k_qty': denomination.oneKQty,
+    '1k_total': denomination.oneKTotal,
     safe_box_label: '1K Bill',
-    safe_box_amount: safeBoxAmount,
+    safe_box_amount: 0,
     opening_cash: parseNumber(els.openingCash.value),
-    actual_cash_counted: parseNumber(els.actualCashCounted.value)
+    actual_cash_counted: denomination.actualCashCounted
   };
 }
 
@@ -461,10 +506,12 @@ function resetSyncedFields() {
 }
 
 function ensureManualInputsEnabled() {
-  [els.expense, els.tip, els.oneKBillCount, els.openingCash, els.actualCashCounted].forEach((input) => {
+  [els.expense, els.tip, els.oneKBillCount, els.openingCash].forEach((input) => {
     input.readOnly = false;
     input.disabled = false;
   });
+  els.actualCashCounted.readOnly = true;
+  els.actualCashCounted.disabled = false;
 }
 
 function applySyncSummaryToFields(data) {
@@ -702,12 +749,14 @@ function renderReportsTable(reports) {
     const tr = document.createElement('tr');
     const reportDate = normalizeDate(report.date);
     const oneKBillCount = resolveOneKBillCount(report);
-    const safeBoxAmount = oneKBillCountToAmount(oneKBillCount);
+    const oneKBillTotal = hasOwn(report, '1k_total')
+      ? round2(parseNumber(report['1k_total']))
+      : oneKBillCountToAmount(oneKBillCount);
     const openingCash = round2(parseNumber(report.opening_cash));
     const cashTotal = round2(parseNumber(report.cash_total));
     const expense = round2(parseNumber(report.expense));
     const actualCashCounted = round2(parseNumber(report.actual_cash_counted));
-    const expectedCash = round2(openingCash + cashTotal - expense - safeBoxAmount);
+    const expectedCash = round2(openingCash + cashTotal - expense);
     const difference = round2(actualCashCounted - expectedCash);
     tr.innerHTML = `
       <td>${reportDate}</td>
@@ -716,7 +765,7 @@ function renderReportsTable(reports) {
       <td>${formatCurrency(report.card_total)}</td>
       <td>${parseInt(report.total_orders || 0, 10)}</td>
       <td>${formatCurrency(report.expense)}</td>
-      <td>1K Bill x ${formatOneKBillCount(oneKBillCount)} (${formatCurrency(safeBoxAmount)})</td>
+      <td>1K: ${formatOneKBillCount(oneKBillCount)} (${formatCurrency(oneKBillTotal)})</td>
       <td>${formatCurrency(expectedCash)}</td>
       <td class="${difference > 0 ? 'diff-positive' : difference < 0 ? 'diff-negative' : ''}">${formatCurrency(difference)}</td>
       <td class="no-export">
@@ -793,6 +842,14 @@ function bindEvents() {
   document.querySelectorAll('.calc-input').forEach((input) => {
     input.addEventListener('input', recalculate);
   });
+  Object.values(OPTIONAL_DENOMINATION_INPUTS)
+    .flat()
+    .forEach((id) => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.addEventListener('input', recalculate);
+      }
+    });
 
   els.loadButton.addEventListener('click', loadSavedReport);
   els.syncButton.addEventListener('click', syncFromLoyverse);

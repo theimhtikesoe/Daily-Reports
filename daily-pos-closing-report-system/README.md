@@ -49,14 +49,14 @@ daily-pos-closing-report-system/
 - Payment split totals: Cash and Card
 - Auto-calculated:
   - Net Sale = Cash + Card
-  - Expected Cash = Opening Cash + Cash Total - Expense - Safe Box Amount
+  - Expected Cash = Opening Cash + Cash Total - Expense
   - Difference = Actual Cash Counted - Expected Cash
 - Manual inputs:
   - Expense
   - Tip
-  - 1K Bill (Qty, auto-converted to Safe Box Amount)
+  - 1,000 MMK Bills (Qty)
   - Opening Cash
-  - Actual Cash Counted
+  - Actual Cash Counted (auto-calculated from denomination totals)
 - Save or update daily report (upsert by date)
 - Historical report list with date filters
 - Last 7 days net sale chart
@@ -76,6 +76,8 @@ Main table: `daily_reports` with fields:
 - `total_orders`
 - `expense`
 - `tip`
+- `1k_qty`
+- `1k_total`
 - `safe_box_label`
 - `safe_box_amount`
 - `opening_cash`

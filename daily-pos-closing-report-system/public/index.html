@@ -80,7 +80,7 @@
             <input id="tip" type="text" inputmode="decimal" class="form-control" />
           </div>
           <div class="col-md-2 one-k-bill-col">
-            <label for="oneKBillCount" class="form-label">1K Bill (Qty)</label>
+            <label for="oneKBillCount" class="form-label">1,000 MMK Bills (Qty)</label>
             <input id="oneKBillCount" type="number" min="0" step="1" class="form-control calc-input" value="0" />
           </div>
           <div class="col-md-3 cash-focus-col">
@@ -92,26 +92,22 @@
               <span class="cash-focus-label-line">Actual Cash</span>
               <span class="cash-focus-label-line">Counted</span>
             </label>
-            <input id="actualCashCounted" type="text" inputmode="decimal" class="form-control calc-input" />
+            <input id="actualCashCounted" type="text" inputmode="decimal" class="form-control" readonly />
           </div>
         </div>
 
         <h2 class="h5 mt-4 mb-3">Auto Calculation</h2>
         <div class="row g-3">
-          <div class="col-md-3">
-            <label for="differenceBeforeSafeBox" class="form-label">Difference (Before Safe Box)</label>
-            <input id="differenceBeforeSafeBox" type="number" class="form-control" readonly />
-          </div>
-          <div class="col-md-3">
+          <div class="col-md-4">
             <label for="expectedCash" class="form-label">Expected Cash</label>
             <input id="expectedCash" type="number" class="form-control" readonly />
           </div>
-          <div class="col-md-3">
+          <div class="col-md-4">
             <label for="difference" class="form-label">Difference</label>
             <input id="difference" type="number" class="form-control" readonly />
           </div>
-          <div class="col-md-3">
-            <label for="safeBoxApplied" class="form-label">Safe Box Applied</label>
+          <div class="col-md-4">
+            <label for="safeBoxApplied" class="form-label">1K Bill Total</label>
             <input id="safeBoxApplied" type="text" class="form-control" readonly />
           </div>
         </div>

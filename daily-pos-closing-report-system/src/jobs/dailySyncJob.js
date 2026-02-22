@@ -5,9 +5,18 @@ const { fetchSalesSummaryByDate } = require('../services/loyverseService');
 const { calculateReportValues, toNumber } = require('../utils/calculations');
 
 const isPostgres = getDialect() === 'postgres';
+const ONE_K_BILL_AMOUNT = 1000;
 
 function placeholder(index) {
   return isPostgres ? `$${index}` : '?';
+}
+
+function oneKQtyColumn() {
+  return isPostgres ? '"1k_qty"' : '`1k_qty`';
+}
+
+function oneKTotalColumn() {
+  return isPostgres ? '"1k_total"' : '`1k_total`';
 }
 
 function isAutoSyncEnabled() {
@@ -17,6 +26,18 @@ function isAutoSyncEnabled() {
 function normalizeSafeBoxLabel(value) {
   const normalized = String(value ?? '').trim();
   return normalized || '1K Bill';
+}
+
+function toNonNegativeInteger(value) {
+  const parsed = Math.floor(toNumber(value));
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return 0;
+  }
+  return parsed;
+}
+
+function roundCurrency(value) {
+  return Number(toNumber(value).toFixed(2));
 }
 
 async function runDailySync() {
@@ -43,6 +64,10 @@ async function runDailySync() {
     sales.total_orders,
     toNumber(existingReport.expense),
     toNumber(existingReport.tip),
+    toNonNegativeInteger(existingReport['1k_qty']),
+    roundCurrency(
+      toNonNegativeInteger(existingReport['1k_qty']) * ONE_K_BILL_AMOUNT
+    ),
     normalizeSafeBoxLabel(existingReport.safe_box_label),
     toNumber(existingReport.safe_box_amount),
     toNumber(existingReport.opening_cash),
@@ -61,13 +86,15 @@ async function runDailySync() {
         total_orders,
         expense,
         tip,
+        ${oneKQtyColumn()},
+        ${oneKTotalColumn()},
         safe_box_label,
         safe_box_amount,
         opening_cash,
         actual_cash_counted,
         expected_cash,
         difference
-      ) VALUES (${placeholder(1)}, ${placeholder(2)}, ${placeholder(3)}, ${placeholder(4)}, ${placeholder(5)}, ${placeholder(6)}, ${placeholder(7)}, ${placeholder(8)}, ${placeholder(9)}, ${placeholder(10)}, ${placeholder(11)}, ${placeholder(12)}, ${placeholder(13)})
+      ) VALUES (${placeholder(1)}, ${placeholder(2)}, ${placeholder(3)}, ${placeholder(4)}, ${placeholder(5)}, ${placeholder(6)}, ${placeholder(7)}, ${placeholder(8)}, ${placeholder(9)}, ${placeholder(10)}, ${placeholder(11)}, ${placeholder(12)}, ${placeholder(13)}, ${placeholder(14)}, ${placeholder(15)})
       ON CONFLICT (date) DO UPDATE SET
         net_sale = EXCLUDED.net_sale,
         cash_total = EXCLUDED.cash_total,
@@ -75,6 +102,8 @@ async function runDailySync() {
         total_orders = EXCLUDED.total_orders,
         expense = EXCLUDED.expense,
         tip = EXCLUDED.tip,
+        ${oneKQtyColumn()} = EXCLUDED.${oneKQtyColumn()},
+        ${oneKTotalColumn()} = EXCLUDED.${oneKTotalColumn()},
         safe_box_label = EXCLUDED.safe_box_label,
         safe_box_amount = EXCLUDED.safe_box_amount,
         opening_cash = EXCLUDED.opening_cash,
@@ -96,13 +125,15 @@ async function runDailySync() {
       total_orders,
       expense,
       tip,
+      ${oneKQtyColumn()},
+      ${oneKTotalColumn()},
       safe_box_label,
       safe_box_amount,
       opening_cash,
       actual_cash_counted,
       expected_cash,
       difference
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       net_sale = VALUES(net_sale),
       cash_total = VALUES(cash_total),
@@ -110,6 +141,8 @@ async function runDailySync() {
       total_orders = VALUES(total_orders),
       expense = VALUES(expense),
       tip = VALUES(tip),
+      ${oneKQtyColumn()} = VALUES(${oneKQtyColumn()}),
+      ${oneKTotalColumn()} = VALUES(${oneKTotalColumn()}),
       safe_box_label = VALUES(safe_box_label),
       safe_box_amount = VALUES(safe_box_amount),
       opening_cash = VALUES(opening_cash),

@@ -8,6 +8,16 @@ const SAFE_BOX_BACKFILL_DATE = '2026-02-20';
 
 const DAILY_REPORTS_REQUIRED_COLUMNS = [
   {
+    name: '1k_qty',
+    mysqlDefinition: 'INT NOT NULL DEFAULT 0',
+    postgresDefinition: 'INTEGER NOT NULL DEFAULT 0'
+  },
+  {
+    name: '1k_total',
+    mysqlDefinition: 'DECIMAL(12,2) NOT NULL DEFAULT 0',
+    postgresDefinition: 'NUMERIC(12,2) NOT NULL DEFAULT 0'
+  },
+  {
     name: 'safe_box_label',
     mysqlDefinition: "VARCHAR(120) NOT NULL DEFAULT '1K Bill'",
     postgresDefinition: "VARCHAR(120) NOT NULL DEFAULT '1K Bill'"
@@ -95,6 +105,10 @@ function getSchemaFilePath() {
   return path.join(__dirname, '../../sql/schema.sql');
 }
 
+function quoteDailyReportColumn(name) {
+  return DIALECT === 'postgres' ? `"${name}"` : `\`${name}\``;
+}
+
 async function hasDailyReportColumn(columnName) {
   if (DIALECT === 'postgres') {
     const result = await getPostgresPool().query(
@@ -130,15 +144,17 @@ async function ensureDailyReportsColumns() {
       continue;
     }
 
+    const quotedColumnName = quoteDailyReportColumn(column.name);
+
     if (DIALECT === 'postgres') {
       await getPostgresPool().query(
-        `ALTER TABLE daily_reports ADD COLUMN ${column.name} ${column.postgresDefinition}`
+        `ALTER TABLE daily_reports ADD COLUMN ${quotedColumnName} ${column.postgresDefinition}`
       );
       continue;
     }
 
     await getMysqlPool().query(
-      `ALTER TABLE daily_reports ADD COLUMN \`${column.name}\` ${column.mysqlDefinition}`
+      `ALTER TABLE daily_reports ADD COLUMN ${quotedColumnName} ${column.mysqlDefinition}`
     );
   }
 }
@@ -148,12 +164,12 @@ async function applySafeBoxBackfill() {
     await getPostgresPool().query(
       `UPDATE daily_reports
        SET safe_box_label = COALESCE(NULLIF(TRIM(safe_box_label), ''), '1K Bill'),
-           safe_box_amount = 7000,
-           expected_cash = ROUND(opening_cash + cash_total - expense - 7000, 2),
-           difference = ROUND(actual_cash_counted - (opening_cash + cash_total - expense - 7000), 2),
+           "1k_qty" = CASE WHEN "1k_qty" = 0 THEN 7 ELSE "1k_qty" END,
+           "1k_total" = CASE WHEN "1k_total" = 0 THEN 7000 ELSE "1k_total" END,
            updated_at = CURRENT_TIMESTAMP
        WHERE date = $1
-         AND safe_box_amount = 0`,
+         AND "1k_qty" = 0
+         AND "1k_total" = 0`,
       [SAFE_BOX_BACKFILL_DATE]
     );
     return;
@@ -162,12 +178,12 @@ async function applySafeBoxBackfill() {
   await getMysqlPool().query(
     `UPDATE daily_reports
      SET safe_box_label = IFNULL(NULLIF(TRIM(safe_box_label), ''), '1K Bill'),
-         safe_box_amount = 7000,
-         expected_cash = ROUND(opening_cash + cash_total - expense - 7000, 2),
-         difference = ROUND(actual_cash_counted - (opening_cash + cash_total - expense - 7000), 2),
+         \`1k_qty\` = IF(\`1k_qty\` = 0, 7, \`1k_qty\`),
+         \`1k_total\` = IF(\`1k_total\` = 0, 7000, \`1k_total\`),
          updated_at = CURRENT_TIMESTAMP
      WHERE date = ?
-       AND safe_box_amount = 0`,
+       AND \`1k_qty\` = 0
+       AND \`1k_total\` = 0`,
     [SAFE_BOX_BACKFILL_DATE]
   );
 }
