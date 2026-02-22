@@ -189,7 +189,9 @@ function parsePercentage(value) {
     return null;
   }
 
-  return round2(Math.abs(parsed));
+  const absolute = Math.abs(parsed);
+  const percentage = absolute > 0 && absolute <= 1 ? absolute * 100 : absolute;
+  return round2(percentage);
 }
 
 function normalizeEntries(entries) {

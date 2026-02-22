@@ -2,7 +2,7 @@ const axios = require('axios');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
-const { calculateNetSale, normalizeMoney, roundCurrency } = require('../utils/calculations');
+const { calculateNetSale, normalizeMoney, roundCurrency, toNumber } = require('../utils/calculations');
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -255,10 +255,164 @@ function extractDiscountValue(entry) {
   return normalizeMoney(rawAmount);
 }
 
-function extractDiscountPercentage(entry) {
+function normalizePercentageValue(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const normalizedRaw =
+    typeof value === 'string'
+      ? value.replace('%', '').trim()
+      : value;
+  const parsed = Number(normalizedRaw);
+  if (!Number.isFinite(parsed) || parsed === 0) {
+    return null;
+  }
+
+  const absolute = Math.abs(parsed);
+  const percentage = absolute > 0 && absolute <= 1 ? absolute * 100 : absolute;
+  return roundCurrency(percentage);
+}
+
+function deriveDiscountPercentageFromBase(discountAmount, baseAmount) {
+  const normalizedDiscount = Math.abs(normalizeMoney(discountAmount));
+  const normalizedBase = Math.abs(normalizeMoney(baseAmount));
+
+  if (normalizedDiscount <= 0 || normalizedBase <= normalizedDiscount) {
+    return null;
+  }
+
+  const percentage = roundCurrency((normalizedDiscount / normalizedBase) * 100);
+  if (!Number.isFinite(percentage) || percentage <= 0 || percentage >= 100) {
+    return null;
+  }
+
+  return percentage;
+}
+
+function pickPreferredDiscountPercentage(candidates) {
+  const normalized = candidates
+    .map((candidate) => normalizePercentageValue(candidate))
+    .filter((value) => Number.isFinite(value) && value > 0 && value < 100);
+
+  if (!normalized.length) {
+    return null;
+  }
+
+  const unique = [...new Set(normalized)];
+  unique.sort((a, b) => {
+    const decimalA = Math.abs(a - Math.round(a));
+    const decimalB = Math.abs(b - Math.round(b));
+
+    if (decimalA !== decimalB) {
+      return decimalA - decimalB;
+    }
+
+    return a - b;
+  });
+
+  return unique[0];
+}
+
+function pushMoneyCandidate(target, rawValue) {
+  const amount = Math.abs(normalizeMoney(rawValue));
+  if (amount > 0) {
+    target.push(amount);
+  }
+}
+
+function deriveDiscountPercentageFromContext(discountAmount, context) {
+  if (!context || typeof context !== 'object') {
+    return null;
+  }
+
+  const normalizedDiscount = Math.abs(normalizeMoney(discountAmount));
+  if (normalizedDiscount <= 0) {
+    return null;
+  }
+
+  const grossCandidates = [];
+  const netCandidates = [];
+
+  const grossFields = [
+    context.gross_sales_money,
+    context.gross_total_money,
+    context.total_before_discount_money,
+    context.total_before_discounts_money,
+    context.original_total_money,
+    context.subtotal_before_discounts_money
+  ];
+
+  const netFields = [
+    context.total_money,
+    context.total,
+    context.total_paid_money,
+    context.net_sales_money,
+    context.subtotal_money
+  ];
+
+  for (const field of grossFields) {
+    pushMoneyCandidate(grossCandidates, field);
+  }
+  for (const field of netFields) {
+    pushMoneyCandidate(netCandidates, field);
+  }
+
+  const quantity = toNumber(context.quantity);
+  const normalizedQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+  const unitPriceFields = [
+    context.price_money,
+    context.price,
+    context.unit_price_money,
+    context.unit_price,
+    context.base_price_money,
+    context.item_price_money
+  ];
+
+  for (const unitPrice of unitPriceFields) {
+    const normalizedUnitPrice = Math.abs(normalizeMoney(unitPrice));
+    if (normalizedUnitPrice > 0) {
+      grossCandidates.push(roundCurrency(normalizedUnitPrice * normalizedQuantity));
+    }
+  }
+
+  const percentageCandidates = [];
+
+  for (const grossAmount of grossCandidates) {
+    const percentage = deriveDiscountPercentageFromBase(normalizedDiscount, grossAmount);
+    if (percentage !== null) {
+      percentageCandidates.push(percentage);
+    }
+  }
+
+  for (const netAmount of netCandidates) {
+    const percentageFromNet = deriveDiscountPercentageFromBase(
+      normalizedDiscount,
+      roundCurrency(netAmount + normalizedDiscount)
+    );
+    if (percentageFromNet !== null) {
+      percentageCandidates.push(percentageFromNet);
+    }
+
+    const percentageFromGrossAssumption = deriveDiscountPercentageFromBase(normalizedDiscount, netAmount);
+    if (percentageFromGrossAssumption !== null) {
+      percentageCandidates.push(percentageFromGrossAssumption);
+    }
+  }
+
+  return pickPreferredDiscountPercentage(percentageCandidates);
+}
+
+function extractDiscountPercentage(entry, options = {}) {
   if (!entry || typeof entry !== 'object') {
     return null;
   }
+
+  const { depth = 0, visited = new Set() } = options;
+  if (depth > 2 || visited.has(entry)) {
+    return null;
+  }
+  visited.add(entry);
 
   const directCandidates = [
     entry.percentage,
@@ -272,13 +426,9 @@ function extractDiscountPercentage(entry) {
   ];
 
   for (const candidate of directCandidates) {
-    const normalized =
-      typeof candidate === 'string'
-        ? candidate.replace('%', '').trim()
-        : candidate;
-    const parsed = Number(normalized);
-    if (Number.isFinite(parsed) && parsed !== 0) {
-      return roundCurrency(Math.abs(parsed));
+    const percentage = normalizePercentageValue(candidate);
+    if (percentage !== null) {
+      return percentage;
     }
   }
 
@@ -297,9 +447,11 @@ function extractDiscountPercentage(entry) {
     typeof entry.value === 'string'
       ? entry.value.replace('%', '').trim()
       : entry.value;
-  const valueCandidate = Number(valueCandidateRaw);
-  if (typeText.includes('PERCENT') && Number.isFinite(valueCandidate) && valueCandidate !== 0) {
-    return roundCurrency(Math.abs(valueCandidate));
+  if (typeText.includes('PERCENT')) {
+    const percentage = normalizePercentageValue(valueCandidateRaw);
+    if (percentage !== null) {
+      return percentage;
+    }
   }
 
   const textFields = [
@@ -316,9 +468,48 @@ function extractDiscountPercentage(entry) {
 
   const match = textFields.match(/(\d+(?:\.\d+)?)\s*%/);
   if (match) {
-    const parsed = Number(match[1]);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return roundCurrency(Math.abs(parsed));
+    const percentage = normalizePercentageValue(match[1]);
+    if (percentage !== null) {
+      return percentage;
+    }
+  }
+
+  const nestedDiscountFields = [
+    entry.discount,
+    entry.discounts,
+    entry.applied_discount,
+    entry.applied_discounts,
+    entry.discount_data,
+    entry.discount_detail,
+    entry.discount_details
+  ];
+
+  for (const nestedField of nestedDiscountFields) {
+    if (!nestedField) {
+      continue;
+    }
+
+    if (Array.isArray(nestedField)) {
+      for (const nestedEntry of nestedField) {
+        const percentage = extractDiscountPercentage(nestedEntry, {
+          depth: depth + 1,
+          visited
+        });
+        if (percentage !== null) {
+          return percentage;
+        }
+      }
+      continue;
+    }
+
+    if (typeof nestedField === 'object') {
+      const percentage = extractDiscountPercentage(nestedField, {
+        depth: depth + 1,
+        visited
+      });
+      if (percentage !== null) {
+        return percentage;
+      }
     }
   }
 
@@ -331,10 +522,7 @@ function createDiscountEntry(amount, percentage = null) {
     return null;
   }
 
-  const normalizedPercentage =
-    percentage === null || percentage === undefined
-      ? null
-      : roundCurrency(Math.abs(Number(percentage)));
+  const normalizedPercentage = normalizePercentageValue(percentage);
 
   return {
     amount: normalizedAmount,
@@ -365,7 +553,11 @@ function extractDiscountEntriesFromReceipt(receipt) {
     }
     for (const discount of list) {
       const amount = Math.abs(extractDiscountValue(discount));
-      const entry = createDiscountEntry(amount, extractDiscountPercentage(discount));
+      const percentage =
+        extractDiscountPercentage(discount) ??
+        deriveDiscountPercentageFromContext(amount, discount) ??
+        deriveDiscountPercentageFromContext(amount, receipt);
+      const entry = createDiscountEntry(amount, percentage);
       if (entry) {
         entries.push(entry);
       }
@@ -387,7 +579,11 @@ function extractDiscountEntriesFromReceipt(receipt) {
       for (const candidate of lineLevelCandidates) {
         const amount = Math.abs(normalizeMoney(candidate));
         if (amount > 0) {
-          lineDiscount = createDiscountEntry(amount, extractDiscountPercentage(line));
+          const percentage =
+            extractDiscountPercentage(line) ??
+            deriveDiscountPercentageFromContext(amount, line) ??
+            deriveDiscountPercentageFromContext(amount, receipt);
+          lineDiscount = createDiscountEntry(amount, percentage);
           break;
         }
       }
@@ -404,7 +600,12 @@ function extractDiscountEntriesFromReceipt(receipt) {
         }
         for (const discount of list) {
           const amount = Math.abs(extractDiscountValue(discount));
-          const percentage = extractDiscountPercentage(discount) ?? extractDiscountPercentage(line);
+          const percentage =
+            extractDiscountPercentage(discount) ??
+            extractDiscountPercentage(line) ??
+            deriveDiscountPercentageFromContext(amount, discount) ??
+            deriveDiscountPercentageFromContext(amount, line) ??
+            deriveDiscountPercentageFromContext(amount, receipt);
           const entry = createDiscountEntry(amount, percentage);
           if (entry) {
             entries.push(entry);
@@ -421,7 +622,10 @@ function extractDiscountEntriesFromReceipt(receipt) {
   const fallbackPercentage = extractDiscountPercentage(receipt);
   for (const candidate of receiptLevelCandidates) {
     const amount = Math.abs(normalizeMoney(candidate));
-    const entry = createDiscountEntry(amount, fallbackPercentage);
+    const percentage =
+      fallbackPercentage ??
+      deriveDiscountPercentageFromContext(amount, receipt);
+    const entry = createDiscountEntry(amount, percentage);
     if (entry) {
       return [entry];
     }
