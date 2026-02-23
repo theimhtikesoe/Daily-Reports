@@ -171,7 +171,8 @@ function formatCurrency(value) {
 function formatPercentage(value) {
   const normalized = round2(parseNumber(value));
   const clean = normalized % 1 === 0 ? String(normalized.toFixed(0)) : String(normalized.toFixed(2));
-  return `${clean.replace(/\.?0+$/, '')}%`;
+  const trimmed = clean.includes('.') ? clean.replace(/\.?0+$/, '') : clean;
+  return `${trimmed}%`;
 }
 
 function parsePercentage(value) {
