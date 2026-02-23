@@ -28,10 +28,30 @@ body {
   border-bottom: 1px solid rgba(125, 77, 15, 0.16);
 }
 
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
 .brand-wrap {
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+.made-by-tag {
+  border: 1px solid rgba(125, 77, 15, 0.28);
+  background: linear-gradient(180deg, #fff7e8 0%, #f6e3c4 100%);
+  color: #6d440f;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 700;
+  font-size: 0.84rem;
+  letter-spacing: 0.2px;
+  box-shadow: 0 6px 12px rgba(84, 55, 20, 0.12);
+  white-space: nowrap;
 }
 
 .brand-logo {
@@ -57,6 +77,12 @@ body {
 }
 
 @media (max-width: 576px) {
+  .header-bar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
   .brand-wrap {
     gap: 10px;
   }
@@ -74,6 +100,11 @@ body {
 
   .brand-text p {
     font-size: 0.82rem;
+  }
+
+  .made-by-tag {
+    font-size: 0.78rem;
+    padding: 5px 10px;
   }
 }
 
