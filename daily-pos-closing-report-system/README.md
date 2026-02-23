@@ -54,7 +54,7 @@ daily-pos-closing-report-system/
 - Manual inputs:
   - Expense
   - Tip
-  - 1,000 MMK Bills (Qty)
+  - 1,000 THB Bills (Qty)
   - Opening Cash
   - Actual Cash Counted
 - Save or update daily report (upsert by date)
