@@ -538,7 +538,15 @@ function applySyncSummaryToFields(data) {
 }
 
 async function fetchLoyverseSummaryByDate(date) {
-  const response = await fetch(`/api/loyverse/sync?date=${encodeURIComponent(date)}`);
+  const response = await fetch(
+    `/api/loyverse/sync?date=${encodeURIComponent(date)}&_ts=${Date.now()}`,
+    {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    }
+  );
   const data = await response.json();
 
   if (!response.ok) {
