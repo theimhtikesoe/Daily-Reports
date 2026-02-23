@@ -293,14 +293,25 @@ function deriveDiscountPercentageFromBase(discountAmount, baseAmount) {
 function pickPreferredDiscountPercentage(candidates) {
   const normalized = candidates
     .map((candidate) => normalizePercentageValue(candidate))
-    .filter((value) => Number.isFinite(value) && value > 0 && value < 100);
+    .filter((value) => Number.isFinite(value) && value > 0 && value < 100)
+    .map((value) => roundCurrency(value));
 
   if (!normalized.length) {
     return null;
   }
 
-  const unique = [...new Set(normalized)];
+  const frequencyMap = new Map();
+  for (const value of normalized) {
+    frequencyMap.set(value, (frequencyMap.get(value) || 0) + 1);
+  }
+
+  const unique = [...frequencyMap.keys()];
   unique.sort((a, b) => {
+    const freqDiff = (frequencyMap.get(b) || 0) - (frequencyMap.get(a) || 0);
+    if (freqDiff !== 0) {
+      return freqDiff;
+    }
+
     const decimalA = Math.abs(a - Math.round(a));
     const decimalB = Math.abs(b - Math.round(b));
 
@@ -308,7 +319,7 @@ function pickPreferredDiscountPercentage(candidates) {
       return decimalA - decimalB;
     }
 
-    return a - b;
+    return b - a;
   });
 
   return unique[0];
@@ -376,27 +387,95 @@ function deriveDiscountPercentageFromContext(discountAmount, context) {
     }
   }
 
-  const percentageCandidates = [];
-
+  const grossPercentageCandidates = [];
   for (const grossAmount of grossCandidates) {
     const percentage = deriveDiscountPercentageFromBase(normalizedDiscount, grossAmount);
     if (percentage !== null) {
-      percentageCandidates.push(percentage);
+      grossPercentageCandidates.push(percentage);
     }
   }
 
+  const preferredGross = pickPreferredDiscountPercentage(grossPercentageCandidates);
+  if (preferredGross !== null) {
+    return preferredGross;
+  }
+
+  const netPercentageCandidates = [];
   for (const netAmount of netCandidates) {
     const percentageFromNet = deriveDiscountPercentageFromBase(
       normalizedDiscount,
       roundCurrency(netAmount + normalizedDiscount)
     );
     if (percentageFromNet !== null) {
-      percentageCandidates.push(percentageFromNet);
+      netPercentageCandidates.push(percentageFromNet);
+    }
+  }
+
+  return pickPreferredDiscountPercentage(netPercentageCandidates);
+}
+
+function deriveDiscountPercentageFromReceiptLineItems(discountAmount, receipt) {
+  if (!receipt || typeof receipt !== 'object') {
+    return null;
+  }
+
+  const targetAmount = Math.abs(normalizeMoney(discountAmount));
+  if (targetAmount <= 0) {
+    return null;
+  }
+
+  const lineItems = receipt.line_items || receipt.items || [];
+  if (!Array.isArray(lineItems) || lineItems.length === 0) {
+    return null;
+  }
+
+  const percentageCandidates = [];
+  const maxDifference = 0.01;
+
+  for (const line of lineItems) {
+    const lineAmountCandidates = [
+      line.total_discounts_money,
+      line.total_discount_money,
+      line.discount_money,
+      line.discount_amount,
+      line.discount
+    ];
+
+    for (const lineAmountCandidate of lineAmountCandidates) {
+      const lineAmount = Math.abs(normalizeMoney(lineAmountCandidate));
+      if (lineAmount <= 0 || Math.abs(lineAmount - targetAmount) > maxDifference) {
+        continue;
+      }
+
+      const inferredFromLine = deriveDiscountPercentageFromContext(targetAmount, line);
+      if (inferredFromLine !== null) {
+        percentageCandidates.push(inferredFromLine);
+      }
     }
 
-    const percentageFromGrossAssumption = deriveDiscountPercentageFromBase(normalizedDiscount, netAmount);
-    if (percentageFromGrossAssumption !== null) {
-      percentageCandidates.push(percentageFromGrossAssumption);
+    const lineDiscountLists = [line.discounts, line.applied_discounts];
+    for (const list of lineDiscountLists) {
+      if (!Array.isArray(list)) {
+        continue;
+      }
+
+      for (const discount of list) {
+        const amount = Math.abs(extractDiscountValue(discount));
+        if (amount <= 0 || Math.abs(amount - targetAmount) > maxDifference) {
+          continue;
+        }
+
+        const explicitPercentage = extractDiscountPercentage(discount);
+        if (explicitPercentage !== null) {
+          percentageCandidates.push(explicitPercentage);
+          continue;
+        }
+
+        const inferredFromLine = deriveDiscountPercentageFromContext(targetAmount, line);
+        if (inferredFromLine !== null) {
+          percentageCandidates.push(inferredFromLine);
+        }
+      }
     }
   }
 
@@ -555,6 +634,7 @@ function extractDiscountEntriesFromReceipt(receipt) {
       const amount = Math.abs(extractDiscountValue(discount));
       const percentage =
         extractDiscountPercentage(discount) ??
+        deriveDiscountPercentageFromReceiptLineItems(amount, receipt) ??
         deriveDiscountPercentageFromContext(amount, discount) ??
         deriveDiscountPercentageFromContext(amount, receipt);
       const entry = createDiscountEntry(amount, percentage);
