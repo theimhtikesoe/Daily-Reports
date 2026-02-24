@@ -73,6 +73,10 @@ function parseNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function hasValue(value) {
+  return value !== null && value !== undefined && String(value).trim() !== '';
+}
+
 function round2(value) {
   return Number((value || 0).toFixed(2));
 }
@@ -615,13 +619,21 @@ async function fillOpeningCashFromPreviousReport(date) {
     return null;
   }
 
-  const openingCash = round2(parseNumber(previous.expected_cash));
+  const hasPreviousActualCash = hasValue(previous.actual_cash_counted);
+  const fallbackExpectedCash = hasValue(previous.expected_cash) ? previous.expected_cash : null;
+  const openingCashSource = hasPreviousActualCash ? previous.actual_cash_counted : fallbackExpectedCash;
+  if (openingCashSource === null) {
+    return null;
+  }
+
+  const openingCash = round2(parseNumber(openingCashSource));
   els.openingCash.value = openingCash.toFixed(2);
   recalculate();
 
   return {
     openingCash,
-    sourceDate: normalizeDate(previous.date)
+    sourceDate: normalizeDate(previous.date),
+    sourceLabel: hasPreviousActualCash ? 'Actual Cash Counted' : 'Expected Cash'
   };
 }
 
@@ -652,7 +664,7 @@ async function loadReportForDate(date, options = {}) {
       if (showMessage) {
         if (carryForward) {
           setMessage(
-            `No saved report. Opening Cash auto-filled from ${carryForward.sourceDate} Expected Cash.`,
+            `No saved report. Opening Cash auto-filled from ${carryForward.sourceDate} ${carryForward.sourceLabel}.`,
             'secondary'
           );
         } else {

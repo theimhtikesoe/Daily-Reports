@@ -40,15 +40,50 @@ function roundCurrency(value) {
   return Number(toNumber(value).toFixed(2));
 }
 
+function hasValue(value) {
+  return value !== null && value !== undefined && String(value).trim() !== '';
+}
+
+async function resolveOpeningCashForDate(date, currentReportOpeningCash) {
+  if (hasValue(currentReportOpeningCash)) {
+    return roundCurrency(toNumber(currentReportOpeningCash));
+  }
+
+  const rows = await query(
+    `SELECT actual_cash_counted, expected_cash
+     FROM daily_reports
+     WHERE date < ${placeholder(1)}
+     ORDER BY date DESC
+     LIMIT 1`,
+    [date]
+  );
+
+  const previous = rows[0];
+  if (!previous) {
+    return 0;
+  }
+
+  if (hasValue(previous.actual_cash_counted)) {
+    return roundCurrency(toNumber(previous.actual_cash_counted));
+  }
+
+  if (hasValue(previous.expected_cash)) {
+    return roundCurrency(toNumber(previous.expected_cash));
+  }
+
+  return 0;
+}
+
 async function runDailySync() {
   const today = dayjs().format('YYYY-MM-DD');
   const sales = await fetchSalesSummaryByDate(today);
 
   const existing = await query(`SELECT * FROM daily_reports WHERE date = ${placeholder(1)}`, [today]);
   const existingReport = existing[0] || {};
+  const openingCash = await resolveOpeningCashForDate(today, existingReport.opening_cash);
 
   const calculated = calculateReportValues({
-    opening_cash: toNumber(existingReport.opening_cash),
+    opening_cash: openingCash,
     cash_total: sales.cash_total,
     card_total: sales.card_total,
     expense: toNumber(existingReport.expense),
@@ -70,7 +105,7 @@ async function runDailySync() {
     ),
     normalizeSafeBoxLabel(existingReport.safe_box_label),
     toNumber(existingReport.safe_box_amount),
-    toNumber(existingReport.opening_cash),
+    openingCash,
     toNumber(existingReport.actual_cash_counted),
     calculated.expected_cash,
     calculated.difference
