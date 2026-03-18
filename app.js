@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => els.message.classList.add('d-none'), 5000);
   }
 
-  function renderEntries(listEl, totalEl, entries, type = 'THB') {
+  function renderEntries(listEl, totalEl, entries, type = 'THB', isDiscount = false) {
     if (!listEl || !totalEl) return;
     listEl.innerHTML = '';
     let total = 0;
@@ -53,8 +53,16 @@ document.addEventListener('DOMContentLoaded', () => {
     entries.forEach((entry, index) => {
       const li = document.createElement('li');
       const amount = parseFloat(entry.amount || 0);
-      const name = entry.name || `Order #${index + 1}`;
-      li.textContent = `${index + 1}. ${name}: ${amount.toFixed(2)}`;
+      
+      if (isDiscount) {
+        // For discount entries, show amount and percentage
+        const percentage = parseFloat(entry.percentage || 0);
+        li.textContent = `${index + 1}. ${amount.toFixed(2)} (${percentage.toFixed(2)}%)`;
+      } else {
+        // For other entries, show only the amount (no order name)
+        li.textContent = `${index + 1}. ${amount.toFixed(2)}`;
+      }
+      
       listEl.appendChild(li);
       total += amount;
     });
@@ -86,10 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (els.netSale) els.netSale.value = netSale.toFixed(2);
 
         // Render Lists
-        renderEntries(els.cashEntriesList, els.cashEntriesTotal, data.cash_entries || []);
-        renderEntries(els.cardEntriesList, els.cardEntriesTotal, data.card_entries || []);
-        renderEntries(els.transferEntriesList, els.transferEntriesTotal, data.transfer_entries || []);
-        renderEntries(els.discountEntriesList, els.discountEntriesTotal, data.discount_entries || []);
+        renderEntries(els.cashEntriesList, els.cashEntriesTotal, data.cash_entries || [], 'THB', false);
+        renderEntries(els.cardEntriesList, els.cardEntriesTotal, data.card_entries || [], 'THB', false);
+        renderEntries(els.transferEntriesList, els.transferEntriesTotal, data.transfer_entries || [], 'THB', false);
+        renderEntries(els.discountEntriesList, els.discountEntriesTotal, data.discount_entries || [], 'THB', true);
 
         showMessage('Data synced successfully from Loyverse');
       } else {
