@@ -31,10 +31,10 @@ function getDateBounds(date) {
   const tz = process.env.LOYVERSE_TIMEZONE || 'Asia/Bangkok';
   
   // Explicitly parse in the target timezone to avoid local server time interference
-  const startLocal = dayjs.tz(`${date} 00:00:00`, tz);
-  // End time is exactly 24:00:00 (which is 00:00:00 of next day)
-  // We add back the 2-minute buffer as requested to capture late-night orders (like the 470 THB one)
-  const endLocal = dayjs.tz(`${date} 00:00:00`, tz).add(1, 'day').add(2, 'minute');
+  // Per user requirement, each day's report starts from 00:02:00 of that day
+  const startLocal = dayjs.tz(`${date} 00:02:00`, tz);
+  // And ends at 00:02:00 of the next day to include the full 24-hour cycle plus late-night orders
+  const endLocal = startLocal.add(1, 'day');
 
   if (!startLocal.isValid()) {
     throw new Error('Invalid date format. Use YYYY-MM-DD.');
