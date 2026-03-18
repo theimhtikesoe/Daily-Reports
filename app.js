@@ -21,14 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
     message: document.getElementById('message')
   };
 
-  // Set default date to today
-  function todayLocalDate() {
+  // Set default date to Thailand Today (UTC+7)
+  function getThailandDate() {
     const now = new Date();
-    const tzOffset = now.getTimezoneOffset() * 60000;
-    return new Date(now - tzOffset).toISOString().slice(0, 10);
+    // UTC time + 7 hours for Thailand
+    const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    return thailandTime.toISOString().slice(0, 10);
   }
 
-  if (els.reportDate) els.reportDate.value = todayLocalDate();
+  if (els.reportDate) els.reportDate.value = getThailandDate();
 
   function showMessage(text, type = 'success') {
     if (!els.message) return;
@@ -105,17 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (els.syncButton) els.syncButton.addEventListener('click', syncFromLoyverse);
   
-  if (els.saveButton) {
-    els.saveButton.addEventListener('click', () => showMessage('Report saved successfully (Simulation)'));
-  }
-  
-  if (els.printButton) {
-    els.printButton.addEventListener('click', () => window.print());
-  }
-
-  if (els.loadButton) {
-    els.loadButton.addEventListener('click', () => showMessage('No saved reports found for this date', 'warning'));
-  }
+  // Keep event listeners for hidden buttons to avoid errors
+  if (els.saveButton) els.saveButton.addEventListener('click', () => {});
+  if (els.printButton) els.printButton.addEventListener('click', () => window.print());
+  if (els.loadButton) els.loadButton.addEventListener('click', () => {});
 
   // Initial sync
   syncFromLoyverse();

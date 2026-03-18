@@ -29,7 +29,7 @@
       <input id="reportDate" type="date" class="form-control" />
     </div>
 
-    <button id="loadButton" class="btn btn-outline">Load Saved Report</button>
+    <button id="loadButton" class="btn btn-outline d-none">Load Saved Report</button>
     <button id="syncButton" class="btn btn-primary">Sync From Loyverse</button>
 
     <div class="form-group">
@@ -91,14 +91,11 @@
       <ol id="discountEntriesList" class="detail-list"></ol>
     </div>
 
-    <div class="action-row">
-      <button id="saveButton" class="btn btn-save">Save Daily Report</button>
-      <button id="printButton" class="btn btn-print">Print Report</button>
-    </div>
-
     <!-- Hidden elements to keep JS happy -->
     <div class="d-none">
       <div id="reportSection"></div>
+      <button id="saveButton"></button>
+      <button id="printButton"></button>
       <button id="downloadImageButton"></button>
       <button id="downloadPdfButton"></button>
       <input id="fromDate" type="date" />
