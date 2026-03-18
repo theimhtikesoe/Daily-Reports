@@ -28,17 +28,18 @@ function getDateBounds(date) {
     throw new Error('Invalid date format. Use YYYY-MM-DD.');
   }
 
-  const parsed = dayjs(`${date}T00:00:00`);
-  if (!parsed.isValid() || parsed.format('YYYY-MM-DD') !== date) {
+  const tz = process.env.LOYVERSE_TIMEZONE || 'Asia/Bangkok';
+  
+  // Explicitly parse in the target timezone to avoid local server time interference
+  const startLocal = dayjs.tz(`${date} 00:00:00`, tz);
+  const endLocal = dayjs.tz(`${date} 23:59:59.999`, tz);
+
+  if (!startLocal.isValid()) {
     throw new Error('Invalid date format. Use YYYY-MM-DD.');
   }
 
-  const tz = process.env.LOYVERSE_TIMEZONE || 'Asia/Bangkok';
-  const startLocal = dayjs.tz(`${date} 00:00:00.000`, tz);
-  const endLocal = dayjs.tz(`${date} 23:59:59.999`, tz);
-
   return {
-    startIso: startLocal.toISOString(),
+    startIso: startLocal.toISOString(), // This will be UTC ISO string
     endIso: endLocal.toISOString()
   };
 }
