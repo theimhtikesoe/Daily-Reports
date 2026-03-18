@@ -672,6 +672,11 @@ function extractDiscountEntriesFromReceipt(receipt) {
 async function fetchSalesSummaryByDate(date) {
   const paymentTypeMap = await fetchPaymentTypeMap();
   const receipts = await fetchClosedReceiptsByDate(date);
+  
+  console.log(`[DEBUG] Total receipts fetched: ${receipts.length}`);
+  if (receipts.length > 0) {
+    console.log(`[DEBUG] First receipt sample:`, JSON.stringify(receipts[0], null, 2));
+  }
 
   const totals = {
     total_cash: 0,
@@ -701,6 +706,7 @@ async function fetchSalesSummaryByDate(date) {
 
     for (const entry of paymentEntries) {
       const paymentCategory = classifyPaymentType(entry.paymentTypeLabel);
+      console.log(`[DEBUG] Payment entry - Label: "${entry.paymentTypeLabel}", Amount: ${entry.amount}, Category: ${paymentCategory}`);
       if (paymentCategory === 'cash') {
         totals.total_cash += entry.amount;
         totals.cash_entries.push(roundCurrency(entry.amount));
@@ -711,6 +717,7 @@ async function fetchSalesSummaryByDate(date) {
         totals.total_transfer += entry.amount;
         totals.transfer_entries.push(roundCurrency(entry.amount));
       } else {
+        console.log(`[DEBUG] Unclassified payment: ${entry.paymentTypeLabel} = ${entry.amount}`);
         totals.unclassified_amount += entry.amount;
       }
     }
