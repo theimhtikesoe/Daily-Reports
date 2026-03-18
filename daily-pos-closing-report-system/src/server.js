@@ -87,9 +87,11 @@ async function startServer() {
   });
 }
 
-startServer().catch((error) => {
-  console.error('Failed to start application:', error);
-  if (!isVercelRuntime) {
+if (!isVercelRuntime) {
+  startServer().catch((error) => {
+    console.error('Failed to start application:', error);
     process.exit(1);
-  }
-});
+  });
+}
+
+module.exports = app;
