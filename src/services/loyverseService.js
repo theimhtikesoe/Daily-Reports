@@ -209,6 +209,7 @@ function isCompletedReceipt(receipt) {
 }
 
 function extractPaymentEntries(receipt, paymentTypeMap) {
+  // Loyverse receipts typically have payments in receipt.payments
   const payments =
     receipt.payments ||
     receipt.payment_details ||
@@ -231,22 +232,45 @@ function extractPaymentEntries(receipt, paymentTypeMap) {
         .filter(Boolean)
         .join(' ');
 
-      const rawAmount =
-        payment.money_amount?.amount ??
-        payment.money_amount ??
-        payment.amount_money?.amount ??
-        payment.amount_money ??
-        payment.amount ??
-        payment.collected_money ??
-        payment.total_money ??
-        payment.value ??
-        0;
+      // Most reliable way is to check nested amount fields first
+      let rawAmount = 0;
+      if (payment.money_amount && typeof payment.money_amount === 'object') {
+        rawAmount = payment.money_amount.amount;
+      } else if (payment.amount_money && typeof payment.amount_money === 'object') {
+        rawAmount = payment.amount_money.amount;
+      } else if (payment.total_money && typeof payment.total_money === 'object') {
+        rawAmount = payment.total_money.amount;
+      } else {
+        // Fallback to direct fields
+        rawAmount = 
+          payment.money_amount ?? 
+          payment.amount_money ?? 
+          payment.amount ?? 
+          payment.collected_money ?? 
+          payment.total_money ?? 
+          payment.value ?? 
+          0;
+      }
 
       return {
         paymentTypeLabel,
         amount: normalizeMoney(rawAmount)
       };
     });
+  }
+
+  // If no payments array, fallback to receipt level fields
+  let fallbackAmount = 0;
+  if (receipt.total_money && typeof receipt.total_money === 'object') {
+    fallbackAmount = receipt.total_money.amount;
+  } else if (receipt.total_paid_money && typeof receipt.total_paid_money === 'object') {
+    fallbackAmount = receipt.total_paid_money.amount;
+  } else {
+    fallbackAmount = 
+      receipt.total_money ?? 
+      receipt.total ?? 
+      receipt.total_paid_money ?? 
+      0;
   }
 
   return [
@@ -259,12 +283,7 @@ function extractPaymentEntries(receipt, paymentTypeMap) {
       ]
         .filter(Boolean)
         .join(' '),
-      amount: normalizeMoney(
-        receipt.total_money ??
-        receipt.total ??
-        receipt.total_paid_money ??
-        0
-      )
+      amount: normalizeMoney(fallbackAmount)
     }
   ];
 }

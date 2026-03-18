@@ -212,14 +212,28 @@ function normalizeEntries(entries) {
   return entries
     .map((entry) => {
       if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
-        // Explicitly check for amount field, or use the entry itself if it's a number
-        const amount = (entry.amount !== undefined && entry.amount !== null) ? entry.amount : entry;
+        // Robust amount extraction from entry object
+        let amount = 0;
+        if (entry.amount !== undefined && entry.amount !== null) {
+          amount = entry.amount;
+        } else if (entry.money_amount && typeof entry.money_amount === 'object') {
+          amount = entry.money_amount.amount;
+        } else if (entry.amount_money && typeof entry.amount_money === 'object') {
+          amount = entry.amount_money.amount;
+        } else if (entry.total_money && typeof entry.total_money === 'object') {
+          amount = entry.total_money.amount;
+        } else {
+          // Fallback to the object itself if it's somehow a number-like string
+          amount = entry;
+        }
+
         return {
           amount: round2(parseNumber(amount)),
           percentage: parsePercentage(entry.percentage ?? entry.percent ?? entry.rate)
         };
       }
 
+      // Handle raw numbers or strings
       return {
         amount: round2(parseNumber(entry)),
         percentage: null
