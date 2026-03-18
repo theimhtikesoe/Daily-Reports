@@ -103,7 +103,7 @@ function resolveOneKBillCount(report) {
     return Math.max(0, Math.round(legacySafeBoxAmount / ONE_K_BILL_VALUE));
   }
 
-  const date = normalizeDate(report?.date || els.reportDate.value);
+  const date = normalizeDate(report?.date || (els.reportDate ? els.reportDate.value : todayLocalDate()));
   if (date === '2026-02-20') {
     return 7;
   }
@@ -139,7 +139,7 @@ function readOptionalQuantityById(ids = []) {
 }
 
 function calculateDenominationSummary() {
-  const oneKQty = parseOneKBillCount(els.oneKBillCount.value);
+  const oneKQty = els.oneKBillCount ? parseOneKBillCount(els.oneKBillCount.value) : 0;
   const oneKTotal = round2(oneKQty * ONE_K_BILL_VALUE);
 
   let otherDenominationTotal = 0;
@@ -159,13 +159,17 @@ function calculateDenominationSummary() {
 }
 
 function setMessage(text, variant = 'info') {
-  els.message.textContent = text;
-  els.message.className = `alert alert-${variant}`;
+  if (els.message) {
+    els.message.textContent = text;
+    els.message.className = `alert alert-${variant}`;
+  }
 }
 
 function clearMessage() {
-  els.message.className = 'alert d-none';
-  els.message.textContent = '';
+  if (els.message) {
+    els.message.className = 'alert d-none';
+    els.message.textContent = '';
+  }
 }
 
 function formatCurrency(value) {
@@ -318,7 +322,7 @@ function clearPaymentDetails() {
 }
 
 function getReportFileBaseName() {
-  const date = els.reportDate.value || todayLocalDate();
+  const date = (els.reportDate ? els.reportDate.value : null) || todayLocalDate();
   return `daily-report-${date}`.replace(/[^\w.-]+/g, '_');
 }
 
@@ -336,58 +340,66 @@ function setButtonLoading(button, loadingText, isLoading) {
 }
 
 function recalculate() {
-  const openingCash = parseNumber(els.openingCash.value);
-  const cashTotal = parseNumber(els.cashTotal.value);
-  const cardTotal = parseNumber(els.cardTotal.value);
+  const openingCash = els.openingCash ? parseNumber(els.openingCash.value) : 0;
+  const cashTotal = els.cashTotal ? parseNumber(els.cashTotal.value) : 0;
+  const cardTotal = els.cardTotal ? parseNumber(els.cardTotal.value) : 0;
   const transferTotal = parseNumber(els.transferTotal?.value.replace(/[^\d.-]/g, '') || 0);
-  const expense = parseNumber(els.expense.value);
+  const expense = els.expense ? parseNumber(els.expense.value) : 0;
 
   const netSale = round2(cashTotal + cardTotal + transferTotal);
-  els.netSale.value = netSale.toFixed(2);
+  if (els.netSale) {
+    els.netSale.value = netSale.toFixed(2);
+  }
 
   const expectedCash = round2(openingCash + netSale);
-  els.expectedCash.value = expectedCash.toFixed(2);
+  if (els.expectedCash) {
+    els.expectedCash.value = expectedCash.toFixed(2);
+  }
 
   const denom = calculateDenominationSummary();
   const safeBoxAmount = denom.oneKTotal;
-  els.safeBoxApplied.value = `${denom.oneKQty} x 1,000 = ${formatCurrency(denom.oneKTotal)}`;
+  if (els.safeBoxApplied) {
+    els.safeBoxApplied.value = `${denom.oneKQty} x 1,000 = ${formatCurrency(denom.oneKTotal)}`;
+  }
 
-  const actualCashCounted = parseNumber(els.actualCashCounted.value);
+  const actualCashCounted = els.actualCashCounted ? parseNumber(els.actualCashCounted.value) : 0;
   const outflowTotal = round2(safeBoxAmount + cardTotal + transferTotal + expense + actualCashCounted);
   const difference = round2(expectedCash - outflowTotal);
 
-  els.difference.value = difference.toFixed(2);
-  els.difference.className = `form-control ${difference > 0 ? 'diff-positive' : difference < 0 ? 'diff-negative' : ''}`;
+  if (els.difference) {
+    els.difference.value = difference.toFixed(2);
+    els.difference.className = `form-control ${difference > 0 ? 'diff-positive' : difference < 0 ? 'diff-negative' : ''}`;
+  }
 }
 
 function applyReportData(report) {
-  els.reportDate.value = normalizeDate(report.date);
-  els.cashTotal.value = round2(parseNumber(report.cash_total)).toFixed(2);
-  els.cardTotal.value = round2(parseNumber(report.card_total)).toFixed(2);
-  els.netSale.value = round2(parseNumber(report.net_sale)).toFixed(2);
-  els.totalOrders.value = parseInt(report.total_orders || 0, 10);
-  els.expense.value = round2(parseNumber(report.expense)).toFixed(2);
-  els.tip.value = round2(parseNumber(report.tip)).toFixed(2);
-  els.oneKBillCount.value = formatOneKBillCount(resolveOneKBillCount(report));
-  els.openingCash.value = round2(parseNumber(report.opening_cash)).toFixed(2);
-  els.actualCashCounted.value = round2(parseNumber(report.actual_cash_counted)).toFixed(2);
+  if (els.reportDate) els.reportDate.value = normalizeDate(report.date);
+  if (els.cashTotal) els.cashTotal.value = round2(parseNumber(report.cash_total)).toFixed(2);
+  if (els.cardTotal) els.cardTotal.value = round2(parseNumber(report.card_total)).toFixed(2);
+  if (els.netSale) els.netSale.value = round2(parseNumber(report.net_sale)).toFixed(2);
+  if (els.totalOrders) els.totalOrders.value = parseInt(report.total_orders || 0, 10);
+  if (els.expense) els.expense.value = round2(parseNumber(report.expense)).toFixed(2);
+  if (els.tip) els.tip.value = round2(parseNumber(report.tip)).toFixed(2);
+  if (els.oneKBillCount) els.oneKBillCount.value = formatOneKBillCount(resolveOneKBillCount(report));
+  if (els.openingCash) els.openingCash.value = round2(parseNumber(report.opening_cash)).toFixed(2);
+  if (els.actualCashCounted) els.actualCashCounted.value = round2(parseNumber(report.actual_cash_counted)).toFixed(2);
   recalculate();
 }
 
 function resetManualFields() {
-  els.expense.value = '0.00';
-  els.tip.value = '0.00';
-  els.oneKBillCount.value = '0';
-  els.openingCash.value = '0.00';
-  els.actualCashCounted.value = '0.00';
+  if (els.expense) els.expense.value = '0.00';
+  if (els.tip) els.tip.value = '0.00';
+  if (els.oneKBillCount) els.oneKBillCount.value = '0';
+  if (els.openingCash) els.openingCash.value = '0.00';
+  if (els.actualCashCounted) els.actualCashCounted.value = '0.00';
   recalculate();
 }
 
 function resetSyncedFields() {
-  els.cashTotal.value = '0.00';
-  els.cardTotal.value = '0.00';
-  els.totalOrders.value = '0';
-  els.netSale.value = '0.00';
+  if (els.cashTotal) els.cashTotal.value = '0.00';
+  if (els.cardTotal) els.cardTotal.value = '0.00';
+  if (els.totalOrders) els.totalOrders.value = '0';
+  if (els.netSale) els.netSale.value = '0.00';
 }
 
 function ensureManualInputsEnabled() {
@@ -400,16 +412,18 @@ function ensureManualInputsEnabled() {
 }
 
 function applySyncSummaryToFields(data) {
-  els.cashTotal.value = round2(parseNumber(data.cash_total)).toFixed(2);
-  els.cardTotal.value = round2(parseNumber(data.card_total)).toFixed(2);
-  els.netSale.value = round2(parseNumber(data.net_sale)).toFixed(2);
-  els.totalOrders.value = parseInt(data.total_orders || 0, 10);
+  if (els.cashTotal) els.cashTotal.value = round2(parseNumber(data.cash_total)).toFixed(2);
+  if (els.cardTotal) els.cardTotal.value = round2(parseNumber(data.card_total)).toFixed(2);
+  if (els.netSale) els.netSale.value = round2(parseNumber(data.net_sale)).toFixed(2);
+  if (els.totalOrders) els.totalOrders.value = parseInt(data.total_orders || 0, 10);
 
-  if (parseNumber(data.unclassified_amount) > 0) {
-    els.unclassifiedHint.textContent =
-      `Unclassified payment amount: ${formatCurrency(data.unclassified_amount)} (not included in Cash/Card totals).`;
-  } else {
-    els.unclassifiedHint.textContent = '';
+  if (els.unclassifiedHint) {
+    if (parseNumber(data.unclassified_amount) > 0) {
+      els.unclassifiedHint.textContent =
+        `Unclassified payment amount: ${formatCurrency(data.unclassified_amount)} (not included in Cash/Card totals).`;
+    } else {
+      els.unclassifiedHint.textContent = '';
+    }
   }
 
   recalculate();
@@ -517,13 +531,15 @@ async function syncFromLoyverse() {
   clearMessage();
   ensureManualInputsEnabled();
 
-  if (!els.reportDate.value) {
+  if (!els.reportDate || !els.reportDate.value) {
     setMessage('Please choose a report date first.', 'warning');
     return;
   }
 
-  els.syncButton.disabled = true;
-  els.syncButton.textContent = 'Syncing...';
+  if (els.syncButton) {
+    els.syncButton.disabled = true;
+    els.syncButton.textContent = 'Syncing...';
+  }
 
   try {
     await loadPaymentDetailsForDate(els.reportDate.value, { updateSummary: true, silent: false });
@@ -531,8 +547,10 @@ async function syncFromLoyverse() {
   } catch (error) {
     setMessage(error.message, 'danger');
   } finally {
-    els.syncButton.disabled = false;
-    els.syncButton.textContent = 'Sync From Loyverse';
+    if (els.syncButton) {
+      els.syncButton.disabled = false;
+      els.syncButton.textContent = 'Sync From Loyverse';
+    }
   }
 }
 
