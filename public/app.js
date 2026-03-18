@@ -212,8 +212,8 @@ function normalizeEntries(entries) {
   return entries
     .map((entry) => {
       if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
-        // Some backend responses might already have formatted data
-        const amount = entry.amount !== undefined ? entry.amount : entry;
+        // Explicitly check for amount field, or use the entry itself if it's a number
+        const amount = (entry.amount !== undefined && entry.amount !== null) ? entry.amount : entry;
         return {
           amount: round2(parseNumber(amount)),
           percentage: parsePercentage(entry.percentage ?? entry.percent ?? entry.rate)
