@@ -38,9 +38,11 @@ function getDateBounds(date) {
     throw new Error('Invalid date format. Use YYYY-MM-DD.');
   }
 
+  // Loyverse API accepts ISO 8601 format with timezone offset
+  // We should send the exact local time bounds to avoid UTC conversion issues
   return {
-    startIso: startLocal.toISOString(), // This will be UTC ISO string
-    endIso: endLocal.toISOString()
+    startIso: startLocal.format('YYYY-MM-DDTHH:mm:ss.SSSZ'),
+    endIso: endLocal.format('YYYY-MM-DDTHH:mm:ss.SSSZ')
   };
 }
 
