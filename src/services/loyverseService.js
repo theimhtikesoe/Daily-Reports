@@ -33,7 +33,8 @@ function getDateBounds(date) {
   // Explicitly parse in the target timezone to avoid local server time interference
   const startLocal = dayjs.tz(`${date} 00:00:00`, tz);
   // End time is exactly 24:00:00 (which is 00:00:00 of next day)
-  const endLocal = dayjs.tz(`${date} 00:00:00`, tz).add(1, 'day');
+  // Shift by 1 second to include exactly midnight orders if they are timestamped at 00:00:00 next day
+  const endLocal = dayjs.tz(`${date} 00:00:00`, tz).add(1, 'day').add(1, 'second');
 
   if (!startLocal.isValid()) {
     throw new Error('Invalid date format. Use YYYY-MM-DD.');
@@ -231,10 +232,10 @@ function extractPaymentEntries(receipt, paymentTypeMap) {
         .join(' ');
 
       const rawAmount =
+        payment.amount ??
         payment.money_amount ??
         payment.amount_money?.amount ??
         payment.amount_money ??
-        payment.amount ??
         payment.collected_money ??
         payment.total_money ??
         payment.value ??

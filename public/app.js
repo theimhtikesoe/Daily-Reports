@@ -166,10 +166,12 @@ function clearMessage() {
 }
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: 'THB'
-  }).format(parseNumber(value));
+  const amount = parseNumber(value);
+  const formatted = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+  return `THB ${formatted}`;
 }
 
 function formatPercentage(value) {
