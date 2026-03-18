@@ -75,6 +75,8 @@ async function fetchPaymentTypeMap() {
 
 async function fetchClosedReceiptsByDate(date) {
   const { startIso, endIso } = getDateBounds(date);
+  console.log(`[Loyverse API] Fetching receipts for date: ${date}`);
+  console.log(`[Loyverse API] Time range - Start: ${startIso}, End: ${endIso}`);
 
   const receipts = [];
   let cursor;
@@ -99,6 +101,14 @@ async function fetchClosedReceiptsByDate(date) {
 
     const payload = response.data || {};
     const pageReceipts = payload.receipts || payload.items || payload.data || [];
+    console.log(`[Loyverse API] Page ${pages + 1}: Received ${pageReceipts.length} receipts`);
+    
+    // Log receipt timestamps for debugging
+    if (pageReceipts.length > 0) {
+      const timestamps = pageReceipts.map(r => r.created_at || r.createdAt || 'N/A').slice(0, 3);
+      console.log(`[Loyverse API] Sample receipt timestamps: ${timestamps.join(', ')}`);
+    }
+    
     receipts.push(...pageReceipts);
 
     const nextCursor = payload.cursor || payload.next_cursor || payload.nextCursor || null;
@@ -110,6 +120,7 @@ async function fetchClosedReceiptsByDate(date) {
     }
   } while (cursor);
 
+  console.log(`[Loyverse API] Total receipts fetched: ${receipts.length}`);
   return receipts;
 }
 
