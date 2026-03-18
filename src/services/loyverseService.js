@@ -33,8 +33,8 @@ function getDateBounds(date) {
   // Explicitly parse in the target timezone to avoid local server time interference
   const startLocal = dayjs.tz(`${date} 00:00:00`, tz);
   // End time is exactly 24:00:00 (which is 00:00:00 of next day)
-  // We remove the extra minutes to ensure that the start of one day is exactly the end of the previous day
-  const endLocal = dayjs.tz(`${date} 00:00:00`, tz).add(1, 'day');
+  // We add back the 2-minute buffer as requested to capture late-night orders (like the 470 THB one)
+  const endLocal = dayjs.tz(`${date} 00:00:00`, tz).add(1, 'day').add(2, 'minute');
 
   if (!startLocal.isValid()) {
     throw new Error('Invalid date format. Use YYYY-MM-DD.');
