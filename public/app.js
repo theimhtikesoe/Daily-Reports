@@ -235,24 +235,36 @@ function processBestBudsData(items) {
     let qty = Number(item.quantity || item.qty || 0);
     let itemTotal = price * qty;
 
-    // --- [1] HARDCODE FIX: Lemon Cherry Discount (Override to 7G) ---
+    // --- [1] LEMON CHERRY OVERRIDE (7G Fix) ---
     if (itemName.includes('lemon cherry') && itemTotal === 4970) {
-      qty = 7;
+      qty = 7; 
     }
 
-    // --- [2] Category သတ်မှတ်ခြင်း ---
-    let isAcc = category.includes('accessories') || itemName.includes('accessories') || itemName.includes('bong') || itemName.includes('paper') || itemName.includes('tip') || itemName.includes('grinder') || itemName.includes('shirt') || itemName.includes('hat');
-    let isFB = itemName.includes('gummy') || itemName.includes('water') || itemName.includes('soda') || price <= 50;
+    // --- [2] CATEGORY IDENTIFICATION ---
+    let isAcc = category.includes('accessories') || 
+                itemName.includes('accessories') || 
+                itemName.includes('bong') || 
+                itemName.includes('paper') || 
+                itemName.includes('tip') || 
+                itemName.includes('grinder');
+    let isFB = category.includes('soft drink') || 
+               category.includes('snacks') || 
+               itemName.includes('gummy') || 
+               itemName.includes('water') || 
+               itemName.includes('soda');
 
-    // --- [3] Best Buds Calculation (M/Acc VS F&B) ---
-    if (isFB || (isAcc && price <= 50)) {
-      // Group B: F&B (ဒါမှမဟုတ် 30 THB တန် Accessories အသေးစား) -> ညာဘက်ထားမယ်, Gram မပေါင်းဘူး
+    // --- [3] THE BEST BUDS ROUTING LOGIC ---
+    if (price <= 50 || isFB) {
+      // Group B: F&B (ဒါမှမဟုတ် 50 THB အောက် Item တွေ)
+      // Action -> ညာဘက်မှာထားမယ်, Gram 0.000
       fbPriceTotal += itemTotal;
     } else if (isAcc) {
-      // Group C: Real Accessories (>50 THB) -> ဘယ်ဘက်ထားမယ်, Gram မပေါင်းဘူး
+      // Group C: Real Accessories (50 THB ထက်ကြီးသော အသုံးအဆောင်များ)
+      // Action -> ဘယ်ဘက်မှာထားမယ်, Gram 0.000
       mainAndAccPrice += itemTotal;
     } else {
-      // Group A: Main Flower -> ဘယ်ဘက်ထားမယ်, Gram ပေါင်းမယ်
+      // Group A: Main Flowers (ပန်းသီးသန့်)
+      // Action -> ဘယ်ဘက်မှာထားမယ်, Gram ပေါင်းမယ်
       mainAndAccPrice += itemTotal;
       lineGram += qty;
       if (!mainItemName) mainItemName = item.name;
