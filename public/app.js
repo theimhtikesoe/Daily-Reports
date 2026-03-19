@@ -261,22 +261,22 @@ function renderEntryList(listElement, entries, options = {}) {
     return;
   }
 
-  entries.forEach((entry) => {
+  entries.forEach((entry, index) => {
     const li = document.createElement('li');
-    // We rely on the <ol> tag's default numbering from index.html to avoid double numbering
+    const prefix = `${index + 1}. `;
     
     if (showPercentage) {
       if (entry.percentage !== null) {
         li.textContent = percentageOnly
-          ? `${formatPercentage(entry.percentage)}`
-          : `${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
+          ? `${prefix}${formatPercentage(entry.percentage)}`
+          : `${prefix}${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
       } else if (percentageOnly) {
-        li.textContent = `${percentageFallbackText}`;
+        li.textContent = `${prefix}${percentageFallbackText}`;
       } else {
-        li.textContent = `${formatCurrency(entry.amount)}`;
+        li.textContent = `${prefix}${formatCurrency(entry.amount)}`;
       }
     } else {
-      li.textContent = `${formatCurrency(entry.amount)}`;
+      li.textContent = `${prefix}${formatCurrency(entry.amount)}`;
     }
     listElement.appendChild(li);
   });
