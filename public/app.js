@@ -211,35 +211,33 @@ function normalizeEntries(entries) {
 
   return entries
     .map((entry) => {
+      let amount = 0;
+      let percentage = null;
+
       if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
         // Robust amount extraction from entry object
-        let amount = 0;
-        if (entry.amount !== undefined && entry.amount !== null) {
-          amount = entry.amount;
-        } else if (entry.money_amount && typeof entry.money_amount === 'object') {
-          amount = entry.money_amount.amount;
-        } else if (entry.amount_money && typeof entry.amount_money === 'object') {
-          amount = entry.amount_money.amount;
-        } else if (entry.total_money && typeof entry.total_money === 'object') {
-          amount = entry.total_money.amount;
-        } else {
-          // Fallback to the object itself if it's somehow a number-like string
-          amount = entry;
-        }
-
-        return {
-          amount: round2(parseNumber(amount)),
-          percentage: parsePercentage(entry.percentage ?? entry.percent ?? entry.rate)
-        };
+        amount = 
+          entry.amount ?? 
+          entry.money_amount?.amount ?? 
+          entry.amount_money?.amount ?? 
+          entry.total_money?.amount ?? 
+          entry.money_amount ?? 
+          entry.amount_money ?? 
+          entry.total_money ?? 
+          0;
+        
+        percentage = parsePercentage(entry.percentage ?? entry.percent ?? entry.rate);
+      } else {
+        // Handle raw numbers or strings
+        amount = entry;
       }
 
-      // Handle raw numbers or strings
       return {
-        amount: round2(parseNumber(entry)),
-        percentage: null
+        amount: round2(parseNumber(amount)),
+        percentage: percentage
       };
     })
-    .filter((entry) => Number.isFinite(entry.amount) && entry.amount !== 0);
+    .filter((entry) => Number.isFinite(entry.amount) && entry.amount > 0);
 }
 
 function renderEntryList(listElement, entries, options = {}) {
