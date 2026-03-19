@@ -21,7 +21,7 @@
     integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
     crossorigin="anonymous"
   />
-  <link rel="stylesheet" href="styles.css?v=20260319t" />
+  <link rel="stylesheet" href="styles.css?v=20260319u" />
 </head>
 <body>
   <header class="app-header py-4 mb-4">
@@ -128,10 +128,35 @@
         </div>
 
         <div class="d-flex flex-wrap align-items-center gap-3 mt-4">
-
-
-
           <span id="unclassifiedHint" class="text-muted small"></span>
+        </div>
+
+        <!-- BestBuds Order Report -->
+        <h2 class="h5 mt-4 mb-3">BestBuds Order Report</h2>
+        <div class="detail-box mb-3">
+          <div class="detail-box-head">
+            <span>Total Grams</span>
+            <strong id="totalGramsValue" class="text-muted">0.00 G</strong>
+          </div>
+        </div>
+        <div class="detail-box">
+          <div class="detail-box-head">
+            <span>Order Entries</span>
+            <span class="small text-muted">Time &nbsp;|&nbsp; Receipt &nbsp;|&nbsp; Grams &nbsp;|&nbsp; Main+Acc / F&amp;B</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-borderless mb-0" style="color: inherit;">
+              <thead>
+                <tr style="border-bottom: 1px solid rgba(200,136,46,0.2);">
+                  <th class="text-muted small" style="width:60px">Time</th>
+                  <th class="text-muted small" style="width:100px">Receipt</th>
+                  <th class="text-muted small" style="width:80px">Grams</th>
+                  <th class="text-muted small">Price (Main+Acc / F&amp;B)</th>
+                </tr>
+              </thead>
+              <tbody id="bestBudsEntriesList"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -144,6 +169,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=20260319t"></script>
+  <script src="app.js?v=20260319u"></script>
 </body>
 </html>

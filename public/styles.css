@@ -305,6 +305,38 @@ body {
   font-weight: 700;
 }
 
+/* BestBuds Order Report table */
+.detail-box .table {
+  color: var(--ink);
+}
+
+.detail-box .table thead th {
+  background: transparent;
+  color: var(--ink-soft);
+  border: none;
+  font-weight: 600;
+  padding: 6px 12px;
+}
+
+.detail-box .table tbody tr {
+  background: transparent;
+}
+
+.detail-box .table tbody tr:hover {
+  background: rgba(200, 136, 46, 0.06);
+}
+
+.detail-box .table tbody td {
+  padding: 5px 12px;
+  border: none;
+  border-bottom: 1px dashed rgba(100, 80, 40, 0.25);
+  vertical-align: middle;
+}
+
+.detail-box .table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 /* Bootstrap overrides for dark theme */
 .form-control,
 .form-select {
