@@ -227,6 +227,7 @@ function processBestBudsData(items) {
     const total = round2(qty * price);
     
     // Calculate unit price for 3-Pole Logic
+    // If qty is 0, we use the total price as unit price
     const unitPrice = qty > 0 ? price : total;
 
     // 3-Pole Logic Implementation:

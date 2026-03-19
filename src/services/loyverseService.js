@@ -389,7 +389,9 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
     const price = extractLineItemPrice(lineItem);
     
     // Calculate unit price for 3-Pole Logic
-    const unitPrice = qty > 0 ? price / qty : price;
+    // We use the unit price to determine if it's a small item (Group B)
+    // If qty is 0 (should not happen for valid items), we use the total price
+    const unitPrice = qty > 0 ? roundCurrency(price / qty) : price;
     const normalizedCategory = category || 'uncategorized';
 
     // 3-Pole Logic Implementation:
