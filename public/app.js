@@ -96,7 +96,19 @@ function parsePercentage(value) {
   if (!Number.isFinite(n) || n === 0) return null;
   // If the number is between 0 and 1 (exclusive of 0), assume it's a decimal representation and multiply by 100.
   // Otherwise, assume it's already a percentage value.
-  return round2(Math.abs(n) > 0 && Math.abs(n) < 1 ? n * 100 : n);
+  // If the number is between 0 and 1 (exclusive of 0), assume it's a decimal representation and multiply by 100.
+  // Otherwise, assume it's already a percentage value.
+  // Also, if the number is exactly 1, it should be 100%.
+  // If the number is between 0 and 1 (exclusive of 0), assume it's a decimal representation and multiply by 100.
+  // Otherwise, assume it's already a percentage value.
+  // Also, if the number is exactly 1, it should be 100%.
+  // If the number is greater than 1, assume it's already a percentage value (e.g., 40 for 40%).
+  // If the number is between 0 and 1, assume it's a decimal (e.g., 0.4 for 40%).
+  if (Math.abs(n) > 0 && Math.abs(n) <= 1) {
+    return round2(n * 100);
+  } else {
+    return round2(n);
+  }
 }
 
 function formatTime(isoString) {
