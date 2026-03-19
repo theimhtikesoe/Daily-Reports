@@ -85,8 +85,10 @@ function formatCurrency(value) {
 
 function formatPercentage(value) {
   const normalized = round2(parseNumber(value));
-  const clean = normalized % 1 === 0 ? String(normalized.toFixed(0)) : String(normalized.toFixed(2));
-  return `${clean.replace(/\.?0+$/, '')}%`;
+  if (normalized % 1 === 0) {
+    return `${normalized.toFixed(0)}%`;
+  }
+  return `${normalized.toFixed(2).replace(/0+$/, '')}%`;
 }
 
 function parsePercentage(value) {
