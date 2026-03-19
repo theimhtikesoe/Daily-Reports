@@ -297,7 +297,11 @@ function buildAutomatedReceiptRow(receipt) {
 
     const qty = extractLineItemQty(lineItem);
     const price = extractLineItemPrice(lineItem);
-    const isFoodOrBeverage = category === 'soft drink' || category === 'snacks';
+    
+    // Calculate unit price for safety net logic
+    const unitPrice = qty > 0 ? price / qty : price;
+    
+    const isFoodOrBeverage = category === 'soft drink' || category === 'snacks' || unitPrice <= 50;
     const isAccessory = category === 'accessories';
     const isGroupA = !isFoodOrBeverage && !isAccessory;
 

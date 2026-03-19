@@ -222,8 +222,11 @@ function processBestBudsData(items) {
     const qty = round2(parseNumber(item?.qty ?? item?.quantity ?? 0));
     const price = round2(parseNumber(item?.price ?? item?.unit_price ?? 0));
     const total = round2(qty * price);
+    
+    // Calculate unit price for safety net logic
+    const unitPrice = qty > 0 ? price : total; // If qty is 0, use total as price
 
-    if (cat === 'soft drink' || cat === 'snacks') {
+    if (cat === 'soft drink' || cat === 'snacks' || unitPrice <= 50) {
       fbPrice += total;
     } else if (cat === 'accessories') {
       mainAndAccPrice += total;
