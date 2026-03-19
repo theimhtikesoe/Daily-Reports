@@ -238,7 +238,7 @@ function clearMessage() {
 
 async function syncFromLoyverse() {
   clearMessage();
-  if (!els.reportDate.value) return setMessage('Please choose a date.', 'warning');
+  if (!els.reportDate.value) return;
   setButtonLoading(els.syncButton, 'Syncing...', true);
   try {
     const res = await fetch(`/api/loyverse/sync?date=${els.reportDate.value}`, { cache: 'no-store' });
@@ -251,8 +251,7 @@ async function syncFromLoyverse() {
     els.netSale.value = round2(data.net_sale).toFixed(2);
     els.totalOrders.value = data.total_orders || 0;
     recalculate();
-    setMessage('Synced successfully.', 'success');
-  } catch (e) { setMessage(e.message, 'danger'); }
+  } catch (e) { console.error(e); }
   finally { setButtonLoading(els.syncButton, '', false); }
 }
 
@@ -264,7 +263,7 @@ async function loadSavedReport() {
     const res = await fetch(`/api/reports/${date}`);
     if (res.status === 404) {
       resetFields();
-      return setMessage('No saved report found.', 'secondary');
+      return;
     }
     const report = await res.json();
     els.cashTotal.value = round2(report.cash_total).toFixed(2);
@@ -282,8 +281,7 @@ async function loadSavedReport() {
     if (syncRes.ok) applyPaymentDetails(await syncRes.json());
     
     recalculate();
-    setMessage('Report loaded.', 'success');
-  } catch (e) { setMessage(e.message, 'danger'); }
+  } catch (e) { console.error(e); }
 }
 
 function resetFields() {
