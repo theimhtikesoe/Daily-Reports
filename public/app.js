@@ -363,6 +363,7 @@ async function syncFromLoyverse() {
     const res = await fetch(`/api/loyverse/sync?date=${els.reportDate.value}`, { cache: 'no-store' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Sync failed');
+    lastSyncedData = data;
     applyPaymentDetails(data);
     renderBestBudsTable(data);
     els.cashTotal.value = round2(data.cash_total).toFixed(2);
@@ -370,7 +371,6 @@ async function syncFromLoyverse() {
     if (els.transferTotal) els.transferTotal.value = round2(data.transfer_total).toFixed(2);
     els.netSale.value = round2(data.net_sale).toFixed(2);
     els.totalOrders.value = data.total_orders || 0;
-    renderBestBudsReport(data);
     recalculate();
   } catch (e) { console.error(e); }
   finally { setButtonLoading(els.syncButton, '', false); }
@@ -529,6 +529,15 @@ function bindEvents() {
 
   
 
+}
+
+let lastSyncedData = null;
+
+function recalculate() {
+  console.log("Recalculating Best Buds Totals...");
+  if (lastSyncedData && typeof renderBestBudsReport === 'function') {
+    renderBestBudsReport(lastSyncedData);
+  }
 }
 
 function init() {
