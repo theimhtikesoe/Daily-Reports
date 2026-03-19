@@ -396,6 +396,7 @@ function init() {
   loadSavedReport();
   loadReportHistory();
   loadNetSalesChart();
+  document.querySelector('.app-main-content').style.display = 'block';
 }
 
 init();
