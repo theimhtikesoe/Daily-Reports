@@ -66,6 +66,11 @@ function parseNumber(value) {
     return 0;
   }
 
+  // Remove potential numbering prefixes like "1. ", "2. ", etc.
+  normalized = normalized.replace(/^\d+\.\s+/, '');
+  // Remove currency prefixes like "THB ", "฿ "
+  normalized = normalized.replace(/^(THB|฿)\s*/i, '');
+
   if (/^-?\d+,\d+$/.test(normalized) && !normalized.includes('.')) {
     normalized = normalized.replace(',', '.');
   } else {
@@ -248,7 +253,10 @@ function normalizeEntries(entries) {
         receiptNumber = entry.receiptNumber || entry.receipt_number || entry.number || null;
       } else {
         // Handle raw numbers or strings
-        amount = entry;
+        let val = String(entry).trim();
+        // Clean up any numbering prefix if it's a string
+        val = val.replace(/^\d+\.\s+/, '');
+        amount = val;
       }
 
       return {
