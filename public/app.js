@@ -263,24 +263,22 @@ function renderEntryList(listElement, entries, options = {}) {
     return;
   }
 
-  entries.forEach((entry, index) => {
+  entries.forEach((entry) => {
     const li = document.createElement('li');
-    // Note: The index is handled by the <ol> tag's default numbering if list-style is not hidden
-    // but since the user wants a specific format, we'll keep it as text
-    const prefix = `${index + 1}. `;
+    // We rely on the <ol> tag's default numbering from index.html to avoid double numbering
     
     if (showPercentage) {
       if (entry.percentage !== null) {
         li.textContent = percentageOnly
-          ? `${prefix}${formatPercentage(entry.percentage)}`
-          : `${prefix}${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
+          ? `${formatPercentage(entry.percentage)}`
+          : `${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
       } else if (percentageOnly) {
-        li.textContent = `${prefix}${percentageFallbackText}`;
+        li.textContent = `${percentageFallbackText}`;
       } else {
-        li.textContent = `${prefix}${formatCurrency(entry.amount)}`;
+        li.textContent = `${formatCurrency(entry.amount)}`;
       }
     } else {
-      li.textContent = `${prefix}${formatCurrency(entry.amount)}`;
+      li.textContent = `${formatCurrency(entry.amount)}`;
     }
     listElement.appendChild(li);
   });
