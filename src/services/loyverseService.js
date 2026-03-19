@@ -283,6 +283,7 @@ function buildAutomatedReceiptRow(receipt) {
   let numeratorPrice = 0;
   let denominatorPrice = 0;
   let netSales = 0;
+  let mainItemName = '';
 
   for (let index = 0; index < lineItems.length; index += 1) {
     const lineItem = lineItems[index];
@@ -303,6 +304,15 @@ function buildAutomatedReceiptRow(receipt) {
     if (isGroupA) {
       totalGram += qty;
       numeratorPrice += price;
+      if (!mainItemName) {
+        mainItemName = String(
+          lineItem.item_name ||
+          lineItem.name ||
+          lineItem.variant_name ||
+          lineItem.sku ||
+          ''
+        ).trim();
+      }
     } else if (isFoodOrBeverage) {
       denominatorPrice += price;
     } else if (isAccessory) {
@@ -316,6 +326,7 @@ function buildAutomatedReceiptRow(receipt) {
     receipt_number: receiptNumber,
     time,
     gram_qty: roundCurrency(totalGram),
+    item_name: mainItemName || 'Accessories',
     numerator_price: roundCurrency(numeratorPrice),
     denominator_price: roundCurrency(denominatorPrice),
     price_split: `${roundCurrency(numeratorPrice)} / ${roundCurrency(denominatorPrice)}`,
