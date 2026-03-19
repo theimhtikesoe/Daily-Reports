@@ -2,27 +2,27 @@ const els = {
   message: document.getElementById('message'),
   reportDate: document.getElementById('reportDate'),
   reportSection: document.getElementById('reportSection'),
-  loadButton: document.getElementById('loadButton'),
+
   syncButton: document.getElementById('syncButton'),
   saveButton: document.getElementById('saveButton'),
   printButton: document.getElementById('printButton'),
-  downloadImageButton: document.getElementById('downloadImageButton'),
-  downloadPdfButton: document.getElementById('downloadPdfButton'),
-  filterReports: document.getElementById('filterReports'),
-  fromDate: document.getElementById('fromDate'),
-  toDate: document.getElementById('toDate'),
+
+
+
+
+
   cashTotal: document.getElementById('cashTotal'),
   cardTotal: document.getElementById('cardTotal'),
   totalOrders: document.getElementById('totalOrders'),
   netSale: document.getElementById('netSale'),
-  expense: document.getElementById('expense'),
-  tip: document.getElementById('tip'),
-  oneKBillCount: document.getElementById('oneKBillCount'),
-  openingCash: document.getElementById('openingCash'),
-  actualCashCounted: document.getElementById('actualCashCounted'),
-  expectedCash: document.getElementById('expectedCash'),
-  difference: document.getElementById('difference'),
-  safeBoxApplied: document.getElementById('safeBoxApplied'),
+
+
+
+
+
+
+
+
   cashEntriesList: document.getElementById('cashEntriesList'),
   cardEntriesList: document.getElementById('cardEntriesList'),
   discountEntriesList: document.getElementById('discountEntriesList'),
@@ -32,19 +32,14 @@ const els = {
   transferTotal: document.getElementById('transferTotal'),
   transferEntriesList: document.getElementById('transferEntriesList'),
   transferEntriesTotal: document.getElementById('transferEntriesTotal'),
-  reportsTableBody: document.querySelector('#reportsTable tbody'),
+
   unclassifiedHint: document.getElementById('unclassifiedHint')
 };
 
-let chart;
-const A4_LANDSCAPE_RATIO = 297 / 210;
-const ONE_K_BILL_VALUE = 1000;
-const OPTIONAL_DENOMINATION_INPUTS = {
-  5000: ['fiveKBillCount', 'bill5kQty', 'qty5k'],
-  10000: ['tenKBillCount', 'bill10kQty', 'qty10k'],
-  20000: ['twentyKBillCount', 'bill20kQty', 'qty20k'],
-  50000: ['fiftyKBillCount', 'bill50kQty', 'qty50k']
-};
+
+
+
+
 
 function todayLocalDate() {
   const now = new Date();
@@ -185,35 +180,11 @@ function applyPaymentDetails(data) {
   if (els.discountEntriesTotal) els.discountEntriesTotal.textContent = formatCurrency(discountTotal);
 }
 
-function recalculate() {
-  const oneKCount = parseOneKBillCount(els.oneKBillCount.value);
-  const oneKTotal = oneKCount * ONE_K_BILL_VALUE;
-  const opening = parseNumber(els.openingCash.value);
-  const net = round2(parseNumber(els.netSale.value));
-  const card = parseNumber(els.cardTotal.value);
-  const transfer = parseNumber(els.transferTotal.value);
-  const expense = parseNumber(els.expense.value);
-  const actual = parseNumber(els.actualCashCounted.value);
-  
-  const expected = round2(opening + net);
-  const outflow = round2(oneKTotal + card + transfer + expense + actual);
-  const diff = round2(expected - outflow);
 
-  els.expectedCash.value = expected.toFixed(2);
-  els.difference.value = diff.toFixed(2);
-  if (els.safeBoxApplied) els.safeBoxApplied.value = `${oneKCount} x 1,000 = ${formatCurrency(oneKTotal)}`;
 
-  els.difference.classList.remove('diff-positive', 'diff-negative');
-  if (diff > 0) els.difference.classList.add('diff-positive');
-  else if (diff < 0) els.difference.classList.add('diff-negative');
-}
 
-function parseOneKBillCount(v) {
-  const n = Math.floor(parseNumber(v));
-  return n > 0 ? n : 0;
-}
 
-function formatOneKBillCount(c) { return String(parseOneKBillCount(c)); }
+
 
 function setButtonLoading(btn, text, isLoading) {
   if (!btn) return;
@@ -255,34 +226,7 @@ async function syncFromLoyverse() {
   finally { setButtonLoading(els.syncButton, '', false); }
 }
 
-async function loadSavedReport() {
-  clearMessage();
-  const date = els.reportDate.value;
-  if (!date) return;
-  try {
-    const res = await fetch(`/api/reports/${date}`);
-    if (res.status === 404) {
-      resetFields();
-      return;
-    }
-    const report = await res.json();
-    els.cashTotal.value = round2(report.cash_total).toFixed(2);
-    els.cardTotal.value = round2(report.card_total).toFixed(2);
-    if (els.transferTotal) els.transferTotal.value = round2(report.transfer_total || 0).toFixed(2);
-    els.totalOrders.value = report.total_orders || 0;
-    els.netSale.value = round2(report.net_sale).toFixed(2);
-    els.expense.value = round2(report.expense).toFixed(2);
-    els.tip.value = round2(report.tip).toFixed(2);
-    els.oneKBillCount.value = report['1k_qty'] || 0;
-    els.openingCash.value = round2(report.opening_cash).toFixed(2);
-    els.actualCashCounted.value = round2(report.actual_cash_counted).toFixed(2);
-    
-    const syncRes = await fetch(`/api/loyverse/sync?date=${date}`);
-    if (syncRes.ok) applyPaymentDetails(await syncRes.json());
-    
-    recalculate();
-  } catch (e) { console.error(e); }
-}
+
 
 function resetFields() {
   els.cashTotal.value = '0.00';
@@ -331,71 +275,26 @@ async function saveReport() {
   finally { setButtonLoading(els.saveButton, '', false); }
 }
 
-async function loadReportHistory() {
-  try {
-    const res = await fetch('/api/reports');
-    const data = await res.json();
-    els.reportsTableBody.innerHTML = '';
-    data.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.date}</td>
-        <td>${formatCurrency(r.net_sale)}</td>
-        <td>${formatCurrency(r.cash_total)}</td>
-        <td>${formatCurrency(r.card_total)}</td>
-        <td>${r.total_orders}</td>
-        <td>${formatCurrency(r.expense)}</td>
-        <td>${formatCurrency(r.safe_box_amount)}</td>
-        <td>${formatCurrency(r.expected_cash)}</td>
-        <td class="${r.difference > 0 ? 'diff-positive' : r.difference < 0 ? 'diff-negative' : ''}">${formatCurrency(r.difference)}</td>
-        <td><button class="btn btn-sm btn-outline-primary view-btn" data-date="${r.date}">View</button></td>
-      `;
-      els.reportsTableBody.appendChild(tr);
-    });
-  } catch (e) { console.error(e); }
-}
 
-async function loadNetSalesChart() {
-  try {
-    const res = await fetch('/api/reports/last-7/net-sales');
-    const data = await res.json();
-    const ctx = document.getElementById('netSalesChart').getContext('2d');
-    if (chart) chart.destroy();
-    chart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: data.map(d => d.date),
-        datasets: [{ label: 'Net Sale', data: data.map(d => d.net_sale), backgroundColor: '#b6781e' }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-  } catch (e) { console.error(e); }
-}
+
+
 
 function bindEvents() {
   els.syncButton.addEventListener('click', syncFromLoyverse);
   els.saveButton.addEventListener('click', saveReport);
-  els.loadButton.addEventListener('click', loadSavedReport);
-  els.reportDate.addEventListener('change', loadSavedReport);
+
+
   els.printButton.addEventListener('click', () => window.print());
   
-  document.querySelectorAll('.calc-input').forEach(i => i.addEventListener('input', recalculate));
+
   
-  els.reportsTableBody.addEventListener('click', e => {
-    if (e.target.classList.contains('view-btn')) {
-      els.reportDate.value = e.target.dataset.date;
-      loadSavedReport();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  });
+
 }
 
 function init() {
   els.reportDate.value = todayLocalDate();
   bindEvents();
-  loadSavedReport();
-  loadReportHistory();
-  loadNetSalesChart();
+  syncFromLoyverse();
   document.querySelector('.app-main-content').style.display = 'block';
 }
 
