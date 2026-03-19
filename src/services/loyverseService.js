@@ -227,6 +227,11 @@ function extractLineItemCategory(lineItem) {
     return '';
   }
 
+  // Loyverse API uses category_name on line_items
+  if (lineItem.category_name) {
+    return normalizeCategoryValue(lineItem.category_name);
+  }
+
   if (Object.prototype.hasOwnProperty.call(lineItem, 'category')) {
     return normalizeCategoryValue(lineItem.category);
   }

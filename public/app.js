@@ -384,7 +384,7 @@ function renderBestBudsReport(data) {
     tr.innerHTML = `
       <td class="text-muted small">${timeStr}</td>
       <td class="text-muted small">${order.receiptNumber || (idx + 1)}</td>
-      <td class="${gramClass}">${order.g > 0 ? order.g.toFixed(2) + ' G' : '-'}</td>
+      <td class="${gramClass}">${order.g > 0 ? order.g.toFixed(2) + ' G' : '0'}</td>
       <td class="small">${order.priceDisplay}</td>
     `;
     tbody.appendChild(tr);
