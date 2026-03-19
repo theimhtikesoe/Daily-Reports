@@ -229,6 +229,7 @@ function normalizeEntries(entries) {
       let amount = 0;
       let percentage = null;
       let time = null;
+      let receiptNumber = null;
 
       if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
         // Robust amount extraction from entry object
@@ -244,6 +245,7 @@ function normalizeEntries(entries) {
         
         percentage = parsePercentage(entry.percentage ?? entry.percent ?? entry.rate);
         time = entry.time || null;
+        receiptNumber = entry.receiptNumber || entry.receipt_number || entry.number || null;
       } else {
         // Handle raw numbers or strings
         amount = entry;
@@ -252,7 +254,8 @@ function normalizeEntries(entries) {
       return {
         amount: round2(parseNumber(amount)),
         percentage: percentage,
-        time: time
+        time: time,
+        receiptNumber: receiptNumber
       };
     })
     .filter((entry) => Number.isFinite(entry.amount) && entry.amount > 0);
@@ -282,20 +285,22 @@ function renderEntryList(listElement, entries, options = {}) {
   entries.forEach((entry, index) => {
     const li = document.createElement('li');
     const prefix = `${index + 1}. `;
-    const timeStr = entry.time ? `${formatTime(entry.time)} - ` : '';
+    const timeStr = entry.time ? `${formatTime(entry.time)} ` : '';
+    const receiptStr = entry.receiptNumber ? `(${entry.receiptNumber}) ` : '';
+    const detailStr = `${timeStr}${receiptStr}- `;
     
     if (showPercentage) {
       if (entry.percentage !== null) {
         li.textContent = percentageOnly
-          ? `${prefix}${timeStr}${formatPercentage(entry.percentage)}`
-          : `${prefix}${timeStr}${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
+          ? `${prefix}${detailStr}${formatPercentage(entry.percentage)}`
+          : `${prefix}${detailStr}${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
       } else if (percentageOnly) {
-        li.textContent = `${prefix}${timeStr}${percentageFallbackText}`;
+        li.textContent = `${prefix}${detailStr}${percentageFallbackText}`;
       } else {
-        li.textContent = `${prefix}${timeStr}${formatCurrency(entry.amount)}`;
+        li.textContent = `${prefix}${detailStr}${formatCurrency(entry.amount)}`;
       }
     } else {
-      li.textContent = `${prefix}${timeStr}${formatCurrency(entry.amount)}`;
+      li.textContent = `${prefix}${detailStr}${formatCurrency(entry.amount)}`;
     }
     listElement.appendChild(li);
   });

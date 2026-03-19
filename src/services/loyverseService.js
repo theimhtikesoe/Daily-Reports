@@ -216,6 +216,9 @@ function extractPaymentEntries(receipt, paymentTypeMap) {
     receipt.payment_type_totals ||
     [];
 
+  const time = receipt.created_at || receipt.receipt_date || null;
+  const receiptNumber = receipt.receipt_number || receipt.number || null;
+
   if (Array.isArray(payments) && payments.length > 0) {
     return payments.map((payment) => {
       const paymentTypeId = payment.payment_type_id || payment.paymentTypeId || payment.type_id;
@@ -233,9 +236,6 @@ function extractPaymentEntries(receipt, paymentTypeMap) {
         .join(' ');
 
       // Most reliable way is to check nested amount fields first
-      // Loyverse API returns amount as an integer in minor units (e.g., 100 for 1.00 THB)
-      // or as a decimal string depending on the version/endpoint.
-      // We check all possible nested amount fields.
       const rawAmount = 
         payment.money_amount?.amount ?? 
         payment.amount_money?.amount ?? 
@@ -250,7 +250,9 @@ function extractPaymentEntries(receipt, paymentTypeMap) {
 
       return {
         paymentTypeLabel,
-        amount: normalizeMoney(rawAmount)
+        amount: normalizeMoney(rawAmount),
+        time,
+        receiptNumber
       };
     });
   }
@@ -274,7 +276,9 @@ function extractPaymentEntries(receipt, paymentTypeMap) {
       ]
         .filter(Boolean)
         .join(' '),
-      amount: normalizeMoney(fallbackAmount)
+      amount: normalizeMoney(fallbackAmount),
+      time,
+      receiptNumber
     }
   ];
 }
@@ -562,7 +566,7 @@ function extractDiscountPercentage(entry, options = {}) {
   return null;
 }
 
-function createDiscountEntry(amount, percentage = null, time = null) {
+function createDiscountEntry(amount, percentage = null, time = null, receiptNumber = null) {
   const normalizedAmount = roundCurrency(Math.abs(amount));
   if (normalizedAmount <= 0) {
     return null;
@@ -573,7 +577,8 @@ function createDiscountEntry(amount, percentage = null, time = null) {
   return {
     amount: normalizedAmount,
     percentage: Number.isFinite(normalizedPercentage) && normalizedPercentage > 0 ? normalizedPercentage : null,
-    time
+    time,
+    receiptNumber
   };
 }
 
@@ -605,7 +610,12 @@ function extractDiscountEntriesFromReceipt(receipt) {
         deriveDiscountPercentageFromReceiptLineItems(amount, receipt) ??
         deriveDiscountPercentageFromContext(amount, discount) ??
         deriveDiscountPercentageFromContext(amount, receipt);
-      const entry = createDiscountEntry(amount, percentage, receipt.created_at || receipt.receipt_date || null);
+      const entry = createDiscountEntry(
+        amount, 
+        percentage, 
+        receipt.created_at || receipt.receipt_date || null,
+        receipt.receipt_number || receipt.number || null
+      );
       if (entry) {
         entries.push(entry);
       }
@@ -631,7 +641,12 @@ function extractDiscountEntriesFromReceipt(receipt) {
             extractDiscountPercentage(line) ??
             deriveDiscountPercentageFromContext(amount, line) ??
             deriveDiscountPercentageFromContext(amount, receipt);
-          lineDiscount = createDiscountEntry(amount, percentage, receipt.created_at || receipt.receipt_date || null);
+          lineDiscount = createDiscountEntry(
+            amount, 
+            percentage, 
+            receipt.created_at || receipt.receipt_date || null,
+            receipt.receipt_number || receipt.number || null
+          );
           break;
         }
       }
@@ -654,7 +669,12 @@ function extractDiscountEntriesFromReceipt(receipt) {
             deriveDiscountPercentageFromContext(amount, discount) ??
             deriveDiscountPercentageFromContext(amount, line) ??
             deriveDiscountPercentageFromContext(amount, receipt);
-          const entry = createDiscountEntry(amount, percentage, receipt.created_at || receipt.receipt_date || null);
+          const entry = createDiscountEntry(
+        amount, 
+        percentage, 
+        receipt.created_at || receipt.receipt_date || null,
+        receipt.receipt_number || receipt.number || null
+      );
           if (entry) {
             entries.push(entry);
           }
@@ -673,7 +693,12 @@ function extractDiscountEntriesFromReceipt(receipt) {
     const percentage =
       fallbackPercentage ??
       deriveDiscountPercentageFromContext(amount, receipt);
-    const entry = createDiscountEntry(amount, percentage, receipt.created_at || receipt.receipt_date || null);
+    const entry = createDiscountEntry(
+        amount, 
+        percentage, 
+        receipt.created_at || receipt.receipt_date || null,
+        receipt.receipt_number || receipt.number || null
+      );
     if (entry) {
       return [entry];
     }
