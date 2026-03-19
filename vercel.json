@@ -17,6 +17,14 @@
     {
       "src": "styles.css",
       "use": "@vercel/static"
+    },
+    {
+      "src": "bestbuds-logo.jpg",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "logo.jpg",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -31,6 +39,14 @@
     {
       "src": "/styles.css",
       "dest": "/styles.css"
+    },
+    {
+      "src": "/bestbuds-logo.jpg",
+      "dest": "/bestbuds-logo.jpg"
+    },
+    {
+      "src": "/logo.jpg",
+      "dest": "/logo.jpg"
     },
     {
       "src": "/(.*)",
