@@ -369,8 +369,7 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
 
   for (let index = 0; index < lineItems.length; index += 1) {
     const lineItem = lineItems[index];
-
-    // Priority: category_name on line_item → category on line_item → lookup via item_id in map
+    let itemName = String(lineItem.item_name || lineItem.name || "").toLowerCase();
     let category = extractLineItemCategory(lineItem);
     if (!category) {
       const itemId = lineItem.item_id || lineItem.id;
@@ -378,67 +377,52 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
         category = itemCategoryMap.get(itemId);
       }
     }
+    let normalizedCategory = category || 'uncategorized';
+    let price = extractLineItemPrice(lineItem);
+    let qty = extractLineItemQty(lineItem);
+    let itemTotal = price; // In backend, price is already the total for the line item
 
-    if (!category && strictCategoryRequired) {
-      throw new Error(
-        `Missing required category on receipt "${receiptNumber}" line item index ${index}`
-      );
+    // --- [1] LEMON CHERRY OVERRIDE (7G Fix) ---
+    if (itemName.includes('lemon cherry') && itemTotal === 4970) {
+      qty = 7; 
     }
 
-    const qty = extractLineItemQty(lineItem);
-    const price = extractLineItemPrice(lineItem);
-    
-    // Calculate unit price for 3-Pole Logic
-    // We use the unit price to determine if it's a small item (Group B)
-    // If qty is 0 (should not happen for valid items), we use the total price
-    const unitPrice = qty > 0 ? roundCurrency(price / qty) : price;
-    const normalizedCategory = category || 'uncategorized';
+    // --- [2] CATEGORY IDENTIFICATION ---
+    let isAcc = normalizedCategory.includes('accessories') || 
+                itemName.includes('accessories') || 
+                itemName.includes('bong') || 
+                itemName.includes('paper') || 
+                itemName.includes('tip') || 
+                itemName.includes('grinder');
+    let isFB = normalizedCategory.includes('soft drink') || 
+               normalizedCategory.includes('snacks') || 
+               itemName.includes('gummy') || 
+               itemName.includes('water') || 
+               itemName.includes('soda');
 
-    // Final Master Codex Logic Implementation:
-    const itemName = String(lineItem.item_name || lineItem.name || '').toLowerCase();
+    // --- [3] THE BEST BUDS ROUTING LOGIC ---
+    // Note: In backend, we need to determine unit price for the <= 50 check
+    const unitPrice = qty > 0 ? roundCurrency(itemTotal / qty) : itemTotal;
 
-    // Group C: Accessories (Left Side Price, 0 Grams)
-    const accessoryKeywords = ["plastic grinder", "hat", "shirt", "bong", "paper", "raw 1 1/4 size+tip", "lighter", "raw wide tip", "accessories"];
-    const isGroupC = accessoryKeywords.some(kw => itemName.includes(kw)) || normalizedCategory === 'accessories';
-    
-    // Group B: Edibles/F&B (Right Side Price, 0 Grams)
-    // F&B Right Side Check: Do NOT trigger isFB for the word "accessories"
-    const fbKeywords = ["gummy", "water", "soda", "snack", "thc gummy", "chicken karrage", "french fries", "french fire"];
-    const isGroupB = !isGroupC && (fbKeywords.some(kw => itemName.includes(kw)) || normalizedCategory === 'soft drink' || normalizedCategory === 'snacks' || unitPrice <= 50);
-    
-    // Group A: Main Flower (Left Side Price, Count Grams)
-    const isGroupA = !isGroupB && !isGroupC && unitPrice > 50;
-
-    // Smart Gram Logic (7g Fix for Lemon Cherry Gelato)
-    let finalQty = qty;
-    if (itemName.includes('lemon cherry gelato') && numeratorPrice === 4970) {
-      finalQty = 7;
-    }
-
-    console.log(`[AutoReport] Receipt ${receiptNumber} item "${lineItem.item_name}" category="${normalizedCategory}" group=${isGroupA ? 'A' : isGroupB ? 'B' : 'C'} qty=${qty} finalQty=${finalQty} price=${price} unitPrice=${unitPrice}`);
-
-    if (isGroupA) {
-      // Group A: Sum quantity into grams, add price to Left Side (numerator)
-      totalGram += finalQty;
-      numeratorPrice += price;
+    if (unitPrice <= 50 || isFB) {
+      // Group B: F&B (ဒါမှမဟုတ် 50 THB အောက် Item တွေ)
+      // Action -> ညာဘက်မှာထားမယ်, Gram 0.000
+      denominatorPrice += itemTotal;
+    } else if (isAcc) {
+      // Group C: Real Accessories (50 THB ထက်ကြီးသော အသုံးအဆောင်များ)
+      // Action -> ဘယ်ဘက်မှာထားမယ်, Gram 0.000
+      numeratorPrice += itemTotal;
+    } else {
+      // Group A: Main Flowers (ပန်းသီးသန့်)
+      // Action -> ဘယ်ဘက်မှာထားမယ်, Gram ပေါင်းမယ်
+      numeratorPrice += itemTotal;
+      totalGram += qty;
       if (!mainItemName) {
-        mainItemName = String(
-          lineItem.item_name ||
-          lineItem.name ||
-          lineItem.variant_name ||
-          lineItem.sku ||
-          ''
-        ).trim();
+        mainItemName = String(lineItem.item_name || lineItem.name || "").trim();
       }
-    } else if (isGroupB) {
-      // Group B: DO NOT count as grams, add price to Right Side (denominator)
-      denominatorPrice += price;
-    } else if (isGroupC) {
-      // Group C: DO NOT count as grams, add price to Left Side (numerator) with Main Items
-      numeratorPrice += price;
     }
 
-    netSales += price;
+    netSales += itemTotal;
   }
 
   return {
