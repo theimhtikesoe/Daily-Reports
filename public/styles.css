@@ -70,13 +70,13 @@ body {
 }
 
 .brand-logo {
-  height: 45px;
+  max-height: 45px;
   width: auto;
   object-fit: contain;
   border-radius: 8px;
   background: #fff;
   border: 1px solid rgba(125, 77, 15, 0.25);
-  box-shadow: 0 10px 18px rgba(80, 55, 20, 0.12);
+  box-shadow: 0 4px 8px rgba(80, 55, 20, 0.1);
   padding: 4px 6px;
   margin-right: 10px;
 }
@@ -495,13 +495,13 @@ body {
 }
 
 .logo {
-  height: 45px;
+  max-height: 45px;
   width: auto;
   object-fit: contain;
   border-radius: 8px;
   background: #fff;
   border: 1px solid rgba(125, 77, 15, 0.25);
-  box-shadow: 0 10px 18px rgba(80, 55, 20, 0.12);
+  box-shadow: 0 4px 8px rgba(80, 55, 20, 0.1);
   padding: 4px 6px;
   margin-right: 10px;
 }
