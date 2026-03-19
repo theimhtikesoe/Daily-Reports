@@ -295,6 +295,7 @@ function renderEntryList(listElement, entries, options = {}) {
     const timeStr = entry.time ? `${formatTime(entry.time)} ` : '';
     const receiptStr = entry.receiptNumber ? `(${entry.receiptNumber}) ` : '';
     const detailStr = (timeStr || receiptStr) ? `${timeStr}${receiptStr}- ` : '';
+    console.log('Rendering entry:', entry, 'detailStr:', detailStr);
     
     if (showPercentage) {
       if (entry.percentage !== null) {
