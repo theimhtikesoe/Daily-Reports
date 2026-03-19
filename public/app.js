@@ -281,10 +281,10 @@ async function saveReport() {
 
 function bindEvents() {
   els.syncButton.addEventListener('click', syncFromLoyverse);
-  els.saveButton.addEventListener('click', saveReport);
 
 
-  els.printButton.addEventListener('click', () => window.print());
+
+
   
 
   

@@ -74,7 +74,7 @@ body {
   width: auto;
   object-fit: contain;
   border-radius: 8px;
-  background: #fff;
+  background: #000;
   border: 1px solid rgba(125, 77, 15, 0.25);
   box-shadow: 0 4px 8px rgba(80, 55, 20, 0.1);
   padding: 4px 6px;
