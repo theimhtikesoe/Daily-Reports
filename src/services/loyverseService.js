@@ -78,6 +78,82 @@ async function fetchPaymentTypeMap() {
   }
 }
 
+/**
+ * Fetches all categories from Loyverse and returns a Map of category_id -> category_name (lowercase).
+ */
+async function fetchCategoryIdNameMap() {
+  try {
+    const response = await loyverseClient.get('/categories', {
+      headers: getHeaders()
+    });
+    const categories = response.data?.categories || response.data?.data || [];
+    const map = new Map();
+    for (const cat of categories) {
+      const id = cat.id || cat.category_id;
+      const name = cat.name || cat.category_name || '';
+      if (id) map.set(id, String(name).trim().toLowerCase());
+    }
+    console.log(`[Loyverse API] Category id->name map built: ${map.size} categories`);
+    return map;
+  } catch (error) {
+    console.error('[Loyverse API] fetchCategoryIdNameMap failed:', error.message);
+    return new Map();
+  }
+}
+
+/**
+ * Fetches all items from Loyverse and builds a Map of item_id -> category_name (lowercase).
+ * Uses category_id -> category_name map to resolve names.
+ * Falls back to empty Map on error so the rest of the report still works.
+ */
+async function fetchItemCategoryMap() {
+  try {
+    // Step 1: get category_id -> category_name map
+    const categoryIdNameMap = await fetchCategoryIdNameMap();
+
+    // Step 2: fetch all items with pagination
+    const items = [];
+    let cursor = null;
+    let pages = 0;
+    const MAX_PAGES = 20;
+
+    do {
+      const params = { limit: 250 };
+      if (cursor) params.cursor = cursor;
+
+      const response = await loyverseClient.get('/items', {
+        headers: getHeaders(),
+        params
+      });
+
+      const payload = response.data || {};
+      const pageItems = payload.items || payload.data || [];
+      items.push(...pageItems);
+      cursor = payload.cursor || null;
+      pages += 1;
+    } while (cursor && pages < MAX_PAGES);
+
+    // Step 3: build item_id -> category_name map
+    const map = new Map();
+    for (const item of items) {
+      const id = item.id || item.item_id;
+      if (!id) continue;
+      // Loyverse Items API returns category_id, not category_name
+      const categoryId = item.category_id;
+      const categoryName = categoryId
+        ? (categoryIdNameMap.get(categoryId) || '')
+        : (item.category_name || item.category || '');
+      map.set(id, String(categoryName).trim().toLowerCase());
+    }
+
+    console.log(`[Loyverse API] Item category map built: ${map.size} items`);
+    return map;
+  } catch (error) {
+    console.error('[Loyverse API] fetchItemCategoryMap failed:', error.message);
+    return new Map();
+  }
+}
+
 async function fetchClosedReceiptsByDate(date) {
   const { startIso, endIso } = getDateBounds(date);
   console.log(`[Loyverse API] Fetching receipts for date: ${date}`);
@@ -227,6 +303,11 @@ function extractLineItemCategory(lineItem) {
     return '';
   }
 
+  // Loyverse API uses category_name on line_items
+  if (lineItem.category_name) {
+    return normalizeCategoryValue(lineItem.category_name);
+  }
+
   if (Object.prototype.hasOwnProperty.call(lineItem, 'category')) {
     return normalizeCategoryValue(lineItem.category);
   }
@@ -274,10 +355,11 @@ function extractLineItemPrice(lineItem) {
   return roundCurrency(normalizeMoney(unitPrice) * qty);
 }
 
-function buildAutomatedReceiptRow(receipt) {
+function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
   const lineItems = receipt.line_items || receipt.items || [];
   const receiptNumber = getReceiptIdentifier(receipt);
   const time = receipt.created_at || receipt.receipt_date || null;
+  const strictCategoryRequired = String(process.env.LOYVERSE_STRICT_CATEGORY || 'false').toLowerCase() === 'true';
 
   let totalGram = 0;
   let numeratorPrice = 0;
@@ -287,9 +369,17 @@ function buildAutomatedReceiptRow(receipt) {
 
   for (let index = 0; index < lineItems.length; index += 1) {
     const lineItem = lineItems[index];
-    const category = extractLineItemCategory(lineItem);
 
+    // Priority: category_name on line_item → category on line_item → lookup via item_id in map
+    let category = extractLineItemCategory(lineItem);
     if (!category) {
+      const itemId = lineItem.item_id || lineItem.id;
+      if (itemId && itemCategoryMap.has(itemId)) {
+        category = itemCategoryMap.get(itemId);
+      }
+    }
+
+    if (!category && strictCategoryRequired) {
       throw new Error(
         `Missing required category on receipt "${receiptNumber}" line item index ${index}`
       );
@@ -301,9 +391,12 @@ function buildAutomatedReceiptRow(receipt) {
     // Calculate unit price for safety net logic
     const unitPrice = qty > 0 ? price / qty : price;
     
-    const isFoodOrBeverage = category === 'soft drink' || category === 'snacks' || unitPrice <= 50;
-    const isAccessory = category === 'accessories';
+    const normalizedCategory = category || 'uncategorized';
+    const isFoodOrBeverage = normalizedCategory === 'soft drink' || normalizedCategory === 'snacks' || unitPrice <= 50;
+    const isAccessory = normalizedCategory === 'accessories';
     const isGroupA = !isFoodOrBeverage && !isAccessory;
+
+    console.log(`[AutoReport] Receipt ${receiptNumber} item "${lineItem.item_name}" category="${normalizedCategory}" group=${isGroupA ? 'A' : isFoodOrBeverage ? 'B' : 'C'} qty=${qty} price=${price} unitPrice=${unitPrice}`);
 
     if (isGroupA) {
       totalGram += qty;
@@ -338,8 +431,8 @@ function buildAutomatedReceiptRow(receipt) {
   };
 }
 
-function buildAutomatedReportRows(receipts) {
-  const rows = receipts.map(buildAutomatedReceiptRow);
+function buildAutomatedReportRows(receipts, itemCategoryMap = new Map()) {
+  const rows = receipts.map(receipt => buildAutomatedReceiptRow(receipt, itemCategoryMap));
 
   const totals = rows.reduce(
     (acc, row) => {
@@ -871,13 +964,11 @@ function extractDiscountEntriesFromReceipt(receipt) {
 
 async function fetchSalesSummaryByDate(date) {
   const paymentTypeMap = await fetchPaymentTypeMap();
+  const itemCategoryMap = await fetchItemCategoryMap();
   const receipts = await fetchClosedReceiptsByDate(date);
   
   console.log(`[DEBUG] Total receipts fetched: ${receipts.length}`);
-  if (receipts.length > 0) {
-    console.log(`[DEBUG] First receipt sample:`, JSON.stringify(receipts[0], null, 2));
-  }
-
+  
   const totals = {
     total_cash: 0,
     total_card: 0,
@@ -928,7 +1019,7 @@ async function fetchSalesSummaryByDate(date) {
   totals.total_transfer = roundCurrency(totals.total_transfer);
   totals.total_discount = roundCurrency(totals.total_discount);
   totals.total_orders = closedReceipts.length;
-  const automatedReport = buildAutomatedReportRows(closedReceipts);
+  const automatedReport = buildAutomatedReportRows(closedReceipts, itemCategoryMap);
 
   const netSale = calculateNetSale({
     cash_total: totals.total_cash,

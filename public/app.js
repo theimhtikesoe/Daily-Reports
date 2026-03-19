@@ -35,7 +35,10 @@ const els = {
   transferEntriesTotal: document.getElementById('transferEntriesTotal'),
   bestBudsSalesBody: document.getElementById('bestBudsSalesBody'),
 
-  unclassifiedHint: document.getElementById('unclassifiedHint')
+  unclassifiedHint: document.getElementById('unclassifiedHint'),
+
+  totalGramsValue: document.getElementById('totalGramsValue'),
+  bestBudsEntriesList: document.getElementById('bestBudsEntriesList')
 };
 
 
@@ -331,6 +334,7 @@ async function syncFromLoyverse() {
     if (els.transferTotal) els.transferTotal.value = round2(data.transfer_total).toFixed(2);
     els.netSale.value = round2(data.net_sale).toFixed(2);
     els.totalOrders.value = data.total_orders || 0;
+    renderBestBudsReport(data);
     recalculate();
   } catch (e) { console.error(e); }
   finally { setButtonLoading(els.syncButton, '', false); }
@@ -392,6 +396,92 @@ async function saveReport() {
 
 
 
+
+// ─── BestBuds Order Report ───────────────────────────────────────────────────
+
+/**
+ * processBestBudsOrders
+ * Transforms automated_report_rows from the Loyverse sync response
+ * into a display-ready array using Group A / B / C rules.
+ *
+ * Each row already contains:
+ *   gram_qty          – total grams (Group A qty)
+ *   numerator_price   – Group A + Group C price
+ *   denominator_price – Group B (F&B) price
+ *   price_split       – "numerator / denominator" string
+ *   net_sales         – total receipt net sales
+ *   receipt_number    – receipt identifier
+ *   time              – receipt timestamp
+ *
+ * Returns an array of objects:
+ *   { g, priceDisplay, receiptNumber, time }
+ */
+function processBestBudsOrders(data) {
+  const rows = (data && data.automated_report_rows) ? data.automated_report_rows : [];
+  return rows.map(row => {
+    const g = round2(parseNumber(row.gram_qty));
+    const numerator = round2(parseNumber(row.numerator_price));
+    const denominator = round2(parseNumber(row.denominator_price));
+    const priceDisplay = `${formatCurrency(numerator)} / ${formatCurrency(denominator)}`;
+    return {
+      g,
+      priceDisplay,
+      receiptNumber: row.receipt_number || '',
+      time: row.time || ''
+    };
+  });
+}
+
+/**
+ * renderBestBudsReport
+ * Renders the processed order rows into the BestBuds table
+ * and updates the total grams display.
+ */
+function renderBestBudsReport(data) {
+  const tbody = els.bestBudsEntriesList;
+  const totalGramsEl = els.totalGramsValue;
+  if (!tbody) return;
+
+  const orders = processBestBudsOrders(data);
+  const totals = (data && data.automated_report_totals) ? data.automated_report_totals : {};
+  const totalGrams = round2(parseNumber(totals.total_gram_qty || 0));
+
+  // Update total grams display
+  if (totalGramsEl) {
+    totalGramsEl.textContent = `${totalGrams.toFixed(2)} G`;
+    if (totalGrams > 0) {
+      totalGramsEl.classList.add('text-success');
+      totalGramsEl.classList.remove('text-muted');
+    } else {
+      totalGramsEl.classList.remove('text-success');
+      totalGramsEl.classList.add('text-muted');
+    }
+  }
+
+  tbody.innerHTML = '';
+
+  if (!orders.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="4" class="text-muted text-center">-</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
+  orders.forEach((order, idx) => {
+    const tr = document.createElement('tr');
+    const timeStr = order.time ? formatTime(order.time) : '-';
+    const gramClass = order.g > 0 ? 'text-success fw-bold' : 'text-muted';
+    tr.innerHTML = `
+      <td class="text-muted small">${timeStr}</td>
+      <td class="text-muted small">${order.receiptNumber || (idx + 1)}</td>
+      <td class="${gramClass}">${order.g > 0 ? order.g.toFixed(2) + ' G' : '0'}</td>
+      <td class="small">${order.priceDisplay}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function bindEvents() {
   els.syncButton.addEventListener('click', syncFromLoyverse);
