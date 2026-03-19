@@ -388,17 +388,26 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
     const qty = extractLineItemQty(lineItem);
     const price = extractLineItemPrice(lineItem);
     
-    // Calculate unit price for safety net logic
+    // Calculate unit price for 3-Pole Logic
     const unitPrice = qty > 0 ? price / qty : price;
-    
     const normalizedCategory = category || 'uncategorized';
-    const isFoodOrBeverage = normalizedCategory === 'soft drink' || normalizedCategory === 'snacks' || unitPrice <= 50;
-    const isAccessory = normalizedCategory === 'accessories';
-    const isGroupA = !isFoodOrBeverage && !isAccessory;
 
-    console.log(`[AutoReport] Receipt ${receiptNumber} item "${lineItem.item_name}" category="${normalizedCategory}" group=${isGroupA ? 'A' : isFoodOrBeverage ? 'B' : 'C'} qty=${qty} price=${price} unitPrice=${unitPrice}`);
+    // 3-Pole Logic Implementation:
+    // Group C: Accessories (Category IS accessories)
+    const isGroupC = normalizedCategory === 'accessories';
+    
+    // Group B: F&B / Small Items (Category IS soft drink/snacks OR Unit Price <= 50 THB)
+    // Note: If it's an accessory, it stays Group C even if price <= 50
+    const isGroupB = !isGroupC && (normalizedCategory === 'soft drink' || normalizedCategory === 'snacks' || unitPrice <= 50);
+    
+    // Group A: Main Flower/Tea Time (NOT Group B AND NOT Group C)
+    // This implicitly means: Category is NOT soft drink, snacks, or accessories AND Unit Price > 50 THB
+    const isGroupA = !isGroupB && !isGroupC;
+
+    console.log(`[AutoReport] Receipt ${receiptNumber} item "${lineItem.item_name}" category="${normalizedCategory}" group=${isGroupA ? 'A' : isGroupB ? 'B' : 'C'} qty=${qty} price=${price} unitPrice=${unitPrice}`);
 
     if (isGroupA) {
+      // Group A: Sum quantity into grams, add price to Left Side (numerator)
       totalGram += qty;
       numeratorPrice += price;
       if (!mainItemName) {
@@ -410,9 +419,11 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
           ''
         ).trim();
       }
-    } else if (isFoodOrBeverage) {
+    } else if (isGroupB) {
+      // Group B: DO NOT count as grams, add price to Right Side (denominator)
       denominatorPrice += price;
-    } else if (isAccessory) {
+    } else if (isGroupC) {
+      // Group C: DO NOT count as grams, add price to Left Side (numerator) with Main Items
       numeratorPrice += price;
     }
 

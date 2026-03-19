@@ -226,19 +226,32 @@ function processBestBudsData(items) {
     const price = round2(parseNumber(item?.price ?? item?.unit_price ?? 0));
     const total = round2(qty * price);
     
-    // Calculate unit price for safety net logic
-    const unitPrice = qty > 0 ? price : total; // If qty is 0, use total as price
+    // Calculate unit price for 3-Pole Logic
+    const unitPrice = qty > 0 ? price : total;
 
-    if (cat === 'soft drink' || cat === 'snacks' || unitPrice <= 50) {
-      fbPrice += total;
-    } else if (cat === 'accessories') {
-      mainAndAccPrice += total;
-    } else {
-      mainAndAccPrice += total;
+    // 3-Pole Logic Implementation:
+    // Group C: Accessories (Category IS accessories)
+    const isGroupC = cat === 'accessories';
+    
+    // Group B: F&B / Small Items (Category IS soft drink/snacks OR Unit Price <= 50 THB)
+    const isGroupB = !isGroupC && (cat === 'soft drink' || cat === 'snacks' || unitPrice <= 50);
+    
+    // Group A: Main Flower/Tea Time (NOT Group B AND NOT Group C)
+    const isGroupA = !isGroupB && !isGroupC;
+
+    if (isGroupA) {
+      // Group A: Sum quantity into grams, add price to Left Side (Main+Acc)
       mainGram += qty;
+      mainAndAccPrice += total;
       if (!itemName) {
         itemName = String(item?.name || item?.item_name || item?.variant_name || '').trim();
       }
+    } else if (isGroupB) {
+      // Group B: DO NOT count as grams, add price to Right Side (F&B)
+      fbPrice += total;
+    } else if (isGroupC) {
+      // Group C: DO NOT count as grams, add price to Left Side (Main+Acc)
+      mainAndAccPrice += total;
     }
   }
 
@@ -277,10 +290,14 @@ function renderBestBudsTable(data) {
   } else {
     rows.forEach((row) => {
       const tr = document.createElement('tr');
+      // Use formatCurrency for both sides of the slash
+      const mainPriceStr = formatCurrency(row.mainAndAccPrice).replace('THB ', '');
+      const fbPriceStr = formatCurrency(row.fbPrice).replace('THB ', '');
+      
       tr.innerHTML = `
         <td class="gram-value">${round2(row.mainGram).toFixed(3)}</td>
         <td>${row.itemName || 'Accessories'}</td>
-        <td class="text-end price-split">${round2(row.mainAndAccPrice).toFixed(2)} / ${round2(row.fbPrice).toFixed(2)}</td>
+        <td class="text-end price-split">${mainPriceStr} / ${fbPriceStr}</td>
       `;
       els.bestBudsSalesBody.appendChild(tr);
     });
