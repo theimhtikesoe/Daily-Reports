@@ -562,7 +562,7 @@ function extractDiscountPercentage(entry, options = {}) {
   return null;
 }
 
-function createDiscountEntry(amount, percentage = null) {
+function createDiscountEntry(amount, percentage = null, time = null) {
   const normalizedAmount = roundCurrency(Math.abs(amount));
   if (normalizedAmount <= 0) {
     return null;
@@ -572,7 +572,8 @@ function createDiscountEntry(amount, percentage = null) {
 
   return {
     amount: normalizedAmount,
-    percentage: Number.isFinite(normalizedPercentage) && normalizedPercentage > 0 ? normalizedPercentage : null
+    percentage: Number.isFinite(normalizedPercentage) && normalizedPercentage > 0 ? normalizedPercentage : null,
+    time
   };
 }
 
@@ -604,7 +605,7 @@ function extractDiscountEntriesFromReceipt(receipt) {
         deriveDiscountPercentageFromReceiptLineItems(amount, receipt) ??
         deriveDiscountPercentageFromContext(amount, discount) ??
         deriveDiscountPercentageFromContext(amount, receipt);
-      const entry = createDiscountEntry(amount, percentage);
+      const entry = createDiscountEntry(amount, percentage, receipt.created_at || receipt.receipt_date || null);
       if (entry) {
         entries.push(entry);
       }
@@ -630,7 +631,7 @@ function extractDiscountEntriesFromReceipt(receipt) {
             extractDiscountPercentage(line) ??
             deriveDiscountPercentageFromContext(amount, line) ??
             deriveDiscountPercentageFromContext(amount, receipt);
-          lineDiscount = createDiscountEntry(amount, percentage);
+          lineDiscount = createDiscountEntry(amount, percentage, receipt.created_at || receipt.receipt_date || null);
           break;
         }
       }
@@ -653,7 +654,7 @@ function extractDiscountEntriesFromReceipt(receipt) {
             deriveDiscountPercentageFromContext(amount, discount) ??
             deriveDiscountPercentageFromContext(amount, line) ??
             deriveDiscountPercentageFromContext(amount, receipt);
-          const entry = createDiscountEntry(amount, percentage);
+          const entry = createDiscountEntry(amount, percentage, receipt.created_at || receipt.receipt_date || null);
           if (entry) {
             entries.push(entry);
           }
@@ -672,7 +673,7 @@ function extractDiscountEntriesFromReceipt(receipt) {
     const percentage =
       fallbackPercentage ??
       deriveDiscountPercentageFromContext(amount, receipt);
-    const entry = createDiscountEntry(amount, percentage);
+    const entry = createDiscountEntry(amount, percentage, receipt.created_at || receipt.receipt_date || null);
     if (entry) {
       return [entry];
     }
@@ -712,7 +713,7 @@ async function fetchSalesSummaryByDate(date) {
 
     for (const discountEntry of discountEntries) {
       totals.total_discount += discountEntry.amount;
-      totals.discount_entries.push(discountEntry.amount);
+      totals.discount_entries.push(discountEntry);
       totals.discount_entry_details.push(discountEntry);
     }
 
@@ -721,13 +722,13 @@ async function fetchSalesSummaryByDate(date) {
       console.log(`[DEBUG] Payment entry - Label: "${entry.paymentTypeLabel}", Amount: ${entry.amount}, Category: ${paymentCategory}`);
       if (paymentCategory === 'cash') {
         totals.total_cash += entry.amount;
-        totals.cash_entries.push(roundCurrency(entry.amount));
+        totals.cash_entries.push(entry);
       } else if (paymentCategory === 'card') {
         totals.total_card += entry.amount;
-        totals.card_entries.push(roundCurrency(entry.amount));
+        totals.card_entries.push(entry);
       } else if (paymentCategory === 'transfer') {
         totals.total_transfer += entry.amount;
-        totals.transfer_entries.push(roundCurrency(entry.amount));
+        totals.transfer_entries.push(entry);
       } else {
         console.log(`[DEBUG] Unclassified payment: ${entry.paymentTypeLabel} = ${entry.amount}`);
         totals.unclassified_amount += entry.amount;
