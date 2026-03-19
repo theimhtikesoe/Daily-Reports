@@ -12,20 +12,20 @@
   <title>BestBuds' Daily Report</title>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon.png" />
-  <link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   
   <!-- Apple Touch Icon for iOS -->
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   
   <!-- Android Chrome Icons -->
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/android-chrome-192x192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="/icons/android-chrome-512x512.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
   
   <!-- PWA Manifest -->
-  <link rel="manifest" href="/manifest.json" />
+  <link rel="manifest" href="/site.webmanifest" />
   
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css?v=20260319i" />
 </head>
 <body>
   <div class="container">
@@ -40,10 +40,6 @@
     <div class="made-by">Made by Rhyzoe</div>
 
     <div id="message" class="alert d-none"></div>
-
-    <div class="info-box">
-      No saved report. Opening Cash auto-filled from previous Actual Cash Counted.
-    </div>
 
     <div class="form-group">
       <label class="form-label">Report Date</label>
@@ -85,7 +81,7 @@
         <span>Cash Entries</span>
         <span id="cashEntriesTotal">THB 0.00</span>
       </div>
-      <ol id="cashEntriesList" class="detail-list"></ol>
+      <ul id="cashEntriesList" class="detail-list"></ul>
     </div>
 
     <div class="detail-box">
@@ -93,7 +89,7 @@
         <span>Card Entries</span>
         <span id="cardEntriesTotal">THB 0.00</span>
       </div>
-      <ol id="cardEntriesList" class="detail-list"></ol>
+      <ul id="cardEntriesList" class="detail-list"></ul>
     </div>
 
     <div class="detail-box">
@@ -101,7 +97,7 @@
         <span>Transfer Entries</span>
         <span id="transferEntriesTotal">THB 0.00</span>
       </div>
-      <ol id="transferEntriesList" class="detail-list"></ol>
+      <ul id="transferEntriesList" class="detail-list"></ul>
     </div>
 
     <div class="detail-box">
@@ -109,7 +105,7 @@
         <span>Discount Entries</span>
         <span id="discountEntriesTotal">THB 0.00</span>
       </div>
-      <ol id="discountEntriesList" class="detail-list"></ol>
+      <ul id="discountEntriesList" class="detail-list"></ul>
     </div>
 
     <!-- Hidden elements to keep JS happy -->
@@ -135,6 +131,6 @@
     </div>
   </div>
 
-  <script src="/app.js"></script>
+  <script src="/app.js?v=20260319j"></script>
 </body>
 </html>

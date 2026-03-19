@@ -21,10 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
     message: document.getElementById('message')
   };
 
-  // Set default date to Thailand Today (UTC+7)
   function getThailandDate() {
     const now = new Date();
-    // UTC time + 7 hours for Thailand
     const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
     return thailandTime.toISOString().slice(0, 10);
   }
@@ -50,17 +48,21 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    entries.forEach((entry, index) => {
+    entries.forEach((entry) => {
       const li = document.createElement('li');
-      const amount = parseFloat(entry.amount || 0);
+      let amount = parseFloat(entry.amount || 0);
       
+      // Clean up any potential numbering or text from amount if it was a string
+      if (typeof entry.amount === 'string') {
+        const matches = entry.amount.match(/-?\d+(?:,\d+)*(?:\.\d+)?/g);
+        if (matches) amount = parseFloat(matches[matches.length - 1].replace(/,/g, ''));
+      }
+
       if (isDiscount) {
-        // For discount entries, show percentage only
         const percentage = parseFloat(entry.percentage || 0);
-        li.textContent = `${index + 1}. ${percentage.toFixed(0)}%`;
+        li.textContent = `${percentage.toFixed(0)}%`;
       } else {
-        // For other entries, show THB amount
-        li.textContent = `${index + 1}. THB ${amount.toFixed(2)}`;
+        li.textContent = `THB ${amount.toFixed(2)}`;
       }
       
       listEl.appendChild(li);
@@ -83,8 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (response.ok) {
         const data = result || {};
-        
-        // Update Summary Fields
         if (els.cashTotal) els.cashTotal.value = (data.cash_total || 0).toFixed(2);
         if (els.cardTotal) els.cardTotal.value = (data.card_total || 0).toFixed(2);
         if (els.transferTotal) els.transferTotal.value = (data.transfer_total || 0).toFixed(2);
@@ -93,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const netSale = (data.cash_total || 0) + (data.card_total || 0) + (data.transfer_total || 0);
         if (els.netSale) els.netSale.value = netSale.toFixed(2);
 
-        // Render Lists
         renderEntries(els.cashEntriesList, els.cashEntriesTotal, data.cash_entries || [], 'THB', false);
         renderEntries(els.cardEntriesList, els.cardEntriesTotal, data.card_entries || [], 'THB', false);
         renderEntries(els.transferEntriesList, els.transferEntriesTotal, data.transfer_entries || [], 'THB', false);
@@ -113,12 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (els.syncButton) els.syncButton.addEventListener('click', syncFromLoyverse);
-  
-  // Keep event listeners for hidden buttons to avoid errors
   if (els.saveButton) els.saveButton.addEventListener('click', () => {});
   if (els.printButton) els.printButton.addEventListener('click', () => window.print());
   if (els.loadButton) els.loadButton.addEventListener('click', () => {});
 
-  // Initial sync
   syncFromLoyverse();
 });

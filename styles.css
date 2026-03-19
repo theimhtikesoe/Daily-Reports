@@ -63,13 +63,7 @@ body {
 }
 
 .info-box {
-  background: #eeeeee;
-  padding: 12px;
-  border-radius: 10px;
-  font-size: 0.85rem;
-  color: #444;
-  margin-bottom: 20px;
-  line-height: 1.4;
+  display: none !important;
 }
 
 .form-group {
@@ -168,8 +162,9 @@ body {
 
 .detail-list {
   margin: 0;
-  padding: 10px 15px 15px 35px;
+  padding: 10px 15px 15px 15px;
   min-height: 100px;
+  list-style: none;
 }
 
 .detail-list li {
