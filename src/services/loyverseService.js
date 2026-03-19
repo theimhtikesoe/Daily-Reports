@@ -394,17 +394,24 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
     const unitPrice = qty > 0 ? roundCurrency(price / qty) : price;
     const normalizedCategory = category || 'uncategorized';
 
-    // 3-Pole Logic Implementation:
-    // Group C: Accessories (Category IS accessories)
-    const isGroupC = normalizedCategory === 'accessories';
+    // 3-Pole Logic Implementation (Refined with specific item name rules):
+    const itemName = String(lineItem.item_name || lineItem.name || '').toLowerCase();
+
+    // Group C: Accessories (Category IS accessories OR item name contains specific keywords)
+    const accessoryKeywords = ['plastic grinder', 'hat', 'shirt', 'bong', 'paper', 'lighter', 'raw paper'];
+    const isGroupC = normalizedCategory === 'accessories' || accessoryKeywords.some(kw => itemName.includes(kw));
     
-    // Group B: F&B / Small Items (Category IS soft drink/snacks OR Unit Price <= 50 THB)
-    // Note: If it's an accessory, it stays Group C even if price <= 50
-    const isGroupB = !isGroupC && (normalizedCategory === 'soft drink' || normalizedCategory === 'snacks' || unitPrice <= 50);
+    // Group B: Edibles & F&B (Category IS soft drink/snacks OR item name contains specific keywords OR Unit Price <= 50 THB)
+    const fbKeywords = ['thc gummy', 'gummy', 'water', 'soda', 'snack'];
+    const isGroupB = !isGroupC && (
+      normalizedCategory === 'soft drink' || 
+      normalizedCategory === 'snacks' || 
+      fbKeywords.some(kw => itemName.includes(kw)) ||
+      unitPrice <= 50
+    );
     
-    // Group A: Main Flower/Tea Time (NOT Group B AND NOT Group C)
-    // This implicitly means: Category is NOT soft drink, snacks, or accessories AND Unit Price > 50 THB
-    const isGroupA = !isGroupB && !isGroupC;
+    // Group A: Main Flower (NOT Group B AND NOT Group C AND Unit Price > 50 THB)
+    const isGroupA = !isGroupB && !isGroupC && unitPrice > 50;
 
     console.log(`[AutoReport] Receipt ${receiptNumber} item "${lineItem.item_name}" category="${normalizedCategory}" group=${isGroupA ? 'A' : isGroupB ? 'B' : 'C'} qty=${qty} price=${price} unitPrice=${unitPrice}`);
 

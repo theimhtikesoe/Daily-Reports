@@ -230,15 +230,24 @@ function processBestBudsData(items) {
     // If qty is 0, we use the total price as unit price
     const unitPrice = qty > 0 ? price : total;
 
-    // 3-Pole Logic Implementation:
-    // Group C: Accessories (Category IS accessories)
-    const isGroupC = cat === 'accessories';
+    // 3-Pole Logic Implementation (Refined with specific item name rules):
+    const itemNameLower = String(item?.name || item?.item_name || '').toLowerCase();
+
+    // Group C: Accessories (Category IS accessories OR item name contains specific keywords)
+    const accessoryKeywords = ['plastic grinder', 'hat', 'shirt', 'bong', 'paper', 'lighter', 'raw paper'];
+    const isGroupC = cat === 'accessories' || accessoryKeywords.some(kw => itemNameLower.includes(kw));
     
-    // Group B: F&B / Small Items (Category IS soft drink/snacks OR Unit Price <= 50 THB)
-    const isGroupB = !isGroupC && (cat === 'soft drink' || cat === 'snacks' || unitPrice <= 50);
+    // Group B: Edibles & F&B (Category IS soft drink/snacks OR item name contains specific keywords OR Unit Price <= 50 THB)
+    const fbKeywords = ['thc gummy', 'gummy', 'water', 'soda', 'snack'];
+    const isGroupB = !isGroupC && (
+      cat === 'soft drink' || 
+      cat === 'snacks' || 
+      fbKeywords.some(kw => itemNameLower.includes(kw)) ||
+      unitPrice <= 50
+    );
     
-    // Group A: Main Flower/Tea Time (NOT Group B AND NOT Group C)
-    const isGroupA = !isGroupB && !isGroupC;
+    // Group A: Main Flower (NOT Group B AND NOT Group C AND Unit Price > 50 THB)
+    const isGroupA = !isGroupB && !isGroupC && unitPrice > 50;
 
     if (isGroupA) {
       // Group A: Sum quantity into grams, add price to Left Side (Main+Acc)
