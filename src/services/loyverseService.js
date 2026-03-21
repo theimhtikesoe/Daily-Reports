@@ -275,11 +275,20 @@ function isVoidedReceipt(receipt) {
   );
 }
 
+// --- THE REFUND GHOST FIX ---
 function isCompletedReceipt(receipt) {
+  // Explicitly REJECT the Loyverse "Refund" receipt type
+  const receiptType = String(receipt.receipt_type || receipt.type || '').toUpperCase();
+  if (receiptType === 'REFUND') {
+    return false;
+  }
+
+  // Reject the original receipt if it has been voided or refunded
   if (isVoidedReceipt(receipt) || hasRefundData(receipt)) {
     return false;
   }
 
+  // Only accept valid closed/paid statuses
   const status = String(receipt.status || '').toUpperCase();
   const completedStatuses = new Set(['', 'CLOSED', 'COMPLETED', 'PAID']);
   return completedStatuses.has(status);
