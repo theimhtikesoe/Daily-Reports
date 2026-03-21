@@ -444,13 +444,14 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
       numeratorPrice += itemTotal;
       
       // --- [NEW] Gram Exclusion Logic ---
-      // Price 0, Name contains "free", or "The Lobby Shirt"
-      const isFree = itemTotal === 0 || itemName.includes('free');
+      // 1. Price 0 (THB 0) items are excluded
+      // 2. Name containing "free" are excluded
+      // 3. "The Lobby Shirt" is excluded
+      // 4. 100% Discounted items are excluded (itemTotal would be 0)
+      const isFree = itemTotal <= 0 || itemName.includes('free');
       const isLobbyShirt = itemName.includes('the lobby shirt');
       
-      // Always add to totalGram if it's not a lobby shirt
-      // (Free flowers still count as grams if they have a quantity)
-      if (!isLobbyShirt) {
+      if (!isFree && !isLobbyShirt) {
         totalGram += qty;
         if (!mainItemName) {
           mainItemName = String(lineItem.item_name || lineItem.name || "").trim();
