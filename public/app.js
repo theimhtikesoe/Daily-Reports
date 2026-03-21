@@ -580,14 +580,21 @@ async function exportToExcel() {
   orders.forEach(order => {
     const items = order.line_items || order.items || [];
     
-    // Determine payment method label
-    let paymentMethod = "CASH";
+    // --- ROBUST PAYMENT METHOD SCANNER ---
+    let rawPayment = "";
     if (order.payments && order.payments.length > 0) {
-      paymentMethod = order.payments.map(p => p.payment_type_name || p.payment_type || p.tender_type || "CASH").join(" + ");
-    } else if (order.payment_type) {
-      paymentMethod = order.payment_type;
+        rawPayment = String(order.payments[0].name || order.payments[0].payment_type || order.payments[0].tender_type || "").toUpperCase();
+    } else {
+        rawPayment = String(order.payment_type || order.tender_type || "CASH").toUpperCase();
     }
-    paymentMethod = String(paymentMethod).toUpperCase();
+
+    let paymentMethod = "Cash";
+    if (rawPayment.includes('CARD') || rawPayment.includes('CREDIT') || rawPayment.includes('VISA') || rawPayment.includes('MASTER')) {
+        paymentMethod = "Card";
+    } else if (rawPayment.includes('TRANSFER') || rawPayment.includes('BANK') || rawPayment.includes('PROMPT') || rawPayment.includes('KBANK') || rawPayment.includes('SCB') || rawPayment.includes('QR')) {
+        paymentMethod = "Transfer";
+    }
+    // -------------------------------------
     
     const orderTotalMoney = Number(order.total_money || 0); 
     const orderDiscountMoney = Number(order.total_discount || 0);
