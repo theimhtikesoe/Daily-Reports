@@ -207,12 +207,8 @@ function renderEntryList(listElement, entries, options = {}) {
         content = percentageOnly ? `${percentageFallbackText}` : `${formatCurrency(entry.amount)}`;
       }
     } else {
-      let totalReceipt = entry.mainAccTotal + entry.fbTotal;
-      if (totalReceipt > 0 && (entry.mainAccTotal > 0 || entry.fbTotal > 0)) {
-        let ratio = entry.mainAccTotal / totalReceipt;
-        let splitMain = entry.amount * ratio;
-        let splitFB = entry.amount - splitMain;
-        content = `THB ${splitMain.toFixed(2)} / ${splitFB.toFixed(2)}`;
+      if (entry.mainAccTotal > 0 || entry.fbTotal > 0) {
+        content = `THB ${entry.mainAccTotal.toFixed(2)} / ${entry.fbTotal.toFixed(2)}`;
       } else {
         content = `${formatCurrency(entry.amount)}`;
       }
@@ -284,10 +280,10 @@ function processOrdersData(data) {
       }
 
       // Category Identification
-      let isAcc = ['accessories', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter']
+      let isAcc = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter']
                   .some(keyword => itemName.includes(keyword) || category.includes(keyword));
       
-      let isFB = ['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail']
+      let isFB = ['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'food', 'coffee', 'tea', 'juice']
                  .some(keyword => itemName.includes(keyword) || category.includes(keyword)) || (grossPrice / (qty || 1)) <= 50;
 
       // Routing Logic

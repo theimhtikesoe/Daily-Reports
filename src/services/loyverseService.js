@@ -390,6 +390,7 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
 
     // --- [2] CATEGORY IDENTIFICATION ---
     let isAcc = normalizedCategory.includes('accessories') || 
+                normalizedCategory.includes('merchandise') ||
                 itemName.includes('accessories') || 
                 itemName.includes('bong') || 
                 itemName.includes('paper') || 
@@ -402,6 +403,7 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
                normalizedCategory.includes('snacks') || 
                normalizedCategory.includes('beverage') ||
                normalizedCategory.includes('drink') ||
+               normalizedCategory.includes('food') ||
                itemName.includes('gummy') || 
                itemName.includes('water') || 
                itemName.includes('soda') ||
@@ -412,7 +414,11 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
                itemName.includes('wine') ||
                itemName.includes('cider') ||
                itemName.includes('spirit') ||
-               itemName.includes('cocktail');
+               itemName.includes('cocktail') ||
+               itemName.includes('milk') ||
+               itemName.includes('coffee') ||
+               itemName.includes('tea') ||
+               itemName.includes('juice');
 
     // --- [3] THE BEST BUDS ROUTING LOGIC ---
     // Note: In backend, we need to determine unit price for the <= 50 check
@@ -1042,14 +1048,23 @@ async function fetchSalesSummaryByDate(date) {
       totals.discount_entry_details.push(discountEntry);
     }
 
+    // Calculate total paid for this receipt across all payment methods
+    const totalPaidOnReceipt = paymentEntries.reduce((sum, p) => sum + p.amount, 0);
+
     for (const entry of paymentEntries) {
       const paymentCategory = classifyPaymentType(entry.paymentTypeLabel);
       
       // Attach split info to the entry
       // If there's only one payment, it gets the full split. 
-      // If multiple, we'd ideally prorate, but usually it's one.
-      entry.main_acc_total = mainAccTotal;
-      entry.fb_total = fbTotal;
+      // If multiple, we prorate based on the payment amount.
+      if (totalPaidOnReceipt > 0) {
+        const ratio = entry.amount / totalPaidOnReceipt;
+        entry.main_acc_total = roundCurrency(mainAccTotal * ratio);
+        entry.fb_total = roundCurrency(fbTotal * ratio);
+      } else {
+        entry.main_acc_total = 0;
+        entry.fb_total = 0;
+      }
 
       console.log(`[DEBUG] Payment entry - Label: "${entry.paymentTypeLabel}", Amount: ${entry.amount}, Category: ${paymentCategory}`);
       if (paymentCategory === 'cash') {
