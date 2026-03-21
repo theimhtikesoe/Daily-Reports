@@ -560,19 +560,23 @@ if (document.readyState === 'loading') {
   init();
 }
 
-// --- 📥 EXCEL EXPORT ENGINE (BEST BUDS 3-SECTION TEMPLATE) ---
-function exportToExcel() {
+// --- 📥 EXCEL EXPORT ENGINE (BEAUTIFUL .XLSX FORMAT) ---
+async function exportToExcel() {
   if (!lastSyncedData || !lastSyncedData.orders) {
     alert("Please Sync From Loyverse first before exporting!");
     return;
   }
+  if (typeof ExcelJS === 'undefined') {
+    alert("Excel Library is loading. Please try again in a few seconds.");
+    return;
+  }
 
   const orders = lastSyncedData.orders;
-  
   let mainRows = [];
   let fbRows = [];
   let totalDailyGrams = 0;
 
+  // --- Data Preparation Logic ---
   orders.forEach(order => {
     const items = order.line_items || order.items || [];
     
@@ -602,36 +606,21 @@ function exportToExcel() {
       let rawItemName = item.item_name || item.name || "Unknown";
       let itemName = String(rawItemName).toLowerCase();
       let category = String(item.category_name || "").toLowerCase();
-      
-      let qty = Number(item.quantity ?? item.qty ?? 0);
-      let unitPrice = Number(item.price ?? 0);
+      let qty = Number(item.quantity || item.qty || 0);
+      let unitPrice = Number(item.price || 0);
       let grossPrice = unitPrice * qty;
       
-      // Calculate item-level net price (after line-item discounts)
-      let lineItemNetPrice = Number(item.total_money ?? item.total_price ?? item.line_total ?? grossPrice);
-      if (item.total_discount_money || item.discount_money) {
-        lineItemNetPrice = grossPrice - Number(item.total_discount_money ?? item.discount_money ?? 0);
-      }
-
-      // Further adjust for order-level discounts
-      let itemNetPrice = lineItemNetPrice;
-      if (hasOrderDiscount && orderTotalMoney > 0) {
-        itemNetPrice = lineItemNetPrice - (lineItemNetPrice * orderDiscountPercent);
-      }
+      let itemNetPrice = grossPrice;
+      if (hasOrderDiscount) { itemNetPrice = grossPrice - (grossPrice * orderDiscountPercent); }
 
       let discountDisplay = orderDiscountPercent > 0 ? orderDiscountPercent.toFixed(2) : "";
       let discountNote = orderDiscountPercent > 0 ? `${(orderDiscountPercent * 100).toFixed(0)}% dis- ${Math.round(grossPrice * orderDiscountPercent)}` : "";
 
-      // Gatekeeper Check (Strict 0 check)
-      let isFreeItem = (itemNetPrice <= 0) || itemName.includes('free');
-      
-      // Lemon Cherry Override (7G Fix)
+      let isFreeItem = (unitPrice === 0) || (itemNetPrice === 0) || itemName.includes('free');
       if (itemName.includes('lemon cherry') && grossPrice >= 4970) { qty = 7; }
-      
-      // Rozay Cake Override
+
       const isRozayCake = itemName.includes('rozay cake');
 
-      // Categorize
       let isAcc = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'tray']
                   .some(keyword => itemName.includes(keyword) || category.includes(keyword));
       
@@ -650,80 +639,112 @@ function exportToExcel() {
       }
     });
 
-    // 🌟 တွဲပေးမည့်အပိုင်း (Main Items) 🌟
     if (orderMainItems.length > 0) {
-        let types = [...new Set(orderMainItems.map(i => i.type))].join("/ ");
-        let names = orderMainItems.map(i => i.name).join("/ ");
-        let qtys = orderMainItems.map(i => i.qty).join("/ ");
-        let unitPrices = orderMainItems.map(i => i.unitPrice.toFixed(2)).join("/ ");
+        let types = [...new Set(orderMainItems.map(i => i.type))].join(" / ");
+        let names = orderMainItems.map(i => i.name).join(" / ");
+        let qtys = orderMainItems.map(i => i.qty).join(" / ");
+        let unitPrices = orderMainItems.map(i => i.unitPrice.toFixed(2)).join(" / ");
         let totalPrice = orderMainItems.reduce((sum, i) => sum + i.itemNetPrice, 0);
-        let discounts = [...new Set(orderMainItems.map(i => i.discountDisplay))].filter(Boolean).join("/ ");
+        let discounts = [...new Set(orderMainItems.map(i => i.discountDisplay))].filter(Boolean).join(" / ");
         let notes = [...new Set(orderMainItems.map(i => i.discountNote))].filter(Boolean).join(", ");
-        let gramDisplay = orderGrams > 0 ? `${orderGrams}g` : "";
+        let gramDisplay = orderGrams > 0 ? `${orderGrams} g` : "";
 
-        mainRows.push([
-            types, 
-            `"${names.replace(/"/g, '""')}"`, 
-            discounts, 
-            `"${qtys}"`, 
-            `"${unitPrices}"`, 
-            totalPrice.toFixed(2), 
-            paymentMethod, 
-            gramDisplay, 
-            `"${notes}"`
-        ].join(","));
+        mainRows.push({ type: types, name: names, discount: discounts, qty: qtys, unitPrice: unitPrices, totalPrice: totalPrice, payment: paymentMethod, grams: gramDisplay, note: notes });
         totalDailyGrams += orderGrams;
     }
 
-    // 🌟 F&B သီးသန့် 🌟
     if (orderFBItems.length > 0) {
-        let names = orderFBItems.map(i => i.name).join("/ ");
-        let qtys = orderFBItems.map(i => i.qty).join("/ ");
-        let unitPrices = orderFBItems.map(i => i.unitPrice.toFixed(2)).join("/ ");
+        let names = orderFBItems.map(i => i.name).join(" / ");
+        let qtys = orderFBItems.map(i => i.qty).join(" / ");
+        let unitPrices = orderFBItems.map(i => i.unitPrice.toFixed(2)).join(" / ");
         let totalPrice = orderFBItems.reduce((sum, i) => sum + i.itemNetPrice, 0);
-        let discounts = [...new Set(orderFBItems.map(i => i.discountDisplay))].filter(Boolean).join("/ ");
+        let discounts = [...new Set(orderFBItems.map(i => i.discountDisplay))].filter(Boolean).join(" / ");
         let notes = [...new Set(orderFBItems.map(i => i.discountNote))].filter(Boolean).join(", ");
 
-        fbRows.push([
-            `"${names.replace(/"/g, '""')}"`, discounts, `"${qtys}"`, `"${unitPrices}"`, totalPrice.toFixed(2), paymentMethod, "", `"${notes}"`, ""
-        ].join(","));
+        fbRows.push({ type: "Foods & Drinks", name: names, discount: discounts, qty: qtys, unitPrice: unitPrices, totalPrice: totalPrice, payment: paymentMethod, grams: "", note: notes });
     }
   });
 
-  // 🌟 CSV တည်ဆောက်ခြင်း 🌟
-  let csvLines = [];
-  
-  csvLines.push("Item Type,Item Name,Discount,Qty/Grams,Unit Price,Total Price,Payment Method,Total Grams,Note");
-  csvLines.push(...mainRows);
-  
-  csvLines.push(",,,,,,,,");
-  csvLines.push(",,,,,,,,");
-  csvLines.push("Expenses,,,,,,,,");
-  csvLines.push("Expense Category,Description,Amount,,,,,,");
-  let totalExpenses = 0;
-  dailyExpenses.forEach(exp => {
-    let safeDesc = `"${exp.name.replace(/"/g, '""')}"`;
-    let category = exp.name.toLowerCase().includes('taxi') ? "For Night Shift Staffs" : "Inventory"; 
-    csvLines.push(`${category},${safeDesc},${exp.amount},,,,,,`);
-    totalExpenses += exp.amount;
+  // --- 🎨 Excel Styling & Creation ---
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Daily Report');
+
+  // Set Column Widths
+  sheet.columns = [
+    { key: 'type', width: 22 },
+    { key: 'name', width: 45 },
+    { key: 'discount', width: 12 },
+    { key: 'qty', width: 15 },
+    { key: 'unitPrice', width: 18 },
+    { key: 'totalPrice', width: 15 },
+    { key: 'payment', width: 18 },
+    { key: 'grams', width: 15 },
+    { key: 'note', width: 30 }
+  ];
+
+  // UI Header Style Function
+  const styleHeader = (row, bgColor) => {
+    row.eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+      cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+    });
+  };
+
+  // Border Function
+  const addBorder = (row) => {
+    row.eachCell((cell) => {
+      cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+      cell.alignment = { vertical: 'middle', horizontal: 'left' };
+    });
+  };
+
+  // 1. MAIN SALES SECTION
+  const mainHeader = sheet.addRow(['Item Type', 'Item Name', 'Discount', 'Qty/Grams', 'Unit Price', 'Total Price', 'Payment Method', 'Total Grams', 'Note']);
+  styleHeader(mainHeader, 'FF2C3E50'); // Dark Blue Grey
+
+  mainRows.forEach(data => {
+    const row = sheet.addRow([data.type, data.name, data.discount, data.qty, data.unitPrice, data.totalPrice.toFixed(2), data.payment, data.grams, data.note]);
+    addBorder(row);
   });
-  csvLines.push(`,Total Expenses,${totalExpenses},,,,,,`);
 
-  csvLines.push(",,,,,,,,");
-  csvLines.push(",,,,,,,,");
-  csvLines.push("Foods & Drinks,,,,,,,,");
-  csvLines.push("Item Name,Discount,Qty,Unit Price,Total Price,Payment Method,,Note,");
-  csvLines.push(...fbRows);
-
-  let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csvLines.join("\r\n");
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
+  // 2. EXPENSES SECTION
+  sheet.addRow([]); // Blank Row
+  const expTitle = sheet.addRow(['EXPENSES']);
+  expTitle.font = { bold: true, size: 14, color: { argb: 'FFE74C3C' } }; // Red
   
+  const expHeader = sheet.addRow(['Expense Category', 'Description', 'Amount', '', '', '', '', '', '']);
+  styleHeader(expHeader, 'FFC0392B'); // Dark Red
+
+  let totalExp = 0;
+  dailyExpenses.forEach(exp => {
+    let category = exp.name.toLowerCase().includes('taxi') ? "For Night Shift Staffs" : "Inventory"; 
+    const row = sheet.addRow([category, exp.name, exp.amount.toFixed(2), '', '', '', '', '', '']);
+    addBorder(row);
+    totalExp += exp.amount;
+  });
+
+  const expTotalRow = sheet.addRow(['', 'Total Expenses', totalExp.toFixed(2), '', '', '', '', '', '']);
+  expTotalRow.font = { bold: true, color: { argb: 'FFC0392B' } };
+  expTotalRow.getCell(3).border = { top: {style:'thick'}, bottom: {style:'thick'} };
+
+  // 3. FOODS & DRINKS SECTION
+  sheet.addRow([]); // Blank Row
+  const fbTitle = sheet.addRow(['FOODS & DRINKS']);
+  fbTitle.font = { bold: true, size: 14, color: { argb: 'FF2980B9' } }; // Blue
+  
+  const fbHeader = sheet.addRow(['Item Type', 'Item Name', 'Discount', 'Qty', 'Unit Price', 'Total Price', 'Payment Method', '', 'Note']);
+  styleHeader(fbHeader, 'FF2980B9');
+
+  fbRows.forEach(data => {
+    const row = sheet.addRow([data.type, data.name, data.discount, data.qty, data.unitPrice, data.totalPrice.toFixed(2), data.payment, '', data.note]);
+    addBorder(row);
+  });
+
+  // --- Generate & Download file ---
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const reportDate = document.getElementById('reportDate')?.value || "Report";
-  link.setAttribute("download", `BestBuds_Report_${reportDate}.csv`);
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  saveAs(blob, `BestBuds_Report_${reportDate}.xlsx`);
 }
