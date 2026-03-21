@@ -559,3 +559,149 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
+// --- 📥 EXCEL EXPORT ENGINE (BEST BUDS TEMPLATE) ---
+function exportToExcel() {
+  if (!lastSyncedData || !lastSyncedData.orders) {
+    alert("Please Sync From Loyverse first before exporting!");
+    return;
+  }
+
+  const orders = lastSyncedData.orders;
+  
+  // 1. Excel Column Headers
+  const headers = ["Item Type", "Item Name", "Discount", "Qty/Grams", "Unit Price", "Total Price", "Payment Method", "Total Grams", "Note"];
+  let csvRows = [headers.join(",")];
+
+  let totalDailyGrams = 0;
+  let totalExpenses = dailyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+  // 2. Process each order and extract line items
+  orders.forEach(order => {
+    const items = order.line_items || order.items || [];
+    
+    // Determine payment method label
+    let paymentMethod = "CASH";
+    if (order.payments && order.payments.length > 0) {
+      paymentMethod = order.payments.map(p => p.payment_type_name || p.payment_type || p.tender_type || "CASH").join(" + ");
+    } else if (order.payment_type) {
+      paymentMethod = order.payment_type;
+    }
+    paymentMethod = String(paymentMethod).toUpperCase();
+    
+    const orderTotalMoney = Number(order.total_money || 0); 
+    const orderDiscountMoney = Number(order.total_discount || 0);
+    const hasOrderDiscount = orderDiscountMoney > 0;
+
+    let orderDiscountPercent = 0;
+    if (hasOrderDiscount && (orderTotalMoney + orderDiscountMoney) > 0) {
+       orderDiscountPercent = (orderDiscountMoney / (orderTotalMoney + orderDiscountMoney));
+    }
+
+    items.forEach(item => {
+      let rawItemName = item.item_name || item.name || "Unknown";
+      let itemName = String(rawItemName).toLowerCase();
+      let category = String(item.category_name || "").toLowerCase();
+      
+      let qty = Number(item.quantity ?? item.qty ?? 0);
+      let unitPrice = Number(item.price ?? 0);
+      let grossPrice = unitPrice * qty;
+      
+      // Calculate item-level net price (after line-item discounts)
+      let lineItemNetPrice = Number(item.total_money ?? item.total_price ?? item.line_total ?? grossPrice);
+      if (item.total_discount_money || item.discount_money) {
+        lineItemNetPrice = grossPrice - Number(item.total_discount_money ?? item.discount_money ?? 0);
+      }
+
+      // Further adjust for order-level discounts
+      let itemNetPrice = lineItemNetPrice;
+      if (hasOrderDiscount && orderTotalMoney > 0) {
+        itemNetPrice = lineItemNetPrice - (lineItemNetPrice * orderDiscountPercent);
+      }
+
+      // Format Discount to string (e.g., "0.2" for 20%)
+      let itemDiscountPercent = 0;
+      if (grossPrice > 0) {
+        itemDiscountPercent = (grossPrice - itemNetPrice) / grossPrice;
+      }
+      let discountDisplay = itemDiscountPercent > 0 ? itemDiscountPercent.toFixed(2) : "";
+      let discountNote = itemDiscountPercent > 0 ? `${(itemDiscountPercent * 100).toFixed(0)}% dis` : "";
+
+      // Gatekeeper Check (Strict 0 check)
+      let isFreeItem = (itemNetPrice <= 0) || itemName.includes('free');
+      
+      // Lemon Cherry Override (7G Fix)
+      if (itemName.includes('lemon cherry') && grossPrice >= 4970) { qty = 7; }
+      
+      // Rozay Cake Override
+      const isRozayCake = itemName.includes('rozay cake');
+
+      // Categorize
+      let isAcc = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'tray']
+                  .some(keyword => itemName.includes(keyword) || category.includes(keyword));
+      
+      let isFB = !isRozayCake && (['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'food', 'coffee', 'juice', 'bakery', 'cookie', 'brownie', 'cake']
+                 .some(keyword => itemName.includes(keyword) || category.includes(keyword)) || 
+                 (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time')) ||
+                 (grossPrice / (qty || 1)) <= 50);
+
+      // Determine Item Type & Grams
+      let itemType = "";
+      let lineGramDisplay = "";
+
+      if (isFB) {
+        itemType = "Foods & Drinks";
+      } else if (isAcc) {
+        itemType = "Accessories";
+      } else {
+        itemType = "Flower";
+        if (!isFreeItem) { 
+            lineGramDisplay = `${qty} g`;
+            totalDailyGrams += qty;
+        }
+      }
+
+      // Escape commas in names
+      let safeItemName = `"${rawItemName.replace(/"/g, '""')}"`;
+      let safeNote = `"${discountNote}"`;
+
+      // Build the row
+      let rowData = [
+        itemType, 
+        safeItemName, 
+        discountDisplay, 
+        qty, 
+        unitPrice.toFixed(2), 
+        itemNetPrice.toFixed(2), 
+        paymentMethod, 
+        lineGramDisplay, 
+        safeNote
+      ];
+      csvRows.push(rowData.join(","));
+    });
+  });
+
+  // 3. Append Expenses Section
+  csvRows.push(",,,,,,,,"); // Empty line
+  csvRows.push("Expenses ,,,,,,,,");
+  csvRows.push("Expense Category,Description,Amount,,,,,,");
+  
+  dailyExpenses.forEach(exp => {
+    let safeDesc = `"${exp.name.replace(/"/g, '""')}"`;
+    csvRows.push(`Inventory,${safeDesc},${exp.amount},,,,,,`);
+  });
+  csvRows.push(`,Total Expenses,${totalExpenses},,,,,,`);
+  
+  // 4. Create and Download the CSV File
+  let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csvRows.map(e => e).join("\r\n");
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  
+  const reportDate = document.getElementById('reportDate')?.value || "Report";
+  link.setAttribute("download", `BestBuds_Report_${reportDate}.csv`);
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
