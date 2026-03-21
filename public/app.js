@@ -283,8 +283,10 @@ function processOrdersData(data) {
       let isAcc = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch']
                   .some(keyword => itemName.includes(keyword) || category.includes(keyword));
       
-      let isFB = ['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'food', 'coffee', 'tea', 'juice', 'bakery', 'cookie', 'brownie', 'cake']
-                 .some(keyword => itemName.includes(keyword) || category.includes(keyword)) || (grossPrice / (qty || 1)) <= 50;
+      let isFB = ['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'food', 'coffee', 'juice', 'bakery', 'cookie', 'brownie', 'cake']
+                 .some(keyword => itemName.includes(keyword) || category.includes(keyword)) || 
+                 (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time')) ||
+                 (grossPrice / (qty || 1)) <= 50;
 
       // Routing Logic
       if (isFB) {
@@ -295,7 +297,7 @@ function processOrdersData(data) {
         mainAndAccPrice += itemNetPrice;
         
         // Gram Exclusion Logic
-        const isFree = grossPrice === 0 || itemName.includes('free');
+        const isFree = grossPrice <= 0 || itemName.includes('free');
         const isLobbyShirt = itemName.includes('the lobby shirt');
         
         if (!isFree && !isLobbyShirt) {
@@ -306,7 +308,7 @@ function processOrdersData(data) {
 
       // Add to detailed items list
       detailedItems.push({
-        grams: !isFB && !isAcc && grossPrice > 0 && !itemName.includes('free') && !itemName.includes('the lobby shirt') ? qty : 0,
+        grams: !isFB && !isAcc && !isFree && !isLobbyShirt ? qty : 0,
         itemName: item?.name || 'Unknown Item',
         mainPrice: isFB ? 0 : itemNetPrice,
         fbPrice: isFB ? itemNetPrice : 0
