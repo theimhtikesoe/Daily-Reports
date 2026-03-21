@@ -456,7 +456,7 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
     // Note: In backend, we need to determine unit price for the <= 50 check
     const unitPrice = qty > 0 ? roundCurrency(itemTotal / qty) : itemTotal;
 
-    if (unitPrice <= 50 || isFB) {
+    if ((unitPrice <= 50 && !itemName.includes('grape soda')) || isFB) {
       // Group B: F&B (ဒါမှမဟုတ် 50 THB အောက် Item တွေ)
       // Action -> ညာဘက်မှာထားမယ်, Gram 0.000
       denominatorPrice += itemTotal;
@@ -1157,5 +1157,7 @@ module.exports = {
   fetchPaymentTypeMap,
   extractPaymentEntries,
   classifyPaymentType,
-  isCompletedReceipt
+  isCompletedReceipt,
+  buildAutomatedReceiptRow,
+  buildAutomatedReportRows
 };
