@@ -267,9 +267,16 @@ function processOrdersData(data) {
       
       let grossPrice = Number(item?.gross_total_money || item?.total_money || (Number(item?.price || 0) * Number(item?.quantity || item?.qty || 0)));
       
-      let itemNetPrice = grossPrice;
+      // Calculate item-level net price (after line-item discounts)
+      let lineItemNetPrice = Number(item?.total_money || item?.total_price || item?.line_total || grossPrice);
+      if (item?.total_discount_money || item?.discount_money) {
+        lineItemNetPrice = grossPrice - Number(item?.total_discount_money || item?.discount_money || 0);
+      }
+
+      // Further adjust for order-level discounts
+      let itemNetPrice = lineItemNetPrice;
       if (hasOrderDiscount && orderTotalMoney > 0) {
-        itemNetPrice = grossPrice - (grossPrice / (orderTotalMoney + orderDiscountMoney) * orderDiscountMoney);
+        itemNetPrice = lineItemNetPrice - (lineItemNetPrice / (orderTotalMoney + orderDiscountMoney) * orderDiscountMoney);
       }
 
       let qty = Number(item?.quantity || item?.qty || 0);
@@ -289,7 +296,8 @@ function processOrdersData(data) {
                  (grossPrice / (qty || 1)) <= 50;
 
       // Gram Exclusion Logic
-      const isFree = grossPrice <= 0 || itemName.includes('free');
+      // 100% Discounted items (itemNetPrice <= 0) are excluded from grams
+      const isFree = itemNetPrice <= 0 || itemName.includes('free');
       const isLobbyShirt = itemName.includes('the lobby shirt');
 
       // Routing Logic

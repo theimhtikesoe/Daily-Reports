@@ -329,20 +329,39 @@ function extractLineItemQty(lineItem) {
 }
 
 function extractLineItemPrice(lineItem) {
+  // Prioritize net amount (after discounts)
   const directAmount =
     lineItem?.total_money?.amount ??
     lineItem?.total_price_money?.amount ??
     lineItem?.line_total_money?.amount ??
-    lineItem?.gross_sales_money?.amount ??
-    lineItem?.subtotal_money?.amount ??
     lineItem?.total ??
     lineItem?.total_price ??
     lineItem?.line_total ??
     lineItem?.amount ??
     null;
 
+  // If we have a direct net amount, use it. 
+  // We check for null/undefined specifically because 0 is a valid net amount (100% discount)
   if (directAmount !== null && directAmount !== undefined) {
     return normalizeMoney(directAmount);
+  }
+
+  // Fallback to gross amount if net is not available
+  const grossAmount = 
+    lineItem?.gross_sales_money?.amount ??
+    lineItem?.subtotal_money?.amount ??
+    null;
+
+  if (grossAmount !== null && grossAmount !== undefined) {
+    // If we have gross amount, we must also subtract discounts to get net
+    const gross = normalizeMoney(grossAmount);
+    const discount = normalizeMoney(
+      lineItem?.total_discount_money?.amount ?? 
+      lineItem?.discount_money?.amount ?? 
+      lineItem?.discount_amount ?? 
+      0
+    );
+    return roundCurrency(gross - discount);
   }
 
   const unitPrice =
