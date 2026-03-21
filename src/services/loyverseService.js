@@ -1000,6 +1000,20 @@ async function fetchSalesSummaryByDate(date) {
 
   const closedReceipts = receipts.filter(isCompletedReceipt);
 
+  // Enrich each receipt's line_items with category_name from itemCategoryMap
+  // so the frontend can classify items correctly
+  for (const receipt of closedReceipts) {
+    const lineItems = receipt.line_items || receipt.items || [];
+    for (const lineItem of lineItems) {
+      if (!lineItem.category_name) {
+        const itemId = lineItem.item_id || lineItem.id;
+        if (itemId && itemCategoryMap.has(itemId)) {
+          lineItem.category_name = itemCategoryMap.get(itemId);
+        }
+      }
+    }
+  }
+
   for (const receipt of closedReceipts) {
     const paymentEntries = extractPaymentEntries(receipt, paymentTypeMap);
     const discountEntries = extractDiscountEntriesFromReceipt(receipt);
@@ -1069,7 +1083,8 @@ async function fetchSalesSummaryByDate(date) {
     discount_entries: totals.discount_entries,
     discount_entry_details: totals.discount_entry_details,
     automated_report_rows: automatedReport.rows,
-    automated_report_totals: automatedReport.totals
+    automated_report_totals: automatedReport.totals,
+    orders: closedReceipts
   };
 }
 
