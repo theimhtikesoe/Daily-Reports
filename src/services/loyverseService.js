@@ -420,7 +420,7 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
                itemName.includes('cocktail') ||
                itemName.includes('milk') ||
                itemName.includes('coffee') ||
-               itemName.includes('tea') ||
+               (itemName.includes('tea') && !itemName.includes('tea time')) ||
                itemName.includes('juice') ||
                itemName.includes('cookie') ||
                itemName.includes('brownie') ||
@@ -448,7 +448,9 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
       const isFree = itemTotal === 0 || itemName.includes('free');
       const isLobbyShirt = itemName.includes('the lobby shirt');
       
-      if (!isFree && !isLobbyShirt) {
+      // Always add to totalGram if it's not a lobby shirt
+      // (Free flowers still count as grams if they have a quantity)
+      if (!isLobbyShirt) {
         totalGram += qty;
         if (!mainItemName) {
           mainItemName = String(lineItem.item_name || lineItem.name || "").trim();
