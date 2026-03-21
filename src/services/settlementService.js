@@ -49,35 +49,44 @@ function calculatePeriodBusinessSummary(days) {
 
       const cashSales = toNumber(day.cashSales ?? day.cash_total);
       const cardSales = toNumber(day.cardSales ?? day.card_total);
+      const transferSales = toNumber(day.transferSales ?? day.transfer_total);
       const expenses = toNumber(day.expenses ?? day.expense);
       const tips = toNumber(day.tips ?? day.tip);
       const safeBoxAmount = toNumber(day.safeBoxAmount ?? day.safe_box_amount);
-
-      if (cashSales < 0 || cardSales < 0 || expenses < 0 || tips < 0 || safeBoxAmount < 0) {
-        throw new Error(`days[${index}] values must be non-negative`);
-      }
+      const grams = toNumber(day.grams ?? day.total_grams_sold);
+      const netSales = toNumber(day.netSales ?? day.net_sale);
 
       acc.cashTotal += cashSales;
       acc.cardTotal += cardSales;
+      acc.transferTotal += transferSales;
       acc.expenseTotal += expenses;
       acc.tipsTotal += tips;
       acc.safeBoxTotal += safeBoxAmount;
+      acc.gramsTotal += grams;
+      acc.netSalesTotal += netSales;
       return acc;
     },
-    { cashTotal: 0, cardTotal: 0, expenseTotal: 0, tipsTotal: 0, safeBoxTotal: 0 }
+    { 
+      cashTotal: 0, 
+      cardTotal: 0, 
+      transferTotal: 0, 
+      expenseTotal: 0, 
+      tipsTotal: 0, 
+      safeBoxTotal: 0,
+      gramsTotal: 0,
+      netSalesTotal: 0
+    }
   );
-
-  const revenueTotal = roundCurrency(totals.cashTotal + totals.cardTotal);
-  const netRevenueAfterExpense = roundCurrency(revenueTotal - totals.expenseTotal);
 
   return {
     cashTotal: roundCurrency(totals.cashTotal),
     cardTotal: roundCurrency(totals.cardTotal),
-    revenueTotal,
+    transferTotal: roundCurrency(totals.transferTotal),
     expenseTotal: roundCurrency(totals.expenseTotal),
-    netRevenueAfterExpense,
     tipsTotal: roundCurrency(totals.tipsTotal),
-    safeBoxTotal: roundCurrency(totals.safeBoxTotal)
+    safeBoxTotal: roundCurrency(totals.safeBoxTotal),
+    gramsTotal: Number(totals.gramsTotal.toFixed(3)),
+    netSalesTotal: roundCurrency(totals.netSalesTotal)
   };
 }
 
