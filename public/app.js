@@ -168,18 +168,17 @@ function normalizeEntries(entries) {
       percentage = parsePercentage(entry.percentage ?? entry.percent ?? entry.rate);
       time = entry.time || null;
       receiptNumber = entry.receiptNumber || entry.receipt_number || entry.number || null;
-      
       mainAccTotal = entry.main_acc_total || 0;
       fbTotal = entry.fb_total || 0;
     } else {
       amount = entry;
-      mainAccTotal = amount;
+      mainAccTotal = amount; 
     }
     return { 
-        amount: round2(parseNumber(amount)), 
-        percentage, time, receiptNumber, 
-        mainAccTotal: round2(parseNumber(mainAccTotal)), 
-        fbTotal: round2(parseNumber(fbTotal)) 
+      amount: round2(parseNumber(amount)), 
+      percentage, time, receiptNumber,
+      mainAccTotal: parseNumber(mainAccTotal),
+      fbTotal: parseNumber(fbTotal)
     };
   }).filter(e => e.amount > 0);
 }
@@ -199,10 +198,8 @@ function renderEntryList(listElement, entries, options = {}) {
 
   entries.forEach(entry => {
     const li = document.createElement('li');
-    const timeStr = entry.time ? `${formatTime(entry.time)} ` : '';
-    const receiptStr = entry.receiptNumber ? `(${entry.receiptNumber}) ` : '';
-    
     let content = '';
+    
     if (showPercentage) {
       if (entry.percentage !== null) {
         content = percentageOnly ? `${formatPercentage(entry.percentage)}` : `${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
@@ -210,10 +207,14 @@ function renderEntryList(listElement, entries, options = {}) {
         content = percentageOnly ? `${percentageFallbackText}` : `${formatCurrency(entry.amount)}`;
       }
     } else {
-      if ((entry.mainAccTotal > 0 || entry.fbTotal > 0) && round2(entry.mainAccTotal + entry.fbTotal) === round2(entry.amount)) {
-         content = `THB ${entry.mainAccTotal.toFixed(2)} / ${entry.fbTotal.toFixed(2)}`;
+      let totalReceipt = entry.mainAccTotal + entry.fbTotal;
+      if (totalReceipt > 0 && (entry.mainAccTotal > 0 || entry.fbTotal > 0)) {
+        let ratio = entry.mainAccTotal / totalReceipt;
+        let splitMain = entry.amount * ratio;
+        let splitFB = entry.amount - splitMain;
+        content = `THB ${splitMain.toFixed(2)} / ${splitFB.toFixed(2)}`;
       } else {
-         content = `${formatCurrency(entry.amount)}`;
+        content = `${formatCurrency(entry.amount)}`;
       }
     }
     
