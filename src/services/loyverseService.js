@@ -398,12 +398,15 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
                 itemName.includes('grinder') ||
                 itemName.includes('shirt') ||
                 itemName.includes('hat') ||
-                itemName.includes('lighter');
+                itemName.includes('lighter') ||
+                itemName.includes('the lobby') ||
+                itemName.includes('merch');
     let isFB = normalizedCategory.includes('soft drink') || 
                normalizedCategory.includes('snacks') || 
                normalizedCategory.includes('beverage') ||
                normalizedCategory.includes('drink') ||
                normalizedCategory.includes('food') ||
+               normalizedCategory.includes('bakery') ||
                itemName.includes('gummy') || 
                itemName.includes('water') || 
                itemName.includes('soda') ||
@@ -418,7 +421,10 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
                itemName.includes('milk') ||
                itemName.includes('coffee') ||
                itemName.includes('tea') ||
-               itemName.includes('juice');
+               itemName.includes('juice') ||
+               itemName.includes('cookie') ||
+               itemName.includes('brownie') ||
+               itemName.includes('cake');
 
     // --- [3] THE BEST BUDS ROUTING LOGIC ---
     // Note: In backend, we need to determine unit price for the <= 50 check
