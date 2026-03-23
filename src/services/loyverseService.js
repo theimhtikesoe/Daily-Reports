@@ -31,9 +31,9 @@ function getDateBounds(date) {
 
   // 🛡️ CUSTOM TIME RANGE FIX:
   // Start exactly at 00:00:00.999 of the selected date
-  // End exactly at 00:00:00.000 of the following day
+  // End exactly at 00:00:00.998 of the following day
   const startLocal = dayjs.tz(`${date} 00:00:00`, tz).millisecond(999);
-  const endLocal = dayjs.tz(`${date} 00:00:00`, tz).add(1, 'day');
+  const endLocal = dayjs.tz(`${date} 00:00:00`, tz).add(1, 'day').millisecond(998);
 
   return {
     startIso: startLocal.utc().format('YYYY-MM-DDTHH:mm:ss.SSS[Z]'),
