@@ -30,12 +30,14 @@ async function addExpenseToReport() {
   const categorySelect = document.getElementById('expenseCategory');
   const descriptionInput = document.getElementById('expenseDescription');
   const amountInput = document.getElementById('expenseAmount');
+  const staffInput = document.getElementById('expenseStaff');
   const submitBtn = document.querySelector('#expenseSection button');
 
   const date = dateInput?.value;
   const category = categorySelect?.value;
   const description = descriptionInput?.value || '';
   const amount = parseFloat(amountInput?.value) || 0;
+  const staff = staffInput?.value || '';
 
   if (!date || !category || amount <= 0) {
     showMessage('Please fill in all expense fields', 'warning');
@@ -49,7 +51,7 @@ async function addExpenseToReport() {
       // Update existing
       expenses = expenses.map(exp => {
         if (exp.id === currentEditingExpenseId) {
-          return { ...exp, category, description, amount };
+          return { ...exp, category, description, amount, staff };
         }
         return exp;
       });
@@ -64,6 +66,7 @@ async function addExpenseToReport() {
         category,
         description,
         amount,
+        staff,
         created_at: new Date().toISOString()
       };
       expenses.push(newExpense);
@@ -76,6 +79,7 @@ async function addExpenseToReport() {
     categorySelect.value = '';
     descriptionInput.value = '';
     amountInput.value = '';
+    staffInput.value = '';
     
     renderExpensesList(expenses, date);
   } catch (error) {
@@ -95,6 +99,7 @@ function editExpense(id, date) {
   document.getElementById('expenseCategory').value = expense.category;
   document.getElementById('expenseDescription').value = expense.description || '';
   document.getElementById('expenseAmount').value = expense.amount;
+  document.getElementById('expenseStaff').value = expense.staff || '';
   
   currentEditingExpenseId = id;
   const submitBtn = document.querySelector('#expenseSection button');
@@ -112,6 +117,7 @@ function cancelEdit() {
   document.getElementById('expenseCategory').value = '';
   document.getElementById('expenseDescription').value = '';
   document.getElementById('expenseAmount').value = '';
+  document.getElementById('expenseStaff').value = '';
   const submitBtn = document.querySelector('#expenseSection button');
   if (submitBtn) submitBtn.textContent = 'Add Expense';
 }
@@ -143,6 +149,7 @@ function renderExpensesList(expenses, date) {
           <tr>
             <th>Category</th>
             <th>Description</th>
+            <th>Staff</th>
             <th>Amount</th>
             <th class="text-end">Actions</th>
           </tr>
@@ -158,6 +165,7 @@ function renderExpensesList(expenses, date) {
       <tr>
         <td><span class="badge bg-secondary">${expense.category}</span></td>
         <td>${expense.description || '-'}</td>
+        <td>${expense.staff || '-'}</td>
         <td class="fw-bold">${amount.toLocaleString()} THB</td>
         <td class="text-end">
           <button class="btn btn-xs btn-outline-info me-1" onclick="editExpense(${expense.id}, '${date}')">Edit</button>
@@ -171,7 +179,7 @@ function renderExpensesList(expenses, date) {
         </tbody>
         <tfoot class="table-light">
           <tr class="fw-bold">
-            <td colspan="2">Total Expenses</td>
+            <td colspan="3">Total Expenses</td>
             <td colspan="2" class="text-primary">${total.toLocaleString()} THB</td>
           </tr>
         </tfoot>
@@ -220,7 +228,6 @@ async function exportReportToExcel() {
     showMessage('Generating Excel file...', 'info');
 
     // 1. Gather Data from UI and Global Variables (from app.js)
-    // We'll use the raw data from Loyverse if available in window.lastSyncedData
     const rawData = window.lastSyncedData;
     const expenses = getLocalExpenses(date);
     
@@ -278,9 +285,7 @@ async function exportReportToExcel() {
           let hasFBKeyword = fbKeywords.some(keyword => itemName.includes(keyword) || category.includes(keyword)) ||
                              (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time'));
 
-          // Logic for F&B classification:
-          // 1. Must have F&B keyword OR (price <= 50 AND not a flower item)
-          // 2. Grape Soda and Rozay Cake are always Flower/Main
+          // Logic for F&B classification
           let isFB = !isGrapeSoda && !itemName.includes('rozay cake') && 
                      (hasFBKeyword || ((grossPrice / (qty || 1)) <= 50 && !isAcc && !itemName.includes('free')));
 
@@ -357,7 +362,7 @@ async function exportReportToExcel() {
     sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: 'FFFF0000' } };
     currRow++;
 
-    const expenseHeaders = ['Category', 'Description', 'Amount'];
+    const expenseHeaders = ['Category', 'Description', 'Staff Name', 'Amount'];
     expenseHeaders.forEach((h, i) => {
       const cell = sheet.getCell(currRow, i + 1);
       cell.value = h;
@@ -369,9 +374,10 @@ async function exportReportToExcel() {
     expenses.forEach(exp => {
       sheet.getCell(`A${currRow}`).value = exp.category;
       sheet.getCell(`B${currRow}`).value = exp.description || '-';
-      sheet.getCell(`C${currRow}`).value = exp.amount;
+      sheet.getCell(`C${currRow}`).value = exp.staff || '-';
+      sheet.getCell(`D${currRow}`).value = exp.amount;
       totalExp += exp.amount;
-      ['A','B','C'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
+      ['A','B','C','D'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
       currRow++;
     });
     currRow += 2;
@@ -431,7 +437,7 @@ async function exportReportToExcel() {
     // Column Widths
     sheet.getColumn(1).width = 20;
     sheet.getColumn(2).width = 35;
-    sheet.getColumn(3).width = 10;
+    sheet.getColumn(3).width = 15;
     sheet.getColumn(4).width = 12;
     sheet.getColumn(5).width = 20;
     sheet.getColumn(6).width = 12;
