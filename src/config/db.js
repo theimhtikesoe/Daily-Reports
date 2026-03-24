@@ -70,15 +70,23 @@ function getMissingPostgresConfigKeys() {
 }
 
 function assertDbConfigured() {
-  const missingKeys = DIALECT === 'postgres'
-    ? getMissingPostgresConfigKeys()
-    : getMissingMysqlConfigKeys();
+  const missingPostgresKeys = getMissingPostgresConfigKeys();
+  const missingMysqlKeys = getMissingMysqlConfigKeys();
 
-  if (missingKeys.length > 0) {
-    const error = new Error(`Missing database configuration: ${missingKeys.join(', ')}`);
-    error.status = 500;
-    throw error;
+  // If we have any postgres config, we prefer that
+  if (missingPostgresKeys.length === 0) {
+    return;
   }
+
+  // If we have any mysql config, we can use that
+  if (missingMysqlKeys.length === 0) {
+    return;
+  }
+
+  // If both are missing, throw a detailed error
+  const error = new Error(`Missing database configuration. Please set DATABASE_URL (for Postgres) or DB_HOST, DB_USER, DB_NAME (for MySQL) in Vercel Environment Variables.`);
+  error.status = 500;
+  throw error;
 }
 
 let mysqlPool;
