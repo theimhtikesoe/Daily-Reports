@@ -310,7 +310,8 @@ async function exportReportToExcel() {
 
           const exportItem = {
             name: item.name || item.item_name,
-            qty: qty,
+            qty: isFlowerStrain ? '-' : qty,
+            gram: isFlowerStrain ? `${qty.toFixed(3)} G` : '-',
             unitPrice: grossPrice / (qty || 1),
             totalPrice: itemNetPrice, // This is already net price (after discount)
             discount: discountStr,
@@ -355,7 +356,7 @@ async function exportReportToExcel() {
     sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: 'FF0000FF' } };
     currRow++;
 
-    const headers = ['Item Type', 'Item Name', 'Qty', 'Unit Price', 'Discount', 'Net Price', 'Payment', 'Note'];
+    const headers = ['Item Type', 'Item Name', 'Qty', 'Gram', 'Unit Price', 'Discount', 'Net Price', 'Payment', 'Note'];
     headers.forEach((h, i) => {
       const cell = sheet.getCell(currRow, i + 1);
       cell.value = h;
@@ -367,12 +368,13 @@ async function exportReportToExcel() {
       sheet.getCell(`A${currRow}`).value = 'Flower/Main';
       sheet.getCell(`B${currRow}`).value = item.name;
       sheet.getCell(`C${currRow}`).value = item.qty;
-      sheet.getCell(`D${currRow}`).value = item.unitPrice;
-      sheet.getCell(`E${currRow}`).value = item.discount;
-      sheet.getCell(`F${currRow}`).value = item.totalPrice;
-      sheet.getCell(`G${currRow}`).value = item.payment;
-      sheet.getCell(`H${currRow}`).value = item.note;
-      ['A','B','C','D','E','F','G','H'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
+      sheet.getCell(`D${currRow}`).value = item.gram;
+      sheet.getCell(`E${currRow}`).value = item.unitPrice;
+      sheet.getCell(`F${currRow}`).value = item.discount;
+      sheet.getCell(`G${currRow}`).value = item.totalPrice;
+      sheet.getCell(`H${currRow}`).value = item.payment;
+      sheet.getCell(`I${currRow}`).value = item.note;
+      ['A','B','C','D','E','F','G','H','I'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
       currRow++;
     });
     currRow += 2;
@@ -417,12 +419,13 @@ async function exportReportToExcel() {
       sheet.getCell(`A${currRow}`).value = 'F&B';
       sheet.getCell(`B${currRow}`).value = item.name;
       sheet.getCell(`C${currRow}`).value = item.qty;
-      sheet.getCell(`D${currRow}`).value = item.unitPrice;
-      sheet.getCell(`E${currRow}`).value = item.discount;
-      sheet.getCell(`F${currRow}`).value = item.totalPrice;
-      sheet.getCell(`G${currRow}`).value = item.payment;
-      sheet.getCell(`H${currRow}`).value = item.note;
-      ['A','B','C','D','E','F','G','H'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
+      sheet.getCell(`D${currRow}`).value = item.gram;
+      sheet.getCell(`E${currRow}`).value = item.unitPrice;
+      sheet.getCell(`F${currRow}`).value = item.discount;
+      sheet.getCell(`G${currRow}`).value = item.totalPrice;
+      sheet.getCell(`H${currRow}`).value = item.payment;
+      sheet.getCell(`I${currRow}`).value = item.note;
+      ['A','B','C','D','E','F','G','H','I'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
       currRow++;
     });
     currRow += 2;
@@ -458,10 +461,11 @@ async function exportReportToExcel() {
     sheet.getColumn(2).width = 35;
     sheet.getColumn(3).width = 10;
     sheet.getColumn(4).width = 12;
-    sheet.getColumn(5).width = 20;
-    sheet.getColumn(6).width = 12;
-    sheet.getColumn(7).width = 15;
-    sheet.getColumn(8).width = 20;
+    sheet.getColumn(5).width = 12;
+    sheet.getColumn(6).width = 20;
+    sheet.getColumn(7).width = 12;
+    sheet.getColumn(8).width = 15;
+    sheet.getColumn(9).width = 20;
 
     // 3. Save File
     const buffer = await workbook.xlsx.writeBuffer();
