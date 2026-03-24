@@ -301,7 +301,8 @@ function processOrdersData(data) {
         'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
         'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
         'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
-        'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz'
+        'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
+        'free pina colada'
       ];
 
       // Special case: Item is a Flower/Main strain
@@ -331,13 +332,15 @@ function processOrdersData(data) {
         }
       }
 
-      // Add to detailed items list
-      detailedItems.push({
-        grams: !isFB && !isAcc && !isFree && !isLobbyShirt ? qty : 0,
-        itemName: item?.item_name || item?.name || 'Unknown Item',
-        mainPrice: isFB ? 0 : itemNetPrice,
-        fbPrice: isFB ? itemNetPrice : 0
-      });
+      // Add to detailed items list (Only if net price > 0 or not a free item)
+      if (itemNetPrice > 0) {
+        detailedItems.push({
+          grams: !isFB && !isAcc && !isFree && !isLobbyShirt ? qty : 0,
+          itemName: item?.item_name || item?.name || 'Unknown Item',
+          mainPrice: isFB ? 0 : itemNetPrice,
+          fbPrice: isFB ? itemNetPrice : 0
+        });
+      }
     });
 
     totalGrams += orderLineGram;

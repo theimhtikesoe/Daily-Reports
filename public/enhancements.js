@@ -297,7 +297,8 @@ async function exportReportToExcel() {
             'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
             'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
             'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
-            'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz'
+            'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
+            'free pina colada'
           ];
 
           let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
@@ -308,19 +309,22 @@ async function exportReportToExcel() {
 
           let isFB = !isFlowerStrain && (hasFBKeyword || (grossPrice / (qty || 1)) <= 50);
 
-          const exportItem = {
-            name: item.name || item.item_name,
-            qty: isFlowerStrain ? '-' : qty,
-            gram: isFlowerStrain ? `${qty.toFixed(3)} G` : '-',
-            unitPrice: grossPrice / (qty || 1),
-            totalPrice: itemNetPrice, // This is already net price (after discount)
-            discount: discountStr,
-            payment: paymentMethod,
-            note: receiptNumber
-          };
+          // Only add items with net price > 0 to the export list
+          if (itemNetPrice > 0) {
+            const exportItem = {
+              name: item.name || item.item_name,
+              qty: isFlowerStrain ? '-' : qty,
+              gram: isFlowerStrain ? `${qty.toFixed(3)} G` : '-',
+              unitPrice: grossPrice / (qty || 1),
+              totalPrice: itemNetPrice, // This is already net price (after discount)
+              discount: discountStr,
+              payment: paymentMethod,
+              note: receiptNumber
+            };
 
-          if (isFB) fbItems.push(exportItem);
-          else flowerItems.push(exportItem);
+            if (isFB) fbItems.push(exportItem);
+            else flowerItems.push(exportItem);
+          }
         });
       });
     }

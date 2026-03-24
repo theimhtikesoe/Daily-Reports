@@ -426,7 +426,8 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
       'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
       'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
       'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
-      'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz'
+      'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
+      'free pina colada'
     ];
 
     let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
