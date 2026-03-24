@@ -1,18 +1,7 @@
 /**
  * Enhanced Daily Reports - Item Classification & Expense Tracking
- * Integrates with the existing app.js and index.html
+ * Performs full client-side Excel export using ExcelJS
  */
-
-// Expense categories
-const EXPENSE_CATEGORIES = [
-  'Taxi',
-  'Ice',
-  'Deli',
-  'Supplies',
-  'Maintenance',
-  'Utilities',
-  'Other'
-];
 
 let currentEditingExpenseId = null;
 
@@ -136,7 +125,7 @@ async function loadExpenses(date) {
 }
 
 /**
- * Render expenses list in the UI with Edit and Delete buttons
+ * Render expenses list in the UI
  */
 function renderExpensesList(expenses, date) {
   const container = document.getElementById('expensesList');
@@ -216,7 +205,7 @@ async function deleteExpense(id, date) {
 }
 
 /**
- * Export report to Excel with classification
+ * Full Client-Side Excel Export using ExcelJS
  */
 async function exportReportToExcel() {
   const dateInput = document.getElementById('reportDate');
@@ -228,16 +217,187 @@ async function exportReportToExcel() {
   }
 
   try {
-    const expenses = getLocalExpenses(date);
-    const expensesParam = encodeURIComponent(JSON.stringify(expenses));
-    
-    const response = await fetch(`/api/reports/${date}/export?expenses=${expensesParam}`);
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.message || 'Failed to export report');
-    }
+    showMessage('Generating Excel file...', 'info');
 
-    const blob = await response.blob();
+    // 1. Gather Data from UI
+    const salesTableRows = Array.from(document.querySelectorAll('#bestBudsSalesTable tbody tr'));
+    const expenses = getLocalExpenses(date);
+    
+    // Extract totals from UI
+    const cashTotal = parseFloat(document.getElementById('cashTotal')?.value) || 0;
+    const cardTotal = parseFloat(document.getElementById('cardTotal')?.value) || 0;
+    const transferTotal = parseFloat(document.getElementById('transferTotal')?.value) || 0;
+    const netSale = parseFloat(document.getElementById('netSale')?.value) || 0;
+    const totalGramsStr = document.getElementById('totalGramsSold')?.textContent || '0.000 G';
+    const totalGrams = parseFloat(totalGramsStr.replace(/[^\d.]/g, '')) || 0;
+
+    // Categorize sales items from UI table
+    const flowerItems = [];
+    const fbItems = [];
+    
+    salesTableRows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      if (cells.length < 3 || cells[0].textContent.includes('-')) return;
+      
+      const qtyStr = cells[0].textContent.trim();
+      const itemName = cells[1].textContent.trim();
+      const priceStr = cells[2].textContent.trim();
+      
+      // Parse Qty and Prices (Format: "Main / FB")
+      const qty = parseFloat(qtyStr) || 0;
+      const prices = priceStr.split('/').map(p => parseFloat(p.replace(/[^\d.]/g, '')) || 0);
+      const mainPrice = prices[0] || 0;
+      const fbPrice = prices[1] || 0;
+      
+      if (mainPrice > 0) {
+        flowerItems.push({
+          name: itemName,
+          qty: qty,
+          unitPrice: mainPrice / (qty || 1),
+          totalPrice: mainPrice
+        });
+      }
+      
+      if (fbPrice > 0) {
+        fbItems.push({
+          name: itemName,
+          qty: qty,
+          unitPrice: fbPrice / (qty || 1),
+          totalPrice: fbPrice
+        });
+      }
+    });
+
+    // 2. Create Workbook
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Daily Report');
+
+    // Helper for styling
+    const setHeaderStyle = (cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
+      cell.font = { bold: true };
+      cell.alignment = { horizontal: 'center' };
+      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+    };
+
+    const setBorder = (cell) => {
+      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+    };
+
+    // --- SECTION 1: FLOWER / MAIN ---
+    sheet.mergeCells('A1:E1');
+    sheet.getCell('A1').value = `Daily Report - ${date}`;
+    sheet.getCell('A1').font = { size: 14, bold: true };
+    sheet.getCell('A1').alignment = { horizontal: 'center' };
+
+    let currRow = 3;
+    sheet.getCell(`A${currRow}`).value = 'Flower / Main / Accessories';
+    sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: 'FF0000FF' } };
+    currRow++;
+
+    const flowerHeaders = ['Item Type', 'Item Name', 'Qty', 'Unit Price', 'Total Price'];
+    flowerHeaders.forEach((h, i) => {
+      const cell = sheet.getCell(currRow, i + 1);
+      cell.value = h;
+      setHeaderStyle(cell);
+    });
+    currRow++;
+
+    flowerItems.forEach(item => {
+      sheet.getCell(`A${currRow}`).value = 'Flower/Main';
+      sheet.getCell(`B${currRow}`).value = item.name;
+      sheet.getCell(`C${currRow}`).value = item.qty;
+      sheet.getCell(`D${currRow}`).value = item.unitPrice;
+      sheet.getCell(`E${currRow}`).value = item.totalPrice;
+      ['A','B','C','D','E'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
+      currRow++;
+    });
+    currRow += 2;
+
+    // --- SECTION 2: EXPENSES ---
+    sheet.getCell(`A${currRow}`).value = 'Expenses';
+    sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: 'FFFF0000' } };
+    currRow++;
+
+    const expenseHeaders = ['Category', 'Description', 'Amount'];
+    expenseHeaders.forEach((h, i) => {
+      const cell = sheet.getCell(currRow, i + 1);
+      cell.value = h;
+      setHeaderStyle(cell);
+    });
+    currRow++;
+
+    let totalExp = 0;
+    expenses.forEach(exp => {
+      sheet.getCell(`A${currRow}`).value = exp.category;
+      sheet.getCell(`B${currRow}`).value = exp.description || '-';
+      sheet.getCell(`C${currRow}`).value = exp.amount;
+      totalExp += exp.amount;
+      ['A','B','C'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
+      currRow++;
+    });
+    currRow += 2;
+
+    // --- SECTION 3: FOOD & DRINKS ---
+    sheet.getCell(`A${currRow}`).value = 'Food & Drinks';
+    sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: 'FF008000' } };
+    currRow++;
+
+    const fbHeaders = ['Item Type', 'Item Name', 'Qty', 'Unit Price', 'Total Price'];
+    fbHeaders.forEach((h, i) => {
+      const cell = sheet.getCell(currRow, i + 1);
+      cell.value = h;
+      setHeaderStyle(cell);
+    });
+    currRow++;
+
+    fbItems.forEach(item => {
+      sheet.getCell(`A${currRow}`).value = 'F&B';
+      sheet.getCell(`B${currRow}`).value = item.name;
+      sheet.getCell(`C${currRow}`).value = item.qty;
+      sheet.getCell(`D${currRow}`).value = item.unitPrice;
+      sheet.getCell(`E${currRow}`).value = item.totalPrice;
+      ['A','B','C','D','E'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
+      currRow++;
+    });
+    currRow += 2;
+
+    // --- SECTION 4: DAILY SUMMARY DASHBOARD ---
+    sheet.getCell(`A${currRow}`).value = 'Daily Summary Dashboard';
+    sheet.getCell(`A${currRow}`).font = { bold: true, size: 12 };
+    currRow++;
+
+    const summaryData = [
+      ['Total Grams Sold', totalGrams, 'G'],
+      ['Cash In', cashTotal, 'THB'],
+      ['Card In', cardTotal, 'THB'],
+      ['Transfer In', transferTotal, 'THB'],
+      ['Total Expenses', totalExp, 'THB'],
+      ['Net Sales (Total)', netSale, 'THB'],
+      ['Net Profit (After Expenses)', netSale - totalExp, 'THB']
+    ];
+
+    summaryData.forEach(data => {
+      sheet.getCell(`A${currRow}`).value = data[0];
+      sheet.getCell(`B${currRow}`).value = data[1];
+      sheet.getCell(`C${currRow}`).value = data[2];
+      sheet.getCell(`A${currRow}`).font = { bold: true };
+      setBorder(sheet.getCell(`A${currRow}`));
+      setBorder(sheet.getCell(`B${currRow}`));
+      setBorder(sheet.getCell(`C${currRow}`));
+      currRow++;
+    });
+
+    // Column Widths
+    sheet.getColumn(1).width = 20;
+    sheet.getColumn(2).width = 35;
+    sheet.getColumn(3).width = 15;
+    sheet.getColumn(4).width = 15;
+    sheet.getColumn(5).width = 15;
+
+    // 3. Save File
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -246,7 +406,10 @@ async function exportReportToExcel() {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+
+    showMessage('Excel exported successfully!', 'success');
   } catch (error) {
+    console.error('Export Error:', error);
     showMessage(`Export failed: ${error.message}`, 'danger');
   }
 }
