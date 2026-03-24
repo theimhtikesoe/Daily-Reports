@@ -62,7 +62,7 @@ async function generateExcelReport(date, reportData, receipts, expenses) {
       const itemInfo = {
         name: item.item_name || item.name || 'Unknown',
         qty: parseFloat(item.quantity || 0),
-        price: parseFloat(item.unit_price || 0),
+        price: parseFloat(item.price?.amount || item.unit_price || item.price || 0),
         total: parseFloat(item.total_money?.amount || item.total_price || 0),
         discount: parseFloat(item.discount_money?.amount || 0),
         payment: paymentType,
@@ -143,7 +143,6 @@ async function generateExcelReport(date, reportData, receipts, expenses) {
   fbItems.forEach(item => {
     totalFbPrice += item.total;
     const row = sheet.addRow(['', item.name, item.discount || '', item.qty, item.price, item.total, item.payment]);
-    // Shifted cells because Item Type is blank in template for FB
     row.eachCell(cell => cell.border = border);
   });
 

@@ -238,7 +238,7 @@ function showMessage(text, type = 'info') {
 function initializeEnhancements() {
   // Create expense form if it doesn't exist
   const reportSection = document.getElementById('reportSection');
-  if (reportSection && !document.getElementById('expenseForm')) {
+  if (reportSection && !document.getElementById('expenseSection')) {
     const expenseHTML = `
       <div id="expenseSection" class="mt-4">
         <h2 class="h5 mb-3">Daily Expenses</h2>
