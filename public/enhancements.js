@@ -23,6 +23,23 @@ function saveLocalExpenses(date, expenses) {
 }
 
 /**
+ * Get Closing Staff from LocalStorage
+ */
+function getClosingStaff(date) {
+  const allStaff = JSON.parse(localStorage.getItem('closing_staff') || '{}');
+  return allStaff[date] || '';
+}
+
+/**
+ * Save Closing Staff to LocalStorage
+ */
+function saveClosingStaff(date, name) {
+  const allStaff = JSON.parse(localStorage.getItem('closing_staff') || '{}');
+  allStaff[date] = name;
+  localStorage.setItem('closing_staff', JSON.stringify(allStaff));
+}
+
+/**
  * Add or Update expense (LocalStorage Version)
  */
 async function addExpenseToReport() {
@@ -30,14 +47,12 @@ async function addExpenseToReport() {
   const categorySelect = document.getElementById('expenseCategory');
   const descriptionInput = document.getElementById('expenseDescription');
   const amountInput = document.getElementById('expenseAmount');
-  const staffInput = document.getElementById('expenseStaff');
   const submitBtn = document.querySelector('#expenseSection button');
 
   const date = dateInput?.value;
   const category = categorySelect?.value;
   const description = descriptionInput?.value || '';
   const amount = parseFloat(amountInput?.value) || 0;
-  const staff = staffInput?.value || '';
 
   if (!date || !category || amount <= 0) {
     showMessage('Please fill in all expense fields', 'warning');
@@ -51,7 +66,7 @@ async function addExpenseToReport() {
       // Update existing
       expenses = expenses.map(exp => {
         if (exp.id === currentEditingExpenseId) {
-          return { ...exp, category, description, amount, staff };
+          return { ...exp, category, description, amount };
         }
         return exp;
       });
@@ -66,7 +81,6 @@ async function addExpenseToReport() {
         category,
         description,
         amount,
-        staff,
         created_at: new Date().toISOString()
       };
       expenses.push(newExpense);
@@ -79,7 +93,6 @@ async function addExpenseToReport() {
     categorySelect.value = '';
     descriptionInput.value = '';
     amountInput.value = '';
-    staffInput.value = '';
     
     renderExpensesList(expenses, date);
   } catch (error) {
@@ -99,7 +112,6 @@ function editExpense(id, date) {
   document.getElementById('expenseCategory').value = expense.category;
   document.getElementById('expenseDescription').value = expense.description || '';
   document.getElementById('expenseAmount').value = expense.amount;
-  document.getElementById('expenseStaff').value = expense.staff || '';
   
   currentEditingExpenseId = id;
   const submitBtn = document.querySelector('#expenseSection button');
@@ -117,17 +129,20 @@ function cancelEdit() {
   document.getElementById('expenseCategory').value = '';
   document.getElementById('expenseDescription').value = '';
   document.getElementById('expenseAmount').value = '';
-  document.getElementById('expenseStaff').value = '';
   const submitBtn = document.querySelector('#expenseSection button');
   if (submitBtn) submitBtn.textContent = 'Add Expense';
 }
 
 /**
- * Load expenses for a specific date
+ * Load report data for a specific date (Staff + Expenses)
  */
-async function loadExpenses(date) {
+async function loadReportData(date) {
   const expenses = getLocalExpenses(date);
   renderExpensesList(expenses, date);
+  
+  const staffName = getClosingStaff(date);
+  const staffInput = document.getElementById('closingStaff');
+  if (staffInput) staffInput.value = staffName;
 }
 
 /**
@@ -149,7 +164,6 @@ function renderExpensesList(expenses, date) {
           <tr>
             <th>Category</th>
             <th>Description</th>
-            <th>Staff</th>
             <th>Amount</th>
             <th class="text-end">Actions</th>
           </tr>
@@ -165,7 +179,6 @@ function renderExpensesList(expenses, date) {
       <tr>
         <td><span class="badge bg-secondary">${expense.category}</span></td>
         <td>${expense.description || '-'}</td>
-        <td>${expense.staff || '-'}</td>
         <td class="fw-bold">${amount.toLocaleString()} THB</td>
         <td class="text-end">
           <button class="btn btn-xs btn-outline-info me-1" onclick="editExpense(${expense.id}, '${date}')">Edit</button>
@@ -179,7 +192,7 @@ function renderExpensesList(expenses, date) {
         </tbody>
         <tfoot class="table-light">
           <tr class="fw-bold">
-            <td colspan="3">Total Expenses</td>
+            <td colspan="2">Total Expenses</td>
             <td colspan="2" class="text-primary">${total.toLocaleString()} THB</td>
           </tr>
         </tfoot>
@@ -217,21 +230,25 @@ async function deleteExpense(id, date) {
  */
 async function exportReportToExcel() {
   const dateInput = document.getElementById('reportDate');
+  const staffInput = document.getElementById('closingStaff');
   const date = dateInput?.value;
+  const staffName = staffInput?.value || 'N/A';
 
   if (!date) {
     showMessage('Please select a date first', 'warning');
     return;
   }
 
+  // Save current staff name before exporting
+  saveClosingStaff(date, staffName);
+
   try {
     showMessage('Generating Excel file...', 'info');
 
-    // 1. Gather Data from UI and Global Variables (from app.js)
+    // 1. Gather Data from UI and Global Variables
     const rawData = window.lastSyncedData;
     const expenses = getLocalExpenses(date);
     
-    // Extract totals from UI
     const cashTotal = parseFloat(document.getElementById('cashTotal')?.value) || 0;
     const cardTotal = parseFloat(document.getElementById('cardTotal')?.value) || 0;
     const transferTotal = parseFloat(document.getElementById('transferTotal')?.value) || 0;
@@ -239,7 +256,6 @@ async function exportReportToExcel() {
     const totalGramsStr = document.getElementById('totalGramsSold')?.textContent || '0.000 G';
     const totalGrams = parseFloat(totalGramsStr.replace(/[^\d.]/g, '')) || 0;
 
-    // Process items with full details from rawData
     const flowerItems = [];
     const fbItems = [];
     
@@ -257,12 +273,10 @@ async function exportReportToExcel() {
           let category = String(item.category_name || "").toLowerCase();
           let qty = Number(item.quantity || item.qty || 0);
           
-          // --- Pricing & Discount Calculation ---
           let grossPrice = Number(item.gross_total_money ?? item.total_money ?? (Number(item.price ?? 0) * qty));
           let lineItemDiscount = Number(item.total_discount_money ?? item.discount_money ?? 0);
           let lineItemNetPrice = grossPrice - lineItemDiscount;
 
-          // Order-level discount allocation
           let itemNetPrice = lineItemNetPrice;
           let allocatedOrderDiscount = 0;
           if (hasOrderDiscount && orderTotal > 0) {
@@ -274,18 +288,13 @@ async function exportReportToExcel() {
           const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
           const discountStr = totalItemDiscount > 0 ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` : '-';
 
-          // --- Classification (Refined for Free Items) ---
           let isAcc = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch']
                       .some(keyword => itemName.includes(keyword) || category.includes(keyword));
-          
           let isGrapeSoda = itemName.includes('grape soda');
-          
-          // Identify F&B based on keywords
           let fbKeywords = ['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'food', 'coffee', 'juice', 'bakery', 'cookie', 'brownie', 'cake'];
           let hasFBKeyword = fbKeywords.some(keyword => itemName.includes(keyword) || category.includes(keyword)) ||
                              (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time'));
 
-          // Logic for F&B classification
           let isFB = !isGrapeSoda && !itemName.includes('rozay cake') && 
                      (hasFBKeyword || ((grossPrice / (qty || 1)) <= 50 && !isAcc && !itemName.includes('free')));
 
@@ -299,11 +308,8 @@ async function exportReportToExcel() {
             note: receiptNumber
           };
 
-          if (isFB) {
-            fbItems.push(exportItem);
-          } else {
-            flowerItems.push(exportItem);
-          }
+          if (isFB) fbItems.push(exportItem);
+          else flowerItems.push(exportItem);
         });
       });
     }
@@ -312,7 +318,6 @@ async function exportReportToExcel() {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Daily Report');
 
-    // Helper for styling
     const setHeaderStyle = (cell) => {
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
       cell.font = { bold: true };
@@ -324,13 +329,18 @@ async function exportReportToExcel() {
       cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
     };
 
-    // --- SECTION 1: FLOWER / MAIN ---
+    // --- HEADER: Date & Staff ---
     sheet.mergeCells('A1:H1');
     sheet.getCell('A1').value = `Daily Report - ${date}`;
     sheet.getCell('A1').font = { size: 14, bold: true };
     sheet.getCell('A1').alignment = { horizontal: 'center' };
 
-    let currRow = 3;
+    sheet.mergeCells('A2:H2');
+    sheet.getCell('A2').value = `Closing Staff: ${staffName}`;
+    sheet.getCell('A2').font = { size: 12, bold: true, color: { argb: 'FF555555' } };
+    sheet.getCell('A2').alignment = { horizontal: 'center' };
+
+    let currRow = 4;
     sheet.getCell(`A${currRow}`).value = 'Flower / Main / Accessories';
     sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: 'FF0000FF' } };
     currRow++;
@@ -362,7 +372,7 @@ async function exportReportToExcel() {
     sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: 'FFFF0000' } };
     currRow++;
 
-    const expenseHeaders = ['Category', 'Description', 'Staff Name', 'Amount'];
+    const expenseHeaders = ['Category', 'Description', 'Amount'];
     expenseHeaders.forEach((h, i) => {
       const cell = sheet.getCell(currRow, i + 1);
       cell.value = h;
@@ -374,10 +384,9 @@ async function exportReportToExcel() {
     expenses.forEach(exp => {
       sheet.getCell(`A${currRow}`).value = exp.category;
       sheet.getCell(`B${currRow}`).value = exp.description || '-';
-      sheet.getCell(`C${currRow}`).value = exp.staff || '-';
-      sheet.getCell(`D${currRow}`).value = exp.amount;
+      sheet.getCell(`C${currRow}`).value = exp.amount;
       totalExp += exp.amount;
-      ['A','B','C','D'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
+      ['A','B','C'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
       currRow++;
     });
     currRow += 2;
@@ -437,7 +446,7 @@ async function exportReportToExcel() {
     // Column Widths
     sheet.getColumn(1).width = 20;
     sheet.getColumn(2).width = 35;
-    sheet.getColumn(3).width = 15;
+    sheet.getColumn(3).width = 10;
     sheet.getColumn(4).width = 12;
     sheet.getColumn(5).width = 20;
     sheet.getColumn(6).width = 12;
@@ -485,28 +494,34 @@ function showMessage(text, type = 'info') {
 function initializeEnhancements() {
   console.log('Initializing Enhancements...');
   
-  // 1. Setup Export Button
   const exportBtn = document.getElementById('exportCsvBtn');
   if (exportBtn) {
-    console.log('Binding Export Button...');
     exportBtn.onclick = function(e) {
       e.preventDefault();
       exportReportToExcel();
     };
   }
 
-  // 2. Date Change Listener
   const dateInput = document.getElementById('reportDate');
   if (dateInput) {
     dateInput.addEventListener('change', (e) => {
       if (e.target.value) {
-        loadExpenses(e.target.value);
+        loadReportData(e.target.value);
       }
     });
-    // Initial load if date is already set
     if (dateInput.value) {
-      loadExpenses(dateInput.value);
+      loadReportData(dateInput.value);
     }
+  }
+
+  const staffInput = document.getElementById('closingStaff');
+  if (staffInput) {
+    staffInput.addEventListener('change', (e) => {
+      const date = document.getElementById('reportDate')?.value;
+      if (date) {
+        saveClosingStaff(date, e.target.value);
+      }
+    });
   }
 }
 
