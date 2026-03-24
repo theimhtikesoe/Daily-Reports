@@ -219,8 +219,9 @@ async function exportReportToExcel() {
   try {
     showMessage('Generating Excel file...', 'info');
 
-    // 1. Gather Data from UI
-    const salesTableRows = Array.from(document.querySelectorAll('#bestBudsSalesTable tbody tr'));
+    // 1. Gather Data from UI and Global Variables (from app.js)
+    // We'll use the raw data from Loyverse if available in window.lastSyncedData
+    const rawData = window.lastSyncedData;
     const expenses = getLocalExpenses(date);
     
     // Extract totals from UI
@@ -231,42 +232,68 @@ async function exportReportToExcel() {
     const totalGramsStr = document.getElementById('totalGramsSold')?.textContent || '0.000 G';
     const totalGrams = parseFloat(totalGramsStr.replace(/[^\d.]/g, '')) || 0;
 
-    // Categorize sales items from UI table
+    // Process items with full details from rawData
     const flowerItems = [];
     const fbItems = [];
     
-    salesTableRows.forEach(row => {
-      const cells = row.querySelectorAll('td');
-      if (cells.length < 3 || cells[0].textContent.includes('-')) return;
-      
-      const qtyStr = cells[0].textContent.trim();
-      const itemName = cells[1].textContent.trim();
-      const priceStr = cells[2].textContent.trim();
-      
-      // Parse Qty and Prices (Format: "Main / FB")
-      const qty = parseFloat(qtyStr) || 0;
-      const prices = priceStr.split('/').map(p => parseFloat(p.replace(/[^\d.]/g, '')) || 0);
-      const mainPrice = prices[0] || 0;
-      const fbPrice = prices[1] || 0;
-      
-      if (mainPrice > 0) {
-        flowerItems.push({
-          name: itemName,
-          qty: qty,
-          unitPrice: mainPrice / (qty || 1),
-          totalPrice: mainPrice
+    if (rawData && rawData.orders) {
+      rawData.orders.forEach(order => {
+        const paymentMethod = order.payments && order.payments.length > 0 ? order.payments[0].name : 'Unknown';
+        const receiptNumber = order.receipt_number || 'N/A';
+        const orderTotal = Number(order.total_money || 0);
+        const orderDiscount = Number(order.total_discount || 0);
+        const hasOrderDiscount = orderDiscount > 0;
+
+        const items = order.line_items || order.items || [];
+        items.forEach(item => {
+          let itemName = String(item.name || item.item_name || "").toLowerCase();
+          let category = String(item.category_name || "").toLowerCase();
+          let qty = Number(item.quantity || item.qty || 0);
+          
+          // --- Pricing & Discount Calculation ---
+          let grossPrice = Number(item.gross_total_money ?? item.total_money ?? (Number(item.price ?? 0) * qty));
+          let lineItemDiscount = Number(item.total_discount_money ?? item.discount_money ?? 0);
+          let lineItemNetPrice = grossPrice - lineItemDiscount;
+
+          // Order-level discount allocation
+          let itemNetPrice = lineItemNetPrice;
+          let allocatedOrderDiscount = 0;
+          if (hasOrderDiscount && orderTotal > 0) {
+            allocatedOrderDiscount = lineItemNetPrice / (orderTotal + orderDiscount) * orderDiscount;
+            itemNetPrice = lineItemNetPrice - allocatedOrderDiscount;
+          }
+
+          const totalItemDiscount = lineItemDiscount + allocatedOrderDiscount;
+          const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
+          const discountStr = totalItemDiscount > 0 ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` : '-';
+
+          // --- Classification (Same logic as app.js) ---
+          let isAcc = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch']
+                      .some(keyword => itemName.includes(keyword) || category.includes(keyword));
+          let isGrapeSoda = itemName.includes('grape soda');
+          let isFB = !isGrapeSoda && (['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'food', 'coffee', 'juice', 'bakery', 'cookie', 'brownie', 'cake']
+                     .some(keyword => itemName.includes(keyword) || category.includes(keyword)) || 
+                     (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time')) ||
+                     (grossPrice / (qty || 1)) <= 50) && !itemName.includes('rozay cake');
+
+          const exportItem = {
+            name: item.name || item.item_name,
+            qty: qty,
+            unitPrice: grossPrice / (qty || 1),
+            totalPrice: itemNetPrice,
+            discount: discountStr,
+            payment: paymentMethod,
+            note: receiptNumber
+          };
+
+          if (isFB) {
+            fbItems.push(exportItem);
+          } else {
+            flowerItems.push(exportItem);
+          }
         });
-      }
-      
-      if (fbPrice > 0) {
-        fbItems.push({
-          name: itemName,
-          qty: qty,
-          unitPrice: fbPrice / (qty || 1),
-          totalPrice: fbPrice
-        });
-      }
-    });
+      });
+    }
 
     // 2. Create Workbook
     const workbook = new ExcelJS.Workbook();
@@ -285,7 +312,7 @@ async function exportReportToExcel() {
     };
 
     // --- SECTION 1: FLOWER / MAIN ---
-    sheet.mergeCells('A1:E1');
+    sheet.mergeCells('A1:H1');
     sheet.getCell('A1').value = `Daily Report - ${date}`;
     sheet.getCell('A1').font = { size: 14, bold: true };
     sheet.getCell('A1').alignment = { horizontal: 'center' };
@@ -295,8 +322,8 @@ async function exportReportToExcel() {
     sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: 'FF0000FF' } };
     currRow++;
 
-    const flowerHeaders = ['Item Type', 'Item Name', 'Qty', 'Unit Price', 'Total Price'];
-    flowerHeaders.forEach((h, i) => {
+    const headers = ['Item Type', 'Item Name', 'Qty', 'Unit Price', 'Discount', 'Net Price', 'Payment', 'Note'];
+    headers.forEach((h, i) => {
       const cell = sheet.getCell(currRow, i + 1);
       cell.value = h;
       setHeaderStyle(cell);
@@ -308,8 +335,11 @@ async function exportReportToExcel() {
       sheet.getCell(`B${currRow}`).value = item.name;
       sheet.getCell(`C${currRow}`).value = item.qty;
       sheet.getCell(`D${currRow}`).value = item.unitPrice;
-      sheet.getCell(`E${currRow}`).value = item.totalPrice;
-      ['A','B','C','D','E'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
+      sheet.getCell(`E${currRow}`).value = item.discount;
+      sheet.getCell(`F${currRow}`).value = item.totalPrice;
+      sheet.getCell(`G${currRow}`).value = item.payment;
+      sheet.getCell(`H${currRow}`).value = item.note;
+      ['A','B','C','D','E','F','G','H'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
       currRow++;
     });
     currRow += 2;
@@ -343,8 +373,7 @@ async function exportReportToExcel() {
     sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: 'FF008000' } };
     currRow++;
 
-    const fbHeaders = ['Item Type', 'Item Name', 'Qty', 'Unit Price', 'Total Price'];
-    fbHeaders.forEach((h, i) => {
+    headers.forEach((h, i) => {
       const cell = sheet.getCell(currRow, i + 1);
       cell.value = h;
       setHeaderStyle(cell);
@@ -356,8 +385,11 @@ async function exportReportToExcel() {
       sheet.getCell(`B${currRow}`).value = item.name;
       sheet.getCell(`C${currRow}`).value = item.qty;
       sheet.getCell(`D${currRow}`).value = item.unitPrice;
-      sheet.getCell(`E${currRow}`).value = item.totalPrice;
-      ['A','B','C','D','E'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
+      sheet.getCell(`E${currRow}`).value = item.discount;
+      sheet.getCell(`F${currRow}`).value = item.totalPrice;
+      sheet.getCell(`G${currRow}`).value = item.payment;
+      sheet.getCell(`H${currRow}`).value = item.note;
+      ['A','B','C','D','E','F','G','H'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
       currRow++;
     });
     currRow += 2;
@@ -391,9 +423,12 @@ async function exportReportToExcel() {
     // Column Widths
     sheet.getColumn(1).width = 20;
     sheet.getColumn(2).width = 35;
-    sheet.getColumn(3).width = 15;
-    sheet.getColumn(4).width = 15;
-    sheet.getColumn(5).width = 15;
+    sheet.getColumn(3).width = 10;
+    sheet.getColumn(4).width = 12;
+    sheet.getColumn(5).width = 20;
+    sheet.getColumn(6).width = 12;
+    sheet.getColumn(7).width = 15;
+    sheet.getColumn(8).width = 20;
 
     // 3. Save File
     const buffer = await workbook.xlsx.writeBuffer();

@@ -518,6 +518,7 @@ async function syncFromLoyverse() {
     }
     
     // Update summary totals
+    window.lastSyncedData = data; // Store globally for Excel export
     if (els.cashTotal) els.cashTotal.value = round2(data?.cash_total || 0).toFixed(2);
     if (els.cardTotal) els.cardTotal.value = round2(data?.card_total || 0).toFixed(2);
     if (els.transferTotal) els.transferTotal.value = round2(data?.transfer_total || 0).toFixed(2);
@@ -563,106 +564,4 @@ if (document.readyState === 'loading') {
   init();
 }
 
-// --- 📥 EXCEL EXPORT ENGINE (BEAUTIFUL .XLSX FORMAT) ---
-async function exportToExcel() {
-    try {
-        const reportDate = els.reportDate.value;
-        const syncResponse = await fetch(`/api/loyverse/sync?date=${reportDate}`);
-        const data = await syncResponse.json();
-
-        if (!data || !data.automated_report_rows) {
-            alert("Please sync data before exporting.");
-            return;
-        }
-
-        const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('Daily Report');
-
-        // Column Config
-        sheet.columns = [
-            { header: 'Item Type', key: 'type', width: 20 },
-            { header: 'Item Name', key: 'name', width: 40 },
-            { header: 'Discount', key: 'discount', width: 10 },
-            { header: 'Qty/Grams', key: 'qty', width: 15 },
-            { header: 'Unit Price', key: 'unit', width: 15 },
-            { header: 'Total Price', key: 'total', width: 15 },
-            { header: 'Payment Method', key: 'payment', width: 18 },
-            { header: 'Total Grams', key: 'grams', width: 15 },
-            { header: 'Note', key: 'note', width: 25 }
-        ];
-
-        // Styling Helpers
-        const styleHeader = (row, color) => {
-            row.eachCell(cell => {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
-                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-                cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-            });
-        };
-
-        // --- SECTION 1: FLOWERS & ACCESSORIES ---
-        const header1 = sheet.getRow(1);
-        styleHeader(header1, 'FF2C3E50'); // Dark Blue
-
-        data.automated_report_rows.forEach(item => {
-            // Only push if it's Flower or Accessory (Numerator)
-            if (item.numerator_price > 0) {
-                sheet.addRow({
-                    type: item.gram_qty > 0 ? 'Flower' : 'Accessories',
-                    name: item.item_name,
-                    qty: item.gram_qty > 0 ? item.gram_qty : 1,
-                    total: item.numerator_price,
-                    grams: item.gram_qty > 0 ? `${item.gram_qty} g` : ''
-                });
-            }
-        });
-
-        sheet.addRow([]); // Gap
-
-        // --- SECTION 2: EXPENSES ---
-        const expTitleRow = sheet.addRow(['EXPENSES']);
-        expTitleRow.font = { bold: true, size: 14 };
-        
-        const expHeader = sheet.addRow(['Expense Category', 'Description', 'Amount']);
-        styleHeader(expHeader, 'FFE74C3C'); // Red
-
-        // Get expenses from UI inputs
-        const expenseAmt = parseFloat(document.getElementById('expense')?.value || 0);
-        if (expenseAmt > 0) {
-            sheet.addRow(['Operational', 'Daily Expenses', '', '', '', expenseAmt]);
-        }
-
-        sheet.addRow([]); // Gap
-
-        // --- SECTION 3: FOODS & DRINKS ---
-        const fbTitleRow = sheet.addRow(['FOODS & DRINKS']);
-        fbTitleRow.font = { bold: true, size: 14 };
-
-        const fbHeader = sheet.addRow(['Item Name', 'Discount', 'Qty', 'Unit Price', 'Total Price', 'Payment Method']);
-        styleHeader(fbHeader, 'FF2980B9'); // Blue
-
-        data.automated_report_rows.forEach(item => {
-            if (item.denominator_price > 0) {
-                sheet.addRow({
-                    type: 'F&B',
-                    name: item.item_name,
-                    total: item.denominator_price
-                });
-            }
-        });
-
-        // Final Borders for all cells
-        sheet.eachRow(row => {
-            row.eachCell(cell => {
-                cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-            });
-        });
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer]), `BestBuds_Report_${reportDate}.xlsx`);
-
-    } catch (err) {
-        console.error(err);
-        alert("Export failed: " + err.message);
-    }
-}
+// Old exportToExcel function removed. Using enhanced version in enhancements.js
