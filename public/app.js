@@ -7,58 +7,18 @@ window.lastSyncedData = null;
 
 /**
  * Show alert messages to user
- * Moved to global scope so it can be called from other scripts
  */
 window.showMessage = function(message, type = 'info') {
-  const alertContainer = document.getElementById('message'); // Matches index.html alert div
+  const alertContainer = document.getElementById('message');
   if (!alertContainer) return;
 
   alertContainer.className = `alert alert-${type} d-block`;
   alertContainer.innerHTML = message;
 
-  // Auto-hide after 5 seconds
   setTimeout(() => {
     alertContainer.className = 'alert d-none';
   }, 5000);
 };
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize date to today
-  const dateInput = document.getElementById('reportDate');
-  if (dateInput) {
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.value = today;
-    
-    // Load existing data for today
-    if (typeof loadReportData === 'function') {
-      loadReportData(today);
-    }
-  }
-
-  // Handle date change
-  dateInput?.addEventListener('change', (e) => {
-    if (typeof loadReportData === 'function') {
-      loadReportData(e.target.value);
-    }
-  });
-
-  // Handle Sync button
-  const syncBtn = document.getElementById('syncButton'); // Matches index.html
-  syncBtn?.addEventListener('click', syncData);
-
-  // Handle Export button (Mobile-friendly listener)
-  const exportBtn = document.getElementById('exportCsvBtn'); // Matches index.html
-  if (exportBtn) {
-    exportBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (typeof exportToExcel === 'function') {
-        exportToExcel();
-      } else {
-        window.showMessage('Excel export logic is still loading. Please wait a moment.', 'warning');
-      }
-    });
-  }
-});
 
 /**
  * Sync data from Loyverse API via our backend
@@ -74,7 +34,6 @@ async function syncData() {
   }
 
   try {
-    // UI Loading state
     syncBtn.disabled = true;
     syncBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Syncing...';
     
@@ -85,10 +44,8 @@ async function syncData() {
       throw new Error(data.error || 'Failed to sync data');
     }
 
-    // Save to global state
     window.lastSyncedData = data;
     
-    // Update UI
     updateDashboard(data);
     renderOrderEntries(data.receipts || []);
     renderDetailedSales(data.receipts || []);
@@ -107,12 +64,12 @@ async function syncData() {
  * Update the main dashboard numbers
  */
 function updateDashboard(data) {
-  document.getElementById('cashTotal').value = data.cash_total || 0;
-  document.getElementById('cardTotal').value = data.card_total || 0;
-  document.getElementById('transferTotal').value = data.transfer_total || 0;
-  document.getElementById('totalOrders').value = data.total_orders || 0;
-  document.getElementById('netSale').value = data.net_sale || 0;
-  document.getElementById('totalGramsSold').innerText = (data.total_gram_qty || 0).toFixed(3) + ' G';
+  if (document.getElementById('cashTotal')) document.getElementById('cashTotal').value = data.cash_total || 0;
+  if (document.getElementById('cardTotal')) document.getElementById('cardTotal').value = data.card_total || 0;
+  if (document.getElementById('transferTotal')) document.getElementById('transferTotal').value = data.transfer_total || 0;
+  if (document.getElementById('totalOrders')) document.getElementById('totalOrders').value = data.total_orders || 0;
+  if (document.getElementById('netSale')) document.getElementById('netSale').value = data.net_sale || 0;
+  if (document.getElementById('totalGramsSold')) document.getElementById('totalGramsSold').innerText = (data.total_gram_qty || 0).toFixed(3) + ' G';
 }
 
 /**
@@ -122,7 +79,7 @@ function renderOrderEntries(receipts) {
   const container = document.getElementById('orderEntriesBody');
   if (!container) return;
 
-  if (receipts.length === 0) {
+  if (!receipts || receipts.length === 0) {
     container.innerHTML = '<tr><td colspan="4" class="text-center">No orders found</td></tr>';
     return;
   }
@@ -152,7 +109,7 @@ function renderOrderEntries(receipts) {
  * Render detailed line-item sales record
  */
 function renderDetailedSales(receipts) {
-  const container = document.getElementById('bestBudsSalesBody'); // Matches index.html
+  const container = document.getElementById('bestBudsSalesBody');
   if (!container) return;
 
   const detailedItems = [];
@@ -231,3 +188,35 @@ function renderDetailedSales(receipts) {
 
   container.innerHTML = html;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const dateInput = document.getElementById('reportDate');
+  if (dateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+    if (typeof window.loadReportData === 'function') {
+      window.loadReportData(today);
+    }
+  }
+
+  dateInput?.addEventListener('change', (e) => {
+    if (typeof window.loadReportData === 'function') {
+      window.loadReportData(e.target.value);
+    }
+  });
+
+  const syncBtn = document.getElementById('syncButton');
+  syncBtn?.addEventListener('click', syncData);
+
+  const exportBtn = document.getElementById('exportCsvBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof window.exportToExcel === 'function') {
+        window.exportToExcel();
+      } else {
+        window.showMessage('Excel export logic is still loading. Please wait a moment.', 'warning');
+      }
+    });
+  }
+});

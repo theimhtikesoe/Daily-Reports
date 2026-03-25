@@ -41,99 +41,12 @@ function saveClosingStaff(date, name) {
 }
 
 /**
- * Add or Update expense (LocalStorage Version)
+ * Render expenses list in UI
  */
-async function addExpenseToReport() {
-  const dateInput = document.getElementById('reportDate');
-  const categorySelect = document.getElementById('expenseCategory');
-  const descriptionInput = document.getElementById('expenseDescription');
-  const amountInput = document.getElementById('expenseAmount');
-  const submitBtn = document.querySelector('#expenseSection button');
-
-  const date = dateInput?.value;
-  const category = categorySelect?.value;
-  const description = descriptionInput?.value || '';
-  const amount = parseFloat(amountInput?.value) || 0;
-
-  if (!date || !category || amount <= 0) {
-    showMessage('Please fill in all expense fields', 'warning');
-    return;
-  }
-
-  try {
-    let expenses = getLocalExpenses(date);
-
-    if (currentEditingExpenseId) {
-      expenses = expenses.map(exp => {
-        if (exp.id === currentEditingExpenseId) {
-          return { ...exp, category, description, amount };
-        }
-        return exp;
-      });
-      showMessage('Expense updated successfully', 'success');
-      currentEditingExpenseId = null;
-      if (submitBtn) submitBtn.textContent = 'Add Expense';
-    } else {
-      const newExpense = {
-        id: Date.now(),
-        date,
-        category,
-        description,
-        amount,
-        created_at: new Date().toISOString()
-      };
-      expenses.push(newExpense);
-      showMessage('Expense added successfully', 'success');
-    }
-    
-    saveLocalExpenses(date, expenses);
-    categorySelect.value = '';
-    descriptionInput.value = '';
-    amountInput.value = '';
-    renderExpensesList(expenses, date);
-  } catch (error) {
-    showMessage(`Error: ${error.message}`, 'danger');
-  }
-}
-
-function editExpense(id, date) {
-  const expenses = getLocalExpenses(date);
-  const expense = expenses.find(e => e.id === id);
-  if (!expense) return;
-  document.getElementById('expenseCategory').value = expense.category;
-  document.getElementById('expenseDescription').value = expense.description || '';
-  document.getElementById('expenseAmount').value = expense.amount;
-  currentEditingExpenseId = id;
-  const submitBtn = document.querySelector('#expenseSection button');
-  if (submitBtn) submitBtn.textContent = 'Update Expense';
-  document.getElementById('expenseSection').scrollIntoView({ behavior: 'smooth' });
-}
-
-function cancelEdit() {
-  currentEditingExpenseId = null;
-  document.getElementById('expenseCategory').value = '';
-  document.getElementById('expenseDescription').value = '';
-  document.getElementById('expenseAmount').value = '';
-  const submitBtn = document.querySelector('#expenseSection button');
-  if (submitBtn) submitBtn.textContent = 'Add Expense';
-}
-
-async function loadReportData(date) {
-  const expenses = getLocalExpenses(date);
-  renderExpensesList(expenses, date);
-  const staffName = getClosingStaff(date);
-  const staffInput = document.getElementById('closingStaff');
-  if (staffInput) staffInput.value = staffName;
-}
-
-function exportToExcel() {
-  return exportReportToExcel();
-}
-
 function renderExpensesList(expenses, date) {
   const container = document.getElementById('expensesList');
   if (!container) return;
-  if (expenses.length === 0) {
+  if (!expenses || expenses.length === 0) {
     container.innerHTML = '<p class="text-muted">No expenses recorded</p>';
     return;
   }
@@ -148,43 +61,124 @@ function renderExpensesList(expenses, date) {
   container.innerHTML = html;
 }
 
-async function deleteExpense(id, date) {
+/**
+ * Add or Update expense
+ */
+window.addExpenseToReport = async function() {
+  const dateInput = document.getElementById('reportDate');
+  const categorySelect = document.getElementById('expenseCategory');
+  const descriptionInput = document.getElementById('expenseDescription');
+  const amountInput = document.getElementById('expenseAmount');
+  const submitBtn = document.querySelector('#expenseSection button');
+
+  const date = dateInput?.value;
+  const category = categorySelect?.value;
+  const description = descriptionInput?.value || '';
+  const amount = parseFloat(amountInput?.value) || 0;
+
+  if (!date || !category || amount <= 0) {
+    window.showMessage('Please fill in all expense fields', 'warning');
+    return;
+  }
+
+  try {
+    let expenses = getLocalExpenses(date);
+
+    if (currentEditingExpenseId) {
+      expenses = expenses.map(exp => {
+        if (exp.id === currentEditingExpenseId) {
+          return { ...exp, category, description, amount };
+        }
+        return exp;
+      });
+      window.showMessage('Expense updated successfully', 'success');
+      currentEditingExpenseId = null;
+      if (submitBtn) submitBtn.textContent = 'Add Expense';
+    } else {
+      const newExpense = {
+        id: Date.now(),
+        date,
+        category,
+        description,
+        amount,
+        created_at: new Date().toISOString()
+      };
+      expenses.push(newExpense);
+      window.showMessage('Expense added successfully', 'success');
+    }
+    
+    saveLocalExpenses(date, expenses);
+    if (categorySelect) categorySelect.value = '';
+    if (descriptionInput) descriptionInput.value = '';
+    if (amountInput) amountInput.value = '';
+    renderExpensesList(expenses, date);
+  } catch (error) {
+    window.showMessage(`Error: ${error.message}`, 'danger');
+  }
+};
+
+window.editExpense = function(id, date) {
+  const expenses = getLocalExpenses(date);
+  const expense = expenses.find(e => e.id === id);
+  if (!expense) return;
+  if (document.getElementById('expenseCategory')) document.getElementById('expenseCategory').value = expense.category;
+  if (document.getElementById('expenseDescription')) document.getElementById('expenseDescription').value = expense.description || '';
+  if (document.getElementById('expenseAmount')) document.getElementById('expenseAmount').value = expense.amount;
+  currentEditingExpenseId = id;
+  const submitBtn = document.querySelector('#expenseSection button');
+  if (submitBtn) submitBtn.textContent = 'Update Expense';
+  document.getElementById('expenseSection')?.scrollIntoView({ behavior: 'smooth' });
+};
+
+window.deleteExpense = async function(id, date) {
   if (!confirm('Are you sure you want to delete this expense?')) return;
   try {
     let expenses = getLocalExpenses(date);
     expenses = expenses.filter(e => e.id !== id);
     saveLocalExpenses(date, expenses);
-    showMessage('Expense deleted', 'success');
+    window.showMessage('Expense deleted', 'success');
     renderExpensesList(expenses, date);
-    if (currentEditingExpenseId === id) cancelEdit();
+    if (currentEditingExpenseId === id) {
+        currentEditingExpenseId = null;
+        const submitBtn = document.querySelector('#expenseSection button');
+        if (submitBtn) submitBtn.textContent = 'Add Expense';
+    }
   } catch (error) {
-    showMessage(`Error: ${error.message}`, 'danger');
+    window.showMessage(`Error: ${error.message}`, 'danger');
   }
-}
+};
+
+window.loadReportData = function(date) {
+  const expenses = getLocalExpenses(date);
+  renderExpensesList(expenses, date);
+  const staffName = getClosingStaff(date);
+  const staffInput = document.getElementById('closingStaff');
+  if (staffInput) staffInput.value = staffName;
+};
 
 /**
- * Full Client-Side Excel Export - Template Matching Version
+ * Full Client-Side Excel Export
  */
-async function exportReportToExcel() {
+window.exportToExcel = async function() {
   const dateInput = document.getElementById('reportDate');
   const staffInput = document.getElementById('closingStaff');
   const date = dateInput?.value;
   const staffName = staffInput?.value || 'N/A';
 
   if (!date) {
-    showMessage('Please select a date first', 'warning');
+    window.showMessage('Please select a date first', 'warning');
     return;
   }
 
   saveClosingStaff(date, staffName);
 
   try {
-    showMessage('Generating Excel file...', 'info');
+    window.showMessage('Generating Excel file...', 'info');
     const rawData = window.lastSyncedData;
     const expenses = getLocalExpenses(date);
 
     if (!rawData || !rawData.receipts) {
-      showMessage('No synced data available for this date. Please sync first.', 'danger');
+      window.showMessage('No synced data available for this date. Please sync first.', 'danger');
       return;
     }
 
@@ -198,100 +192,91 @@ async function exportReportToExcel() {
     const fbItems = [];
     let totalFlowerGrams = 0;
 
-    if (Array.isArray(receipts)) {
-      receipts.forEach(receipt => {
-        const items = receipt.line_items || receipt.items || [];
-        const paymentMethod = (receipt.payments && receipt.payments[0]?.payment_type?.name) || 
-                               (receipt.payments && receipt.payments[0]?.name) || 'N/A';
-        const receiptNumber = receipt.receipt_number || receipt.number || 'N/A';
+    receipts.forEach(receipt => {
+      const items = receipt.line_items || receipt.items || [];
+      const paymentMethod = (receipt.payments && receipt.payments[0]?.payment_type?.name) || 
+                             (receipt.payments && receipt.payments[0]?.name) || 'N/A';
+      const receiptNumber = receipt.receipt_number || receipt.number || 'N/A';
+      
+      const orderDiscount = parseFloat(receipt.total_discount_money?.amount || 0);
+      const orderTotal = parseFloat(receipt.total_money?.amount || 0);
+      const hasOrderDiscount = orderDiscount > 0;
+
+      items.forEach(item => {
+        let itemName = String(item.name || item.item_name || "").toLowerCase();
+        let category = String(item.category_name || "").toLowerCase();
+        let qty = Number(item.quantity || item.qty || 0);
         
-        const orderDiscount = parseFloat(receipt.total_discount_money?.amount || 0);
-        const orderTotal = parseFloat(receipt.total_money?.amount || 0);
-        const hasOrderDiscount = orderDiscount > 0;
+        let grossPrice = Number(item.gross_total_money?.amount ?? item.total_money?.amount ?? 0);
+        const lineItemDiscount = parseFloat(item.total_discount_money?.amount || item.discount_money?.amount || item.discount_amount || 0);
+        let itemNetPrice = item.total_money?.amount !== undefined ? parseFloat(item.total_money.amount) : (grossPrice - lineItemDiscount);
+        
+        if (hasOrderDiscount && orderTotal > 0 && itemNetPrice > 0) {
+          let allocatedOrderDiscount = (itemNetPrice / (orderTotal + orderDiscount)) * orderDiscount;
+          itemNetPrice = Math.max(0, itemNetPrice - allocatedOrderDiscount);
+        }
 
-        items.forEach(item => {
-          let itemName = String(item.name || item.item_name || "").toLowerCase();
-          let category = String(item.category_name || "").toLowerCase();
-          let qty = Number(item.quantity || item.qty || 0);
-          
-          let grossPrice = Number(item.gross_total_money?.amount ?? item.total_money?.amount ?? 0);
-          const lineItemDiscount = parseFloat(item.total_discount_money?.amount || item.discount_money?.amount || item.discount_amount || 0);
-          let itemNetPrice = item.total_money?.amount !== undefined ? parseFloat(item.total_money.amount) : (grossPrice - lineItemDiscount);
-          
-          if (hasOrderDiscount && orderTotal > 0 && itemNetPrice > 0) {
-            let allocatedOrderDiscount = (itemNetPrice / (orderTotal + orderDiscount)) * orderDiscount;
-            itemNetPrice = Math.max(0, itemNetPrice - allocatedOrderDiscount);
+        if (itemNetPrice <= 0.01) return;
+
+        const totalItemDiscount = grossPrice - itemNetPrice;
+        const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
+        const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` : '-';
+
+        const flowerStrains = [
+          'grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 
+          'moonbow', 'emergen c', 'tea time', 'silver shadow', 
+          'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
+          'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
+          'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
+          'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
+          'free pina colada', 'thc gummy'
+        ];
+
+        let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
+        let isThcGummy = itemName.includes('thc gummy');
+        let isLobbyShirt = itemName.includes('the lobby shirt');
+
+        let fbKeywords = ['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'food', 'coffee', 'juice', 'bakery', 'cookie', 'brownie', 'cake', 'soju'];
+        let hasFBKeyword = fbKeywords.some(keyword => itemName.includes(keyword) || category.includes(keyword)) ||
+                           (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time'));
+
+        let isFB = !isFlowerStrain && (hasFBKeyword || (grossPrice / (qty || 1)) <= 50);
+
+        const exportItem = {
+          type: isFB ? 'F&B' : 'Flower/Main',
+          name: item.name || item.item_name,
+          qty: qty,
+          unitPrice: grossPrice / (qty || 1),
+          discount: discountStr,
+          netPrice: itemNetPrice,
+          payment: paymentMethod,
+          note: receiptNumber
+        };
+
+        if (isFB) {
+          fbItems.push(exportItem);
+        } else {
+          flowerItems.push(exportItem);
+          if (!isThcGummy && !isLobbyShirt) {
+            totalFlowerGrams += qty;
           }
-
-          // Rule: Skip Price 0 items entirely
-          if (itemNetPrice <= 0.01) return;
-
-          const totalItemDiscount = grossPrice - itemNetPrice;
-          const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
-          const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` : '-';
-
-          const flowerStrains = [
-            'grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 
-            'moonbow', 'emergen c', 'tea time', 'silver shadow', 
-            'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
-            'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
-            'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
-            'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
-            'free pina colada', 'thc gummy'
-          ];
-
-          let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
-          let isThcGummy = itemName.includes('thc gummy');
-          let isLobbyShirt = itemName.includes('the lobby shirt');
-
-          let fbKeywords = ['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'food', 'coffee', 'juice', 'bakery', 'cookie', 'brownie', 'cake', 'soju'];
-          let hasFBKeyword = fbKeywords.some(keyword => itemName.includes(keyword) || category.includes(keyword)) ||
-                             (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time'));
-
-          let isFB = !isFlowerStrain && (hasFBKeyword || (grossPrice / (qty || 1)) <= 50);
-
-          const exportItem = {
-            type: isFB ? 'F&B' : 'Flower/Main',
-            name: item.name || item.item_name,
-            qty: qty,
-            unitPrice: grossPrice / (qty || 1),
-            discount: discountStr,
-            netPrice: itemNetPrice,
-            payment: paymentMethod,
-            note: receiptNumber
-          };
-
-          if (isFB) {
-            fbItems.push(exportItem);
-          } else {
-            flowerItems.push(exportItem);
-            // Gram Calculation: Exclude THC Gummy and Lobby Shirt
-            if (!isThcGummy && !isLobbyShirt) {
-              totalFlowerGrams += qty;
-            }
-          }
-        });
+        }
       });
-    }
+    });
 
-    // 2. Create Workbook Matching Template
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Daily Report');
 
-    // Styling
     const border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
     const boldFont = { bold: true };
     const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
 
-    // Row 1: Title
     sheet.getCell('A1').value = `Daily Report - ${date}`;
     sheet.getCell('A1').font = { size: 14, bold: true };
 
-    // Row 3: Section Title
     sheet.getCell('A3').value = 'Flower / Main / Accessories';
     sheet.getCell('A3').font = boldFont;
 
-    // Row 4: Headers
     const headers = ['Item Type', 'Item Name', 'Qty', 'Unit Price', 'Discount', 'Net Price', 'Payment', 'Note'];
     headers.forEach((h, i) => {
       const cell = sheet.getCell(4, i + 1);
@@ -310,7 +295,6 @@ async function exportReportToExcel() {
     });
 
     currRow += 2;
-    // Expenses Section
     sheet.getCell(`A${currRow}`).value = 'Expenses';
     sheet.getCell(`A${currRow}`).font = boldFont;
     currRow++;
@@ -332,7 +316,6 @@ async function exportReportToExcel() {
     });
     currRow += 2;
 
-    // F&B Section
     sheet.getCell(`A${currRow}`).value = 'Food & Drinks';
     sheet.getCell(`A${currRow}`).font = boldFont;
     currRow++;
@@ -352,7 +335,6 @@ async function exportReportToExcel() {
     });
     currRow += 2;
 
-    // Dashboard Section
     sheet.getCell(`A${currRow}`).value = 'Daily Summary Dashboard';
     sheet.getCell(`A${currRow}`).font = boldFont;
     currRow++;
@@ -375,7 +357,6 @@ async function exportReportToExcel() {
       currRow++;
     });
 
-    // Finalize
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
@@ -385,9 +366,9 @@ async function exportReportToExcel() {
     anchor.click();
     window.URL.revokeObjectURL(url);
 
-    showMessage('Excel report exported successfully', 'success');
+    window.showMessage('Excel report exported successfully', 'success');
   } catch (error) {
     console.error('Excel Export Error:', error);
-    showMessage(`Error: ${error.message}`, 'danger');
+    window.showMessage(`Error: ${error.message}`, 'danger');
   }
-}
+};
