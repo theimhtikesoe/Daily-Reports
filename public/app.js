@@ -390,14 +390,17 @@ async function syncFromLoyverse() {
     applyPaymentDetails(data);
     
     // Process and render order data
+    let totalGramsCalculated = 0;
     // Use raw orders if available, otherwise fallback to automated_report_rows
     if (Array.isArray(data?.orders) && data.orders.length > 0) {
-      const { orderEntries, detailedItems, totalGrams } = processOrdersData(data);
-      renderOrderEntriesTable(orderEntries);
-      renderDetailedSalesTable(detailedItems, totalGrams);
+      const result = processOrdersData(data);
+      totalGramsCalculated = result.totalGrams;
+      renderOrderEntriesTable(result.orderEntries);
+      renderDetailedSalesTable(result.detailedItems, result.totalGrams);
     } else if (Array.isArray(data?.automated_report_rows) && data.automated_report_rows.length > 0) {
       // Fallback: use pre-processed automated_report_rows from backend
       const fallbackResult = processAutomatedReportRows(data);
+      totalGramsCalculated = fallbackResult.totalGrams;
       renderOrderEntriesTable(fallbackResult.orderEntries);
       renderDetailedSalesTable(fallbackResult.detailedItems, fallbackResult.totalGrams);
     } else {
@@ -411,7 +414,9 @@ async function syncFromLoyverse() {
     if (els.transferTotal) els.transferTotal.value = round2(data?.transfer_total || 0).toFixed(2);
     if (els.netSale) els.netSale.value = currentNetSale.toFixed(2);
     if (els.totalOrders) els.totalOrders.value = data?.total_orders || 0;
-    if (els.totalGramsSold) els.totalGramsSold.innerText = (data.total_gram_qty || 0).toFixed(3) + ' G';
+    
+    // Use the totalGrams calculated during processing
+    if (els.totalGramsSold) els.totalGramsSold.innerText = totalGramsCalculated.toFixed(3) + ' G';
 
     // Refresh Expense display
     renderExpenses();
