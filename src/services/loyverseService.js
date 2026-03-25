@@ -456,7 +456,7 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
                 itemName.includes('juice') ||
                 itemName.includes('cookie') ||
                 itemName.includes('brownie') ||
-                itemName.includes('cake'));
+                itemName.includes('cake') || itemName.includes('soju'));
 
     // --- [3] THE BEST BUDS ROUTING LOGIC ---
     // Note: In backend, we need to determine unit price for the <= 50 check

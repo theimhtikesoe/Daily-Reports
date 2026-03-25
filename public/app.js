@@ -313,7 +313,7 @@ function processOrdersData(data) {
       // Special case: Item is a Flower/Main strain
       let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
       
-      let isFB = !isFlowerStrain && (['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'food', 'coffee', 'juice', 'bakery', 'cookie', 'brownie', 'cake']
+      let isFB = !isFlowerStrain && (['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'food', 'coffee', 'juice', 'bakery', 'cookie', 'brownie', 'cake', 'soju']
                  .some(keyword => itemName.includes(keyword) || category.includes(keyword)) || 
                  (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time')) ||
                  (grossPrice / (qty || 1)) <= 50);
