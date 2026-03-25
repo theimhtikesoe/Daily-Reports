@@ -348,12 +348,6 @@ function extractLineItemPrice(lineItem) {
     return normalizeMoney(directAmount);
   }
 
-  // Fallback to gross amount minus explicit dfunction extractLineItemPrice(lineItem) {
-  // Try direct total_money first as it's the final net amount
-  if (lineItem?.total_money?.amount !== undefined) {
-    return normalizeMoney(lineItem.total_money.amount);
-  }
-
   const grossAmount = 
     lineItem?.gross_sales_money?.amount ??
     lineItem?.subtotal_money?.amount ??
