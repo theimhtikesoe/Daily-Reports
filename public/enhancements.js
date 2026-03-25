@@ -298,7 +298,8 @@ async function exportReportToExcel() {
             'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
             'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
             'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
-            'free pina colada'
+            'free pina colada',
+            'thc gummy'
           ];
 
           let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
@@ -439,11 +440,13 @@ async function exportReportToExcel() {
     sheet.getCell(`A${currRow}`).font = { bold: true, size: 12 };
     currRow++;
 
+    const fbTotal = fbItems.reduce((acc, item) => acc + item.totalPrice, 0);
     const summaryData = [
       ['Total Grams Sold', totalGrams, 'G'],
       ['Cash In', cashTotal, 'THB'],
       ['Card In', cardTotal, 'THB'],
       ['Transfer In', transferTotal, 'THB'],
+      ['F&B Total Price', fbTotal, 'THB'],
       ['Total Expenses', totalExp, 'THB'],
       ['Net Sales (Total)', netSale, 'THB'],
       ['Net Profit (After Expenses)', netSale - totalExp, 'THB']

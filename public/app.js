@@ -302,7 +302,8 @@ function processOrdersData(data) {
         'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
         'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
         'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
-        'free pina colada'
+        'free pina colada',
+        'thc gummy'
       ];
 
       // Special case: Item is a Flower/Main strain
