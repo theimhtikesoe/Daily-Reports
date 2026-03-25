@@ -287,13 +287,12 @@ function processOrdersData(data) {
       }
 
       const flowerStrains = [
-        'grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 
-        'moonbow', 'emergen c', 'tea time', 'silver shadow', 
-        'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
-        'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
-        'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
-        'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
-        'free pina colada', 'thc gummy'
+        'mac stormper', 'cheese candy', 'planet of the grape', 'crystal candy', 'crystal fuel',
+        'crunch berriez', 'white cherry gelato', 'bubblegum marker', 'jealousy mintz', 'lemon cherry gelato', 'devil driver', 'honey bee',
+        'emergen c', 'rocket fuel', 'grape soda', 'blue pave', 'vino tinto', 'rozay cake', 'tea time',
+        'big foot',
+        'moonbow', 'silver shadow', 'truffaloha', 'alien mint', 'gold dust', 'darth vader',
+        'cherry pop tarts', 'dosidos', 'obama runtz', 'free pina colada', 'thc gummy'
       ];
 
       let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
@@ -354,13 +353,12 @@ function processAutomatedReportRows(data) {
       let price = Number(item?.price || 0);
 
       const flowerStrains = [
-        'grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 
-        'moonbow', 'emergen c', 'tea time', 'silver shadow', 
-        'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
-        'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
-        'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
-        'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
-        'free pina colada', 'thc gummy'
+        'mac stormper', 'cheese candy', 'planet of the grape', 'crystal candy', 'crystal fuel',
+        'crunch berriez', 'white cherry gelato', 'bubblegum marker', 'jealousy mintz', 'lemon cherry gelato', 'devil driver', 'honey bee',
+        'emergen c', 'rocket fuel', 'grape soda', 'blue pave', 'vino tinto', 'rozay cake', 'tea time',
+        'big foot',
+        'moonbow', 'silver shadow', 'truffaloha', 'alien mint', 'gold dust', 'darth vader',
+        'cherry pop tarts', 'dosidos', 'obama runtz', 'free pina colada', 'thc gummy'
       ];
 
       let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
