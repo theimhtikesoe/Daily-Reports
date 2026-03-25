@@ -1,7 +1,7 @@
 /**
  * Enhanced Daily Reports - Item Classification & Expense Tracking
  * Performs full client-side Excel export using ExcelJS
- * Matches User Template: BestBuds_Report_2026-03-187.xlsx
+ * Matches User Template: BestBuds_Report_2026-03-13.xlsx
  */
 
 let currentEditingExpenseId = null;
@@ -176,7 +176,6 @@ window.exportReportToExcel = async function() {
     const expenses = getLocalExpenses(date);
 
     // Check for synced data in various possible formats
-    // Backend might return receipts in 'orders' or 'receipts' or 'items'
     const receipts = rawData?.orders || rawData?.receipts || rawData?.items || [];
     
     console.log('Exporting data. RawData:', rawData);
@@ -184,26 +183,23 @@ window.exportReportToExcel = async function() {
 
     // If no data in memory, try to trigger a sync or show error
     if (!rawData || (receipts.length === 0 && !rawData.net_sale)) {
-      // If auto-sync is working, maybe we just need to wait or try to fetch it
       window.showMessage("No synced data found in memory. Attempting to re-sync...", "info");
       
-      // Try to call the sync function if it exists
       if (typeof window.syncFromLoyverse === 'function') {
         await window.syncFromLoyverse();
-        // Re-check after sync
         const newData = window.lastSyncedData;
         const newReceipts = newData?.orders || newData?.receipts || newData?.items || [];
         if (!newData || (newReceipts.length === 0 && !newData.net_sale)) {
           window.showMessage("Still no data available after re-sync. Please check Loyverse for this date.", "danger");
           return;
         }
-        // Continue with new data
-        return exportReportToExcel(); // Recursive call once
+        return exportReportToExcel(); 
       } else {
         window.showMessage("No synced data available. Please click 'Sync From Loyverse' first.", "danger");
         return;
       }
     }
+
     const cashTotal = Number(rawData.cash_total || 0);
     const cardTotal = Number(rawData.card_total || 0);
     const transferTotal = Number(rawData.transfer_total || 0);
@@ -271,16 +267,14 @@ window.exportReportToExcel = async function() {
         let isFB = !isFlowerStrain && (fbKeywords.some(keyword => itemName.includes(keyword) || category.includes(keyword)) ||
                    (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time')));
 
-        // Fallback to price if not clearly classified by name
         if (!isFlowerStrain && !isFB) {
           const unitPrice = grossPrice / (qty || 1);
           if (unitPrice <= 50 && unitPrice > 0) {
             isFB = true;
           } else {
-            // Check if it's an accessory
             const isAcc = accessoryKeywords.some(keyword => itemName.includes(keyword) || category.includes(keyword));
             if (!isAcc) {
-              isFlowerStrain = true; // Default to Main/Flower
+              isFlowerStrain = true; 
             }
           }
         }
@@ -288,7 +282,8 @@ window.exportReportToExcel = async function() {
         const exportItem = {
           type: isFB ? "F&B" : "Flower/Main",
           name: item.name || item.item_name,
-          qty: qty,
+          qty: (isFlowerStrain && !isThcGummy && !isLobbyShirt) ? "-" : qty,
+          gram: (isFlowerStrain && !isThcGummy && !isLobbyShirt) ? `${qty.toFixed(3)} G` : "-",
           unitPrice: grossPrice / (qty || 1),
           discount: discountStr,
           netPrice: itemNetPrice,
@@ -317,17 +312,15 @@ window.exportReportToExcel = async function() {
     sheet.getCell("A1").value = `Daily Report - ${date}`;
     sheet.getCell("A1").font = { size: 14, bold: true };
 
-    sheet.mergeCells("A2:H2");
     sheet.getCell("A2").value = `Closing Staff: ${staffName}`;
-    sheet.getCell("A2").font = { size: 12, bold: true, color: { argb: "FF555555" } };
-    sheet.getCell("A2").alignment = { horizontal: "center" };
+    sheet.getCell("A2").font = { size: 11, bold: true };
 
     let currRow = 4;
     sheet.getCell(`A${currRow}`).value = "Flower / Main / Accessories";
-    sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: "FF0000FF" } };
+    sheet.getCell(`A${currRow}`).font = { bold: true };
     currRow++;
 
-    const headers = ["Item Type", "Item Name", "Qty", "Unit Price", "Discount", "Net Price", "Payment", "Note"];
+    const headers = ["Item Type", "Item Name", "Qty", "Gram", "Unit Price", "Discount", "Net Price", "Payment", "Note"];
     headers.forEach((h, i) => {
       const cell = sheet.getCell(currRow, i + 1);
       cell.value = h;
@@ -342,18 +335,19 @@ window.exportReportToExcel = async function() {
       sheet.getCell(`A${currRow}`).value = item.type;
       sheet.getCell(`B${currRow}`).value = item.name;
       sheet.getCell(`C${currRow}`).value = item.qty;
-      sheet.getCell(`D${currRow}`).value = item.unitPrice;
-      sheet.getCell(`E${currRow}`).value = item.discount;
-      sheet.getCell(`F${currRow}`).value = item.netPrice;
-      sheet.getCell(`G${currRow}`).value = item.payment;
-      sheet.getCell(`H${currRow}`).value = item.note;
-      ["A","B","C","D","E","F","G","H"].forEach(col => sheet.getCell(`${col}${currRow}`).border = border);
+      sheet.getCell(`D${currRow}`).value = item.gram;
+      sheet.getCell(`E${currRow}`).value = item.unitPrice;
+      sheet.getCell(`F${currRow}`).value = item.discount;
+      sheet.getCell(`G${currRow}`).value = item.netPrice;
+      sheet.getCell(`H${currRow}`).value = item.payment;
+      sheet.getCell(`I${currRow}`).value = item.note;
+      ["A","B","C","D","E","F","G","H","I"].forEach(col => sheet.getCell(`${col}${currRow}`).border = border);
       currRow++;
     });
     currRow += 2;
 
     sheet.getCell(`A${currRow}`).value = "Expenses";
-    sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: "FFFF0000" } };
+    sheet.getCell(`A${currRow}`).font = { bold: true };
     currRow++;
 
     const expenseHeaders = ["Category", "Description", "Amount"];
@@ -379,7 +373,7 @@ window.exportReportToExcel = async function() {
     currRow += 2;
 
     sheet.getCell(`A${currRow}`).value = "Food & Drinks";
-    sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: "FF008000" } };
+    sheet.getCell(`A${currRow}`).font = { bold: true };
     currRow++;
 
     headers.forEach((h, i) => {
@@ -396,27 +390,26 @@ window.exportReportToExcel = async function() {
       sheet.getCell(`A${currRow}`).value = item.type;
       sheet.getCell(`B${currRow}`).value = item.name;
       sheet.getCell(`C${currRow}`).value = item.qty;
-      sheet.getCell(`D${currRow}`).value = item.unitPrice;
-      sheet.getCell(`E${currRow}`).value = item.discount;
-      sheet.getCell(`F${currRow}`).value = item.netPrice;
-      sheet.getCell(`G${currRow}`).value = item.payment;
-      sheet.getCell(`H${currRow}`).value = item.note;
-      ["A","B","C","D","E","F","G","H"].forEach(col => sheet.getCell(`${col}${currRow}`).border = border);
+      sheet.getCell(`D${currRow}`).value = item.gram;
+      sheet.getCell(`E${currRow}`).value = item.unitPrice;
+      sheet.getCell(`F${currRow}`).value = item.discount;
+      sheet.getCell(`G${currRow}`).value = item.netPrice;
+      sheet.getCell(`H${currRow}`).value = item.payment;
+      sheet.getCell(`I${currRow}`).value = item.note;
+      ["A","B","C","D","E","F","G","H","I"].forEach(col => sheet.getCell(`${col}${currRow}`).border = border);
       currRow++;
     });
     currRow += 2;
 
     sheet.getCell(`A${currRow}`).value = "Daily Summary Dashboard";
-    sheet.getCell(`A${currRow}`).font = { bold: true, size: 12 };
+    sheet.getCell(`A${currRow}`).font = { bold: true };
     currRow++;
 
-    const fbTotal = fbItems.reduce((acc, item) => acc + item.netPrice, 0);
     const summaryData = [
       ["Total Grams Sold", totalFlowerGrams, "G"],
       ["Cash In", cashTotal, "THB"],
       ["Card In", cardTotal, "THB"],
       ["Transfer In", transferTotal, "THB"],
-      ["F&B Total Price", fbTotal, "THB"],
       ["Total Expenses", totalExp, "THB"],
       ["Net Sales (Total)", netSale, "THB"],
       ["Net Profit (After Expenses)", netSale - totalExp, "THB"]
@@ -430,12 +423,18 @@ window.exportReportToExcel = async function() {
       currRow++;
     });
 
+    sheet.columns.forEach(column => {
+      column.width = 15;
+    });
+    sheet.getColumn(2).width = 30; // Item Name
+    sheet.getColumn(6).width = 20; // Discount
+
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = window.URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `Daily_Report_${date}.xlsx`;
+    anchor.download = `BestBuds_Report_${date}.xlsx`;
     anchor.click();
     window.URL.revokeObjectURL(url);
 
