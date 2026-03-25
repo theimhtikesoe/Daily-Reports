@@ -21,57 +21,15 @@ window.showMessage = function(message, type = 'info') {
 };
 
 // --- EXPENSES LOGIC ---
-let dailyExpenses = [];
-let currentNetSale = 0; // Backend ကလာတဲ့ Net Sale ကို သိမ်းထားဖို့
-
-function addExpense() {
-  const nameInput = document.getElementById('expenseName');
-  const amountInput = document.getElementById('expenseAmount');
-  const name = nameInput?.value.trim();
-  const amount = Number(amountInput?.value);
-
-  if (name && amount > 0) {
-    dailyExpenses.push({ id: Date.now(), name, amount });
-    nameInput.value = '';
-    amountInput.value = '';
-    renderExpenses();
-  }
-}
-
-function removeExpense(id) {
-  dailyExpenses = dailyExpenses.filter(exp => exp.id !== id);
-  renderExpenses();
-}
+let currentNetSale = 0; 
 
 function renderExpenses() {
-  const list = document.getElementById('expenseList');
-  const totalDisplay = document.getElementById('totalExpensesDisplay');
-  const netCashDisplay = document.getElementById('netCashDisplay');
-  if (!list || !totalDisplay || !netCashDisplay) return;
-  
-  list.innerHTML = '';
-  let totalExp = 0;
-
-  dailyExpenses.forEach(exp => {
-    totalExp += exp.amount;
-    const li = document.createElement('li');
-    li.className = "d-flex justify-content-between align-items-center mb-2 text-light";
-    li.innerHTML = `
-      <span>${exp.name}</span>
-      <span>
-        <span class="text-danger me-3">THB ${exp.amount.toFixed(2)}</span>
-        <button onclick="removeExpense(${exp.id})" class="btn btn-sm btn-outline-danger py-0 px-2">X</button>
-      </span>
-    `;
-    list.appendChild(li);
-  });
-
-  totalDisplay.innerText = totalExp.toFixed(2);
-  const netCash = currentNetSale - totalExp;
-  netCashDisplay.innerText = netCash.toFixed(2);
-}
-function saveClosingStaff(date, staffName) {
-  localStorage.setItem(`closingStaff_${date}`, staffName);
+  const date = document.getElementById('reportDate')?.value;
+  if (!date) return;
+  const expenses = typeof getLocalExpenses === 'function' ? getLocalExpenses(date) : [];
+  if (typeof renderExpensesList === 'function') {
+    renderExpensesList(expenses, date);
+  }
 }
 // ----------------------
 
@@ -470,7 +428,12 @@ async function syncFromLoyverse() {
 function setButtonLoading(button, text, isLoading) {
   if (!button) return;
   button.disabled = isLoading;
-  button.innerHTML = isLoading ? `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${text}` : text;
+  if (isLoading) {
+    button.dataset.originalText = button.innerHTML;
+    button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${text}`;
+  } else {
+    button.innerHTML = button.dataset.originalText || 'Sync From Loyverse';
+  }
 }
 
 function renderOrderEntriesTable(orderEntries) {
@@ -538,99 +501,7 @@ function bindEvents() {
   }
 }
 
-function addExpenseToReport() {
-  const categorySelect = document.getElementById('expenseCategory');
-  const descriptionInput = document.getElementById('expenseDescription');
-  const amountInput = document.getElementById('expenseAmount');
-
-  const category = categorySelect?.value;
-  const description = descriptionInput?.value.trim();
-  const amount = Number(amountInput?.value);
-
-  if (!category || amount <= 0) {
-    window.showMessage('Please select a category and enter a valid amount for the expense.', 'warning');
-    return;
-  }
-
-  const date = document.getElementById('reportDate')?.value;
-  if (!date) {
-    window.showMessage('Please select a report date first.', 'warning');
-    return;
-  }
-
-  let expenses = getLocalExpenses(date);
-  expenses.push({ id: Date.now(), category, description, amount });
-  saveLocalExpenses(date, expenses);
-  renderExpensesList(expenses, date);
-
-  // Clear form
-  categorySelect.value = '';
-  descriptionInput.value = '';
-  amountInput.value = '';
-}
-
-function getLocalExpenses(date) {
-  const key = `dailyExpenses_${date}`;
-  const stored = localStorage.getItem(key);
-  return stored ? JSON.parse(stored) : [];
-}
-
-function saveLocalExpenses(date, expenses) {
-  const key = `dailyExpenses_${date}`;
-  localStorage.setItem(key, JSON.stringify(expenses));
-}
-
-let currentEditingExpenseId = null;
-
-function editExpense(id, date) {
-  let expenses = getLocalExpenses(date);
-  const expenseToEdit = expenses.find(exp => exp.id === id);
-  if (!expenseToEdit) return;
-
-  document.getElementById('expenseCategory').value = expenseToEdit.category;
-  document.getElementById('expenseDescription').value = expenseToEdit.description;
-  document.getElementById('expenseAmount').value = expenseToEdit.amount;
-
-  currentEditingExpenseId = id;
-  const addBtn = document.querySelector('#expenseSection button.btn-success');
-  if (addBtn) {
-    addBtn.textContent = 'Update Expense';
-    addBtn.onclick = () => updateExpense(date);
-  }
-}
-
-function updateExpense(date) {
-  if (currentEditingExpenseId === null) return;
-
-  let expenses = getLocalExpenses(date);
-  const category = document.getElementById('expenseCategory').value;
-  const description = document.getElementById('expenseDescription').value;
-  const amount = Number(document.getElementById('expenseAmount').value);
-
-  if (!category || amount <= 0) {
-    window.showMessage('Please select a category and enter a valid amount for the expense.', 'warning');
-    return;
-  }
-
-  expenses = expenses.map(exp => 
-    exp.id === currentEditingExpenseId ? { ...exp, category, description, amount } : exp
-  );
-  saveLocalExpenses(date, expenses);
-  renderExpensesList(expenses, date);
-  cancelEdit();
-}
-
-function cancelEdit() {
-  currentEditingExpenseId = null;
-  document.getElementById('expenseCategory').value = '';
-  document.getElementById('expenseDescription').value = '';
-  document.getElementById('expenseAmount').value = '';
-  const addBtn = document.querySelector('#expenseSection button.btn-success');
-  if (addBtn) {
-    addBtn.textContent = 'Add Expense';
-    addBtn.onclick = () => addExpenseToReport();
-  }
-}
+// Expense logic moved to enhancements.js
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
