@@ -405,11 +405,13 @@ window.exportReportToExcel = async function() {
     sheet.getCell(`A${currRow}`).font = { bold: true };
     currRow++;
 
+    const fbTotal = fbItems.reduce((acc, item) => acc + item.netPrice, 0);
     const summaryData = [
       ["Total Grams Sold", totalFlowerGrams, "G"],
       ["Cash In", cashTotal, "THB"],
       ["Card In", cardTotal, "THB"],
       ["Transfer In", transferTotal, "THB"],
+      ["F&B Total", fbTotal, "THB"],
       ["Total Expenses", totalExp, "THB"],
       ["Net Sales (Total)", netSale, "THB"],
       ["Net Profit (After Expenses)", netSale - totalExp, "THB"]
