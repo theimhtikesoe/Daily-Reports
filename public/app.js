@@ -383,6 +383,9 @@ async function syncFromLoyverse() {
     if (!res.ok) throw new Error(data?.message || 'Sync failed');
     
     window.lastSyncedData = data;
+    console.log("Raw Cash Entries:", data?.cash_entries);
+    console.log("Raw Card Entries:", data?.card_entries);
+    console.log("Raw Transfer Entries:", data?.transfer_entries);
     
     // Set Net Sale for Expense calculation
     currentNetSale = round2(data?.net_sale || 0);
