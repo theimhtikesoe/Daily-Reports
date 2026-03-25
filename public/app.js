@@ -377,7 +377,8 @@ async function syncFromLoyverse() {
   try {
     const res = await fetch(`/api/loyverse/sync?date=${date}`, { cache: 'no-store' });
     const data = await res.json();
-    console.log('Received Payload:', data);
+    console.log("Received Payload:", data);
+    console.log("Data total_gram_qty:", data.total_gram_qty);
     
     if (!res.ok) throw new Error(data?.message || 'Sync failed');
     
