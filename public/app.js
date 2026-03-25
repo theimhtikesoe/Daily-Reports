@@ -1,278 +1,193 @@
-const els = {
-  message: document.getElementById('message'),
-  reportDate: document.getElementById('reportDate'),
-  reportSection: document.getElementById('reportSection'),
+/**
+ * Daily POS Closing & Report System - Frontend Logic
+ */
 
-  syncButton: document.getElementById('syncButton'),
-  saveButton: document.getElementById('saveButton'),
-  printButton: document.getElementById('printButton'),
+// Global state for synced data
+window.lastSyncedData = null;
 
-  cashTotal: document.getElementById('cashTotal'),
-  cardTotal: document.getElementById('cardTotal'),
-  totalOrders: document.getElementById('totalOrders'),
-  netSale: document.getElementById('netSale'),
-  totalGramsSold: document.getElementById('totalGramsSold'),
+/**
+ * Show alert messages to user
+ * Moved to global scope so it can be called from other scripts
+ */
+window.showMessage = function(message, type = 'info') {
+  const alertContainer = document.getElementById('alertContainer');
+  if (!alertContainer) return;
 
-  cashEntriesList: document.getElementById('cashEntriesList'),
-  cardEntriesList: document.getElementById('cardEntriesList'),
-  discountEntriesList: document.getElementById('discountEntriesList'),
-  cashEntriesTotal: document.getElementById('cashEntriesTotal'),
-  cardEntriesTotal: document.getElementById('cardEntriesTotal'),
-  discountEntriesTotal: document.getElementById('discountEntriesTotal'),
-  transferTotal: document.getElementById('transferTotal'),
-  transferEntriesList: document.getElementById('transferEntriesList'),
-  transferEntriesTotal: document.getElementById('transferEntriesTotal'),
-  
-  // Order Entries Table
-  orderEntriesBody: document.getElementById('orderEntriesBody'),
-  
-  // Detailed Sales Record
-  bestBudsSalesBody: document.getElementById('bestBudsSalesBody'),
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = [
+    `<div class="alert alert-${type} alert-dismissible fade show" role="alert">`,
+    `   <div>${message}</div>`,
+    '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+    '</div>'
+  ].join('');
 
-  unclassifiedHint: document.getElementById('unclassifiedHint')
+  alertContainer.append(wrapper);
+
+  // Auto-dismiss after 5 seconds
+  setTimeout(() => {
+    const alert = bootstrap.Alert.getOrCreateInstance(wrapper.firstChild);
+    if (alert) alert.close();
+  }, 5000);
 };
 
-// --- EXPENSES LOGIC ---
-let dailyExpenses = [];
-let currentNetSale = 0; // Backend ကလာတဲ့ Net Sale ကို သိမ်းထားဖို့
-
-function addExpense() {
-  const nameInput = document.getElementById('expenseName');
-  const amountInput = document.getElementById('expenseAmount');
-  const name = nameInput?.value.trim();
-  const amount = Number(amountInput?.value);
-
-  if (name && amount > 0) {
-    dailyExpenses.push({ id: Date.now(), name, amount });
-    nameInput.value = '';
-    amountInput.value = '';
-    renderExpenses();
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize date to today
+  const dateInput = document.getElementById('reportDate');
+  if (dateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+    
+    // Load existing data for today
+    if (typeof loadReportData === 'function') {
+      loadReportData(today);
+    }
   }
-}
 
-function removeExpense(id) {
-  dailyExpenses = dailyExpenses.filter(exp => exp.id !== id);
-  renderExpenses();
-}
-
-function renderExpenses() {
-  const list = document.getElementById('expenseList');
-  const totalDisplay = document.getElementById('totalExpensesDisplay');
-  const netCashDisplay = document.getElementById('netCashDisplay');
-  if (!list || !totalDisplay || !netCashDisplay) return;
-  
-  list.innerHTML = '';
-  let totalExp = 0;
-
-  dailyExpenses.forEach(exp => {
-    totalExp += exp.amount;
-    const li = document.createElement('li');
-    li.className = "d-flex justify-content-between align-items-center mb-2 text-light";
-    li.innerHTML = `
-      <span>${exp.name}</span>
-      <span>
-        <span class="text-danger me-3">THB ${exp.amount.toFixed(2)}</span>
-        <button onclick="removeExpense(${exp.id})" class="btn btn-sm btn-outline-danger py-0 px-2">X</button>
-      </span>
-    `;
-    list.appendChild(li);
+  // Handle date change
+  dateInput?.addEventListener('change', (e) => {
+    if (typeof loadReportData === 'function') {
+      loadReportData(e.target.value);
+    }
   });
 
-  totalDisplay.innerText = totalExp.toFixed(2);
-  const netCash = currentNetSale - totalExp;
-  netCashDisplay.innerText = netCash.toFixed(2);
-}
-// ----------------------
+  // Handle Sync button
+  const syncBtn = document.getElementById('syncBtn');
+  syncBtn?.addEventListener('click', syncData);
 
-function todayLocalDate() {
-  const now = new Date();
-  const tzOffset = now.getTimezoneOffset() * 60000;
-  return new Date(now - tzOffset).toISOString().slice(0, 10);
-}
-
-function parseNumber(value) {
-  if (value === null || value === undefined) return 0;
-  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-  
-  let str = String(value).trim();
-  if (str === '') return 0;
-  
-  const parts = str.match(/-?\d+(?:,\d+)*(?:\.\d+)?/g);
-  if (!parts || parts.length === 0) return 0;
-  
-  let lastPart = parts[parts.length - 1].replace(/,/g, '');
-  const n = Number(lastPart);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function hasValue(value) {
-  return value !== null && value !== undefined && String(value).trim() !== '';
-}
-
-function round2(value) {
-  return Number((value || 0).toFixed(2));
-}
-
-function formatCurrency(value) {
-  const amount = parseNumber(value);
-  const formatted = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount);
-  return `THB ${formatted}`;
-}
-
-function formatPercentage(value) {
-  const normalized = round2(parseNumber(value));
-  if (normalized % 1 === 0) {
-    return `${normalized.toFixed(0)}%`;
+  // Handle Export button (Mobile-friendly listener)
+  const exportBtn = document.getElementById('exportBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof exportToExcel === 'function') {
+        exportToExcel();
+      } else {
+        window.showMessage('Excel export logic is still loading. Please wait a moment.', 'warning');
+      }
+    });
   }
-  return `${normalized.toFixed(2).replace(/0+$/, '')}%`;
-}
 
-function formatGram(value) {
-  return `${round2(parseNumber(value)).toFixed(3)} G`;
-}
-
-function parsePercentage(value) {
-  if (value === null || value === undefined || value === '') return null;
-  let str = String(value).replace(/%/g, '').trim();
-  const n = Number(str.replace(/,/g, ''));
-  if (!Number.isFinite(n) || n === 0) return null;
-  if (n > 0 && n < 1) {
-    return round2(n * 100);
-  } else {
-    return round2(n);
-  }
-}
-
-function formatTime(isoString) {
-  if (!isoString) return '';
-  try {
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return '';
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  } catch (e) { return ''; }
-}
-
-function normalizeEntries(entries) {
-  if (!Array.isArray(entries)) return [];
-  return entries.map(entry => {
-    let amount = 0, percentage = null, time = null, receiptNumber = null;
-    let mainAccTotal = 0, fbTotal = 0;
-    
-    if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
-      // Prioritize discounted amount if available (net amount)
-      // Loyverse usually provides 'total_money' or 'amount' as the final paid amount
-      amount = entry.total_money?.amount ?? entry.amount_money?.amount ?? entry.money_amount?.amount ?? entry.amount ?? 0;
-      
-      percentage = parsePercentage(entry.percentage ?? entry.percent ?? entry.rate);
-      time = entry.time || null;
-      receiptNumber = entry.receiptNumber || entry.receipt_number || entry.number || null;
-      mainAccTotal = entry.main_acc_total || 0;
-      fbTotal = entry.fb_total || 0;
-    } else {
-      amount = entry;
-      mainAccTotal = amount; 
+  // Handle Expense form
+  const expenseForm = document.getElementById('expenseForm');
+  expenseForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (typeof addExpenseToReport === 'function') {
+      addExpenseToReport();
     }
-    return { 
-      amount: round2(parseNumber(amount)), 
-      percentage, time, receiptNumber,
-      mainAccTotal: parseNumber(mainAccTotal),
-      fbTotal: parseNumber(fbTotal)
-    };
-  }).filter(e => e.amount > 0);
-}
+  });
+});
 
-function renderEntryList(listElement, entries, options = {}) {
-  if (!listElement) return;
-  const { showPercentage = false, percentageOnly = false, percentageFallbackText = 'N/A%' } = options;
-  
-  listElement.innerHTML = '';
-  if (!entries.length) {
-    const li = document.createElement('li');
-    li.className = 'text-muted';
-    li.textContent = '-';
-    listElement.appendChild(li);
+/**
+ * Sync data from Loyverse API via our backend
+ */
+async function syncData() {
+  const dateInput = document.getElementById('reportDate');
+  const syncBtn = document.getElementById('syncBtn');
+  const date = dateInput?.value;
+
+  if (!date) {
+    window.showMessage('Please select a date first', 'warning');
     return;
   }
 
-  entries.forEach(entry => {
-    const li = document.createElement('li');
-    let content = '';
+  try {
+    // UI Loading state
+    syncBtn.disabled = true;
+    syncBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Syncing...';
     
-    if (showPercentage) {
-      if (entry.percentage !== null) {
-        content = percentageOnly ? `${formatPercentage(entry.percentage)}` : `${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
-      } else {
-        content = percentageOnly ? `${percentageFallbackText}` : `${formatCurrency(entry.amount)}`;
-      }
-    } else {
-      if (entry.mainAccTotal > 0 && entry.fbTotal > 0) {
-        content = `THB ${entry.mainAccTotal.toFixed(2)} / ${entry.fbTotal.toFixed(2)}`;
-      } else if (entry.fbTotal > 0 && entry.mainAccTotal <= 0) {
-        content = `F&B ${formatCurrency(entry.fbTotal)}`;
-      } else if (entry.mainAccTotal > 0 && entry.fbTotal <= 0) {
-        content = `${formatCurrency(entry.mainAccTotal)}`;
-      } else {
-        content = `${formatCurrency(entry.amount)}`;
-      }
+    const response = await fetch(`/api/sync?date=${date}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to sync data');
     }
+
+    // Save to global state
+    window.lastSyncedData = data;
     
-    li.textContent = content;
-    listElement.appendChild(li);
-  });
-}
-
-function applyPaymentDetails(data) {
-  const cashEntries = normalizeEntries(data?.cash_entries || []);
-  const cardEntries = normalizeEntries(data?.card_entries || []);
-  const transferEntries = normalizeEntries(data?.transfer_entries || []);
-  const discountEntries = normalizeEntries(Array.isArray(data?.discount_entry_details) && data.discount_entry_details.length ? data.discount_entry_details : data?.discount_entries || []);
-
-  renderEntryList(els.cashEntriesList, cashEntries);
-  renderEntryList(els.cardEntriesList, cardEntries);
-  renderEntryList(els.transferEntriesList, transferEntries);
-  renderEntryList(els.discountEntriesList, discountEntries, { showPercentage: true, percentageOnly: true });
-
-  const cashTotal = cashEntries.reduce((s, e) => s + e.amount, 0);
-  const cardTotal = cardEntries.reduce((s, e) => s + e.amount, 0);
-  const transferTotal = transferEntries.reduce((s, e) => s + e.amount, 0);
-  const discountTotal = round2(parseNumber(data?.total_discount)) || discountEntries.reduce((s, e) => s + e.amount, 0);
-
-  if (els.cashEntriesTotal) els.cashEntriesTotal.textContent = formatCurrency(cashTotal);
-  if (els.cardEntriesTotal) els.cardEntriesTotal.textContent = formatCurrency(cardTotal);
-  if (els.transferEntriesTotal) els.transferEntriesTotal.textContent = formatCurrency(transferTotal);
-  if (els.discountEntriesTotal) els.discountEntriesTotal.textContent = formatCurrency(discountTotal);
+    // Update UI
+    updateDashboard(data);
+    renderOrderEntries(data.receipts || []);
+    renderDetailedSales(data.receipts || []);
+    
+    window.showMessage('Data synced successfully from Loyverse', 'success');
+  } catch (error) {
+    console.error('Sync Error:', error);
+    window.showMessage(`Sync Error: ${error.message}`, 'danger');
+  } finally {
+    syncBtn.disabled = false;
+    syncBtn.innerHTML = 'Sync From Loyverse';
+  }
 }
 
 /**
- * Process orders and build both Order Entries table rows and Detailed Sales Record items
+ * Update the main dashboard numbers
  */
-function processOrdersData(data) {
-  const orders = Array.isArray(data?.orders) ? data.orders : [];
-  const orderEntries = [];
+function updateDashboard(data) {
+  document.getElementById('cashTotal').value = Number(data.cash_total || 0).toLocaleString(undefined, {minimumFractionDigits: 2});
+  document.getElementById('cardTotal').value = Number(data.card_total || 0).toLocaleString(undefined, {minimumFractionDigits: 2});
+  document.getElementById('transferTotal').value = Number(data.transfer_total || 0).toLocaleString(undefined, {minimumFractionDigits: 2});
+  document.getElementById('totalOrders').value = data.total_orders || 0;
+  document.getElementById('netSale').value = Number(data.net_sale || 0).toLocaleString(undefined, {minimumFractionDigits: 2});
+}
+
+/**
+ * Render basic order entries table
+ */
+function renderOrderEntries(receipts) {
+  const container = document.getElementById('orderEntriesBody');
+  if (!container) return;
+
+  if (receipts.length === 0) {
+    container.innerHTML = '<tr><td colspan="4" class="text-center">No orders found</td></tr>';
+    return;
+  }
+
+  let html = '';
+  receipts.forEach(receipt => {
+    const time = new Date(receipt.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const receiptNo = receipt.receipt_number || receipt.number;
+    const grams = receipt.total_gram_qty || 0;
+    const mainPrice = receipt.main_and_acc_price || 0;
+    const fbPrice = receipt.fb_price || 0;
+
+    html += `
+      <tr>
+        <td>${time}</td>
+        <td>${receiptNo}</td>
+        <td>${grams.toFixed(3)} G</td>
+        <td>${mainPrice.toLocaleString()} / ${fbPrice.toLocaleString()}</td>
+      </tr>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+/**
+ * Render detailed line-item sales record
+ */
+function renderDetailedSales(receipts) {
+  const container = document.getElementById('detailedSalesBody');
+  if (!container) return;
+
   const detailedItems = [];
   let totalGrams = 0;
 
-  orders.forEach(order => {
-    let orderLineGram = 0;
-    let mainAndAccPrice = 0;
-    let fbPriceTotal = 0;
-    let mainItemName = "";
-
-    const items = order?.line_items || order?.items || [];
-    const orderTotalMoney = Number(order?.total_money || 0);
-    const orderDiscountMoney = Number(order?.total_discount || 0);
+  receipts.forEach(receipt => {
+    const items = receipt.line_items || receipt.items || [];
+    const orderDiscountMoney = Number(receipt.total_discount_money?.amount || 0);
+    const orderTotalMoney = Number(receipt.total_money?.amount || 0);
     const hasOrderDiscount = orderDiscountMoney > 0;
+    
+    let orderLineGram = 0;
+    let mainItemName = '';
 
     items.forEach(item => {
       let itemName = String(item?.name || item?.item_name || "").toLowerCase();
       let category = String(item?.category_name || "").toLowerCase();
       
-      // --- Zero-Value Gatekeeper Ru      // --- Zero-Value Gatekeeper Rule ---
+      // --- Zero-Value Gatekeeper Rule ---
       let grossPrice = Number(item?.gross_total_money?.amount ?? item?.gross_total_money ?? item?.total_money?.amount ?? item?.total_money ?? (Number(item?.price ?? 0) * Number(item?.quantity ?? item?.qty ?? 0)));
       
       // Calculate item-level net price (after line-item discounts)
@@ -287,9 +202,8 @@ function processOrdersData(data) {
         itemNetPrice = lineItemNetPrice - (lineItemNetPrice / (orderTotalMoney + orderDiscountMoney) * orderDiscountMoney);
       }
 
-      // Skip processing if final net price is 0 (Price 0 items)
-      if (itemNetPrice <= 0.01) return;Price / (orderTotalMoney + orderDiscountMoney) * orderDiscountMoney);
-      }
+      // Rule: Skip Price 0 items entirely
+      if (itemNetPrice <= 0.01) return;
 
       let qty = Number(item?.quantity ?? item?.qty ?? 0);
 
@@ -298,11 +212,6 @@ function processOrdersData(data) {
         qty = 7;
       }
 
-      // Category Identification
-      let isAcc = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch']
-                  .some(keyword => itemName.includes(keyword) || category.includes(keyword));
-      
-      // Flower Strains List (Main/Flower items)
       const flowerStrains = [
         'grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 
         'moonbow', 'emergen c', 'tea time', 'silver shadow', 
@@ -326,23 +235,16 @@ function processOrdersData(data) {
       const isLobbyShirt = itemName.includes('the lobby shirt');
 
       // Routing Logic
-      if (isFB) {
-        fbPriceTotal += itemNetPrice;
-      } else if (isAcc) {
-        mainAndAccPrice += itemNetPrice;
-      } else {
-        mainAndAccPrice += itemNetPrice;
-        
+      if (!isFB) {
         // Gram Logic: Exclude Lobby Shirt and THC Gummy from gram totals
         if (!isLobbyShirt && !isThcGummy) {
           orderLineGram += qty;
-          if (!mainItemName) mainItemName = item?.item_name || item?.name;
         }
       }
       
       // Add to detailed items list
       detailedItems.push({
-        grams: !isFB && !isAcc && !isLobbyShirt && !isThcGummy ? qty : 0,
+        grams: !isFB && !isLobbyShirt && !isThcGummy ? qty : 0,
         itemName: item?.item_name || item?.name || 'Unknown Item',
         mainPrice: isFB ? 0 : itemNetPrice,
         fbPrice: isFB ? itemNetPrice : 0
@@ -350,240 +252,23 @@ function processOrdersData(data) {
     });
 
     totalGrams += orderLineGram;
-
-    // Add to Order Entries
-    orderEntries.push({
-      time: order?.created_at || "",
-      receiptNumber: order?.receipt_number || "",
-      grams: orderLineGram,
-      mainPrice: mainAndAccPrice,
-      fbPrice: fbPriceTotal
-    });
   });
 
-  return {
-    orderEntries,
-    detailedItems,
-    totalGrams
-  };
-}
-
-/**
- * Render Order Entries table
- */
-function renderOrderEntriesTable(orderEntries) {
-  if (!els.orderEntriesBody) return;
-
-  els.orderEntriesBody.innerHTML = '';
-
-  if (!orderEntries.length) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="4" class="text-muted text-center py-3">-</td>`;
-    els.orderEntriesBody.appendChild(tr);
+  if (detailedItems.length === 0) {
+    container.innerHTML = '<tr><td colspan="3" class="text-center">No items found</td></tr>';
     return;
   }
 
-  orderEntries.forEach((entry, idx) => {
-    const tr = document.createElement('tr');
-    const timeStr = entry.time ? formatTime(entry.time) : '-';
-    const gramClass = entry.grams > 0 ? 'text-success fw-bold' : 'text-muted';
-    const gramDisplay = entry.grams > 0 ? `${entry.grams.toFixed(2)} G` : '0.00 G';
-    const priceDisplay = `THB ${entry.mainPrice.toFixed(2)} / THB ${entry.fbPrice.toFixed(2)}`;
-    
-    tr.innerHTML = `
-      <td class="text-muted small">${timeStr}</td>
-      <td class="text-muted small">${entry.receiptNumber || (idx + 1)}</td>
-      <td class="${gramClass}">${gramDisplay}</td>
-      <td class="text-end small">${priceDisplay}</td>
-    `;
-    els.orderEntriesBody.appendChild(tr);
-  });
-}
-
-/**
- * Render Detailed Sales Record table
- */
-function renderDetailedSalesTable(detailedItems, totalGrams) {
-  if (!els.bestBudsSalesBody) return;
-
-  els.bestBudsSalesBody.innerHTML = '';
-
-  if (!detailedItems.length) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="3" class="text-muted text-center py-3">-</td>`;
-    els.bestBudsSalesBody.appendChild(tr);
-    return;
-  }
-
+  let html = '';
   detailedItems.forEach(item => {
-    const tr = document.createElement('tr');
-    const gramClass = item.grams > 0 ? 'text-success fw-bold' : 'text-muted';
-    const gramDisplay = item.grams > 0 ? item.grams.toFixed(3) : '0.000';
-    const priceDisplay = `${item.mainPrice.toFixed(2)} / ${item.fbPrice.toFixed(2)}`;
-    
-    tr.innerHTML = `
-      <td class="${gramClass}">${gramDisplay}</td>
-      <td>${item.itemName}</td>
-      <td class="text-end small">${priceDisplay}</td>
+    html += `
+      <tr>
+        <td>${item.grams > 0 ? item.grams.toFixed(3) : '-'}</td>
+        <td>${item.itemName}</td>
+        <td>${item.mainPrice > 0 ? item.mainPrice.toLocaleString() : '-'} / ${item.fbPrice > 0 ? item.fbPrice.toLocaleString() : '-'}</td>
+      </tr>
     `;
-    els.bestBudsSalesBody.appendChild(tr);
   });
 
-  // Update total grams
-  if (els.totalGramsSold) {
-    els.totalGramsSold.textContent = formatGram(totalGrams);
-  }
+  container.innerHTML = html;
 }
-
-function setButtonLoading(btn, text, isLoading) {
-  if (!btn) return;
-  btn.disabled = isLoading;
-  if (isLoading) {
-    btn.dataset.originalText = btn.textContent;
-    btn.textContent = text;
-  } else {
-    btn.textContent = btn.dataset.originalText || btn.textContent;
-  }
-}
-
-function setMessage(text, variant = 'info') {
-  if (els.message) {
-    els.message.textContent = text;
-    els.message.className = `alert alert-${variant}`;
-  }
-}
-
-function clearMessage() {
-  if (els.message) {
-    els.message.className = 'alert d-none';
-    els.message.textContent = '';
-  }
-}
-
-/**
- * Fallback: Convert automated_report_rows (from backend) into the same format
- * that processOrdersData produces, so the same render functions can be used.
- * Each row represents one receipt/order.
- */
-function processAutomatedReportRows(data) {
-  const rows = data.automated_report_rows || [];
-  const totals = data.automated_report_totals || {};
-  const orderEntries = [];
-  const detailedItems = [];
-  let totalGrams = 0;
-
-  rows.forEach(row => {
-    const gramQty = parseNumber(row.gram_qty);
-    const numeratorPrice = parseNumber(row.numerator_price);
-    const denominatorPrice = parseNumber(row.denominator_price);
-    totalGrams += gramQty;
-
-    // Order Entries (one per receipt)
-    orderEntries.push({
-      time: row.time || '',
-      receiptNumber: row.receipt_number || '',
-      grams: gramQty,
-      mainPrice: numeratorPrice,
-      fbPrice: denominatorPrice
-    });
-
-    // Detailed Sales Record (one per receipt in this fallback mode)
-    detailedItems.push({
-      grams: gramQty,
-      itemName: row.item_name || 'Unknown Item',
-      mainPrice: numeratorPrice,
-      fbPrice: denominatorPrice
-    });
-  });
-
-  // Use backend totals if available for accuracy
-  if (totals.total_gram_qty !== undefined) {
-    totalGrams = parseNumber(totals.total_gram_qty);
-  }
-
-  return { orderEntries, detailedItems, totalGrams };
-}
-
-async function syncFromLoyverse() {
-  clearMessage();
-  if (!els.reportDate?.value) return;
-  setButtonLoading(els.syncButton, 'Syncing...', true);
-  try {
-    const res = await fetch(`/api/loyverse/sync?date=${els.reportDate.value}`, { cache: 'no-store' });
-    const data = await res.json();
-    console.log('Received Payload:', data);
-    
-    if (!res.ok) throw new Error(data?.message || 'Sync failed');
-    
-    lastSyncedData = data;
-    
-    // Set Net Sale for Expense calculation
-    currentNetSale = round2(data?.net_sale || 0);
-    
-    // Apply payment details
-    applyPaymentDetails(data);
-    
-    // Process and render order data
-    // Use raw orders if available, otherwise fallback to automated_report_rows
-    if (Array.isArray(data?.orders) && data.orders.length > 0) {
-      const { orderEntries, detailedItems, totalGrams } = processOrdersData(data);
-      renderOrderEntriesTable(orderEntries);
-      renderDetailedSalesTable(detailedItems, totalGrams);
-    } else if (Array.isArray(data?.automated_report_rows) && data.automated_report_rows.length > 0) {
-      // Fallback: use pre-processed automated_report_rows from backend
-      const fallbackResult = processAutomatedReportRows(data);
-      renderOrderEntriesTable(fallbackResult.orderEntries);
-      renderDetailedSalesTable(fallbackResult.detailedItems, fallbackResult.totalGrams);
-    } else {
-      renderOrderEntriesTable([]);
-      renderDetailedSalesTable([], 0);
-    }
-    
-    // Update summary totals
-    window.lastSyncedData = data; // Store globally for Excel export
-    if (els.cashTotal) els.cashTotal.value = round2(data?.cash_total || 0).toFixed(2);
-    if (els.cardTotal) els.cardTotal.value = round2(data?.card_total || 0).toFixed(2);
-    if (els.transferTotal) els.transferTotal.value = round2(data?.transfer_total || 0).toFixed(2);
-    if (els.netSale) els.netSale.value = currentNetSale.toFixed(2);
-    if (els.totalOrders) els.totalOrders.value = data?.total_orders || 0;
-    
-    // Refresh Expense display
-    renderExpenses();
-    
-  } catch (e) { 
-    console.error('Sync Error:', e);
-    setMessage(`Error: ${e.message}`, 'danger');
-  }
-  finally { 
-    setButtonLoading(els.syncButton, '', false); 
-  }
-}
-
-function bindEvents() {
-  if (els.syncButton) {
-    els.syncButton.addEventListener('click', syncFromLoyverse);
-  }
-}
-
-let lastSyncedData = null;
-
-function init() {
-  if (els.reportDate) {
-    els.reportDate.value = todayLocalDate();
-  }
-  bindEvents();
-  syncFromLoyverse();
-  const mainContent = document.querySelector('.app-main-content');
-  if (mainContent) {
-    mainContent.style.display = 'block';
-  }
-}
-
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
-
-// Old exportToExcel function removed. Using enhanced version in enhancements.js
