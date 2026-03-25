@@ -1034,14 +1034,17 @@ async function fetchSalesSummaryByDate(date) {
     }
   }
 
-  for (const receipt of closedReceipts) {
+    for (const receipt of closedReceipts) {
     const paymentEntries = extractPaymentEntries(receipt, paymentTypeMap);
     const discountEntries = extractDiscountEntriesFromReceipt(receipt);
     
     // Calculate split for this receipt to apply to payment entries
     const receiptRow = buildAutomatedReceiptRow(receipt, itemCategoryMap);
+    
+    // The buildAutomatedReceiptRow already uses extractLineItemPrice which returns NET amount (after discounts)
     const mainAccTotal = receiptRow.numerator_price;
     const fbTotal = receiptRow.denominator_price;
+    const netSalesTotal = receiptRow.net_sales;
 
     for (const discountEntry of discountEntries) {
       totals.total_discount += discountEntry.amount;
@@ -1056,12 +1059,25 @@ async function fetchSalesSummaryByDate(date) {
       const paymentCategory = classifyPaymentType(entry.paymentTypeLabel);
       
       // Attach split info to the entry
-      // If there's only one payment, it gets the full split. 
-      // If multiple, we prorate based on the payment amount.
+      // We must use the ratio of the payment amount to the total paid amount
+      // and apply it to the NET sales split (Main vs F&B)
       if (totalPaidOnReceipt > 0) {
         const ratio = entry.amount / totalPaidOnReceipt;
+        
+        // Ensure we are splitting the actual NET sales amounts
         entry.main_acc_total = roundCurrency(mainAccTotal * ratio);
         entry.fb_total = roundCurrency(fbTotal * ratio);
+        
+        // Safety check: if the sum of splits doesn't match the payment amount due to rounding or data issues,
+        // we adjust the larger one to match the payment amount.
+        const splitSum = entry.main_acc_total + entry.fb_total;
+        if (Math.abs(splitSum - entry.amount) > 0.01 && entry.amount > 0) {
+          if (entry.main_acc_total > entry.fb_total) {
+            entry.main_acc_total = roundCurrency(entry.amount - entry.fb_total);
+          } else {
+            entry.fb_total = roundCurrency(entry.amount - entry.main_acc_total);
+          }
+        }
       } else {
         entry.main_acc_total = 0;
         entry.fb_total = 0;
