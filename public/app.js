@@ -128,8 +128,30 @@ function normalizeEntries(entries) {
       receiptNumber = entry.receiptNumber || entry.receipt_number || entry.number || null;
       // Ensure mainAccTotal and fbTotal reflect discounted prices
       // If main_acc_total or fb_total are not explicitly provided as discounted, derive them from the overall discounted 'amount'
-      mainAccTotal = entry.main_acc_total || (amount - (entry.fb_total || 0));
-      fbTotal = entry.fb_total || (amount - (entry.main_acc_total || 0));
+      let originalMainAccTotal = entry.main_acc_total || 0;
+      let originalFbTotal = entry.fb_total || 0;
+
+      if (percentage > 0) {
+        mainAccTotal = originalMainAccTotal * (1 - percentage / 100);
+        fbTotal = originalFbTotal * (1 - percentage / 100);
+      } else {
+        mainAccTotal = originalMainAccTotal;
+        fbTotal = originalFbTotal;
+      }
+
+      // If mainAccTotal or fbTotal are still zero after applying discount, and the overall 'amount' is available, derive them.
+      if (mainAccTotal <= 0 && fbTotal <= 0 && amount > 0) {
+        mainAccTotal = amount; // Assume all is main/acc if no breakdown
+        fbTotal = 0;
+      } else if (mainAccTotal <= 0 && fbTotal > 0 && amount > 0) {
+        mainAccTotal = amount - fbTotal;
+      } else if (fbTotal <= 0 && mainAccTotal > 0 && amount > 0) {
+        fbTotal = amount - mainAccTotal;
+      }
+
+      // Ensure they are not negative
+      mainAccTotal = Math.max(0, mainAccTotal);
+      fbTotal = Math.max(0, fbTotal);
       
       // Fallback if still zero or negative after derivation, use the amount directly
       if (mainAccTotal <= 0 && fbTotal <= 0) {
