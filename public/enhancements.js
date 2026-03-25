@@ -1,149 +1,3 @@
-/**
- * Enhanced Daily Reports - Item Classification & Expense Tracking
- * Performs full client-side Excel export using ExcelJS
- */
-
-let currentEditingExpenseId = null;
-
-/**
- * Get expenses from LocalStorage
- */
-function getLocalExpenses(date) {
-  const allExpenses = JSON.parse(localStorage.getItem('daily_expenses') || '{}');
-  return allExpenses[date] || [];
-}
-
-/**
- * Save expenses to LocalStorage
- */
-function saveLocalExpenses(date, expenses) {
-  const allExpenses = JSON.parse(localStorage.getItem('daily_expenses') || '{}');
-  allExpenses[date] = expenses;
-  localStorage.setItem('daily_expenses', JSON.stringify(allExpenses));
-}
-
-/**
- * Get Closing Staff from LocalStorage
- */
-function getClosingStaff(date) {
-  const allStaff = JSON.parse(localStorage.getItem('closing_staff') || '{}');
-  return allStaff[date] || '';
-}
-
-/**
- * Save Closing Staff to LocalStorage
- */
-function saveClosingStaff(date, name) {
-  const allStaff = JSON.parse(localStorage.getItem('closing_staff') || '{}');
-  allStaff[date] = name;
-  localStorage.setItem('closing_staff', JSON.stringify(allStaff));
-}
-
-/**
- * Add or Update expense (LocalStorage Version)
- */
-async function addExpenseToReport() {
-  const dateInput = document.getElementById('reportDate');
-  const categorySelect = document.getElementById('expenseCategory');
-  const descriptionInput = document.getElementById('expenseDescription');
-  const amountInput = document.getElementById('expenseAmount');
-  const submitBtn = document.querySelector('#expenseSection button');
-
-  const date = dateInput?.value;
-  const category = categorySelect?.value;
-  const description = descriptionInput?.value || '';
-  const amount = parseFloat(amountInput?.value) || 0;
-
-  if (!date || !category || amount <= 0) {
-    showMessage('Please fill in all expense fields', 'warning');
-    return;
-  }
-
-  try {
-    let expenses = getLocalExpenses(date);
-
-    if (currentEditingExpenseId) {
-      // Update existing
-      expenses = expenses.map(exp => {
-        if (exp.id === currentEditingExpenseId) {
-          return { ...exp, category, description, amount };
-        }
-        return exp;
-      });
-      showMessage('Expense updated successfully', 'success');
-      currentEditingExpenseId = null;
-      if (submitBtn) submitBtn.textContent = 'Add Expense';
-    } else {
-      // Add new
-      const newExpense = {
-        id: Date.now(),
-        date,
-        category,
-        description,
-        amount,
-        created_at: new Date().toISOString()
-      };
-      expenses.push(newExpense);
-      showMessage('Expense added successfully', 'success');
-    }
-    
-    saveLocalExpenses(date, expenses);
-
-    // Clear form
-    categorySelect.value = '';
-    descriptionInput.value = '';
-    amountInput.value = '';
-    
-    renderExpensesList(expenses, date);
-  } catch (error) {
-    showMessage(`Error: ${error.message}`, 'danger');
-  }
-}
-
-/**
- * Edit an expense (Load into form)
- */
-function editExpense(id, date) {
-  const expenses = getLocalExpenses(date);
-  const expense = expenses.find(e => e.id === id);
-  
-  if (!expense) return;
-
-  document.getElementById('expenseCategory').value = expense.category;
-  document.getElementById('expenseDescription').value = expense.description || '';
-  document.getElementById('expenseAmount').value = expense.amount;
-  
-  currentEditingExpenseId = id;
-  const submitBtn = document.querySelector('#expenseSection button');
-  if (submitBtn) submitBtn.textContent = 'Update Expense';
-  
-  // Scroll to form
-  document.getElementById('expenseSection').scrollIntoView({ behavior: 'smooth' });
-}
-
-/**
- * Cancel editing
- */
-function cancelEdit() {
-  currentEditingExpenseId = null;
-  document.getElementById('expenseCategory').value = '';
-  document.getElementById('expenseDescription').value = '';
-  document.getElementById('expenseAmount').value = '';
-  const submitBtn = document.querySelector('#expenseSection button');
-  if (submitBtn) submitBtn.textContent = 'Add Expense';
-}
-
-/**
- * Load report data for a specific date (Staff + Expenses)
- */
-async function loadReportData(date) {
-  const expenses = getLocalExpenses(date);
-  renderExpensesList(expenses, date);
-  
-  const staffName = getClosingStaff(date);
-  const staffInput = document.getElementById('closingStaff');
-  if (staffInput) staffInput.value = staffName;
-}
 
 /**
  * Render expenses list in the UI
@@ -248,40 +102,49 @@ async function exportReportToExcel() {
     // 1. Gather Data from UI and Global Variables
     const rawData = window.lastSyncedData;
     const expenses = getLocalExpenses(date);
-    
-    const cashTotal = parseFloat(document.getElementById('cashTotal')?.value) || 0;
-    const cardTotal = parseFloat(document.getElementById('cardTotal')?.value) || 0;
-    const transferTotal = parseFloat(document.getElementById('transferTotal')?.value) || 0;
-    const netSale = parseFloat(document.getElementById('netSale')?.value) || 0;
-    const totalGramsStr = document.getElementById('totalGramsSold')?.textContent || '0.000 G';
-    const totalGrams = parseFloat(totalGramsStr.replace(/[^\d.]/g, '')) || 0;
+
+    if (!rawData || !rawData.receipts) {
+      showMessage('No synced data available for this date. Please sync first.', 'danger');
+      return;
+    }
+
+    const receipts = rawData.receipts;
+    const cashTotal = Number(rawData.cash_total || 0);
+    const cardTotal = Number(rawData.card_total || 0);
+    const transferTotal = Number(rawData.transfer_total || 0);
+    const totalGrams = Number(rawData.total_gram_qty || 0);
+    const netSale = Number(rawData.net_sale || 0);
 
     const flowerItems = [];
     const fbItems = [];
-    
-    if (rawData && rawData.orders) {
-      rawData.orders.forEach(order => {
-        const paymentMethod = order.payments && order.payments.length > 0 ? order.payments[0].name : 'Unknown';
-        const receiptNumber = order.receipt_number || 'N/A';
-        const orderTotal = Number(order.total_money || 0);
-        const orderDiscount = Number(order.total_discount || 0);
+
+    if (Array.isArray(receipts)) {
+      receipts.forEach(receipt => {
+        const items = receipt.line_items || receipt.items || [];
+        const paymentMethod = (receipt.payments && receipt.payments[0]?.payment_type?.name) || 
+                               (receipt.payments && receipt.payments[0]?.name) || 'N/A';
+        const receiptNumber = receipt.receipt_number || receipt.number || 'N/A';
+        
+        const orderDiscount = parseFloat(receipt.total_discount_money?.amount || 0);
+        const orderTotal = parseFloat(receipt.total_money?.amount || 0);
         const hasOrderDiscount = orderDiscount > 0;
 
-        const items = order.line_items || order.items || [];
         items.forEach(item => {
           let itemName = String(item.name || item.item_name || "").toLowerCase();
           let category = String(item.category_name || "").toLowerCase();
           let qty = Number(item.quantity || item.qty || 0);
           
-          let grossPrice = Number(item.gross_total_money ?? item.total_money ?? (Number(item.price ?? 0) * qty));
-          let lineItemDiscount = Number(item.total_discount_money ?? item.discount_money ?? 0);
-          let lineItemNetPrice = grossPrice - lineItemDiscount;
-
-          let itemNetPrice = lineItemNetPrice;
+          let grossPrice = Number(item.gross_total_money?.amount ?? item.total_money?.amount ?? 0);
+          const lineItemDiscount = parseFloat(item.total_discount_money?.amount || item.discount_money?.amount || item.discount_amount || 0);
+          
+          // Final net for this line item (before order-level discount)
+          let itemNetPrice = item.total_money?.amount !== undefined ? parseFloat(item.total_money.amount) : (grossPrice - lineItemDiscount);
+          
+          // Apply order-level discount prorated
           let allocatedOrderDiscount = 0;
-          if (hasOrderDiscount && orderTotal > 0) {
-            allocatedOrderDiscount = lineItemNetPrice / (orderTotal + orderDiscount) * orderDiscount;
-            itemNetPrice = lineItemNetPrice - allocatedOrderDiscount;
+          if (hasOrderDiscount && orderTotal > 0 && itemNetPrice > 0) {
+            allocatedOrderDiscount = (itemNetPrice / (orderTotal + orderDiscount)) * orderDiscount;
+            itemNetPrice = Math.max(0, itemNetPrice - allocatedOrderDiscount);
           }
 
           const totalItemDiscount = lineItemDiscount + allocatedOrderDiscount;
@@ -311,15 +174,15 @@ async function exportReportToExcel() {
 
           let isFB = !isFlowerStrain && (hasFBKeyword || (grossPrice / (qty || 1)) <= 50);
 
-          // Only add items with net price > 0 to the export list
-          if (itemNetPrice > 0) {
+          // Only add items with net price > 0.01 to the export list (filter out free items)
+          if (itemNetPrice > 0.01) {
             const isGramItem = isFlowerStrain && !isThcGummy;
             const exportItem = {
               name: item.name || item.item_name,
               qty: isGramItem ? '-' : qty,
               gram: isGramItem ? `${qty.toFixed(3)} G` : '-',
               unitPrice: grossPrice / (qty || 1),
-              totalPrice: itemNetPrice, // This is already net price (after discount)
+              totalPrice: itemNetPrice,
               discount: discountStr,
               payment: paymentMethod,
               note: receiptNumber
@@ -454,103 +317,27 @@ async function exportReportToExcel() {
       ['Net Profit (After Expenses)', netSale - totalExp, 'THB']
     ];
 
-    summaryData.forEach(data => {
-      sheet.getCell(`A${currRow}`).value = data[0];
-      sheet.getCell(`B${currRow}`).value = data[1];
-      sheet.getCell(`C${currRow}`).value = data[2];
-      sheet.getCell(`A${currRow}`).font = { bold: true };
-      setBorder(sheet.getCell(`A${currRow}`));
-      setBorder(sheet.getCell(`B${currRow}`));
-      setBorder(sheet.getCell(`C${currRow}`));
+    summaryData.forEach(row => {
+      sheet.getCell(`A${currRow}`).value = row[0];
+      sheet.getCell(`B${currRow}`).value = row[1];
+      sheet.getCell(`C${currRow}`).value = row[2];
+      ['A','B','C'].forEach(col => setBorder(sheet.getCell(`${col}${currRow}`)));
       currRow++;
     });
 
-    // Column Widths
-    sheet.getColumn(1).width = 20;
-    sheet.getColumn(2).width = 35;
-    sheet.getColumn(3).width = 10;
-    sheet.getColumn(4).width = 12;
-    sheet.getColumn(5).width = 12;
-    sheet.getColumn(6).width = 20;
-    sheet.getColumn(7).width = 12;
-    sheet.getColumn(8).width = 15;
-    sheet.getColumn(9).width = 20;
-
-    // 3. Save File
+    // Finalize
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `BestBuds_Report_${date}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `Daily_Report_${date}.xlsx`;
+    anchor.click();
     window.URL.revokeObjectURL(url);
 
-    showMessage('Excel exported successfully!', 'success');
+    showMessage('Excel report exported successfully', 'success');
   } catch (error) {
-    console.error('Export Error:', error);
-    showMessage(`Export failed: ${error.message}`, 'danger');
+    console.error('Excel Export Error:', error);
+    showMessage(`Error: ${error.message}`, 'danger');
   }
-}
-
-/**
- * Show message to user
- */
-function showMessage(text, type = 'info') {
-  const messageEl = document.getElementById('message');
-  if (!messageEl) return;
-
-  messageEl.className = `alert alert-${type}`;
-  messageEl.textContent = text;
-  messageEl.classList.remove('d-none');
-
-  setTimeout(() => {
-    messageEl.classList.add('d-none');
-  }, 5000);
-}
-
-/**
- * Initialize enhancements
- */
-function initializeEnhancements() {
-  console.log('Initializing Enhancements...');
-  
-  const exportBtn = document.getElementById('exportCsvBtn');
-  if (exportBtn) {
-    exportBtn.onclick = function(e) {
-      e.preventDefault();
-      exportReportToExcel();
-    };
-  }
-
-  const dateInput = document.getElementById('reportDate');
-  if (dateInput) {
-    dateInput.addEventListener('change', (e) => {
-      if (e.target.value) {
-        loadReportData(e.target.value);
-      }
-    });
-    if (dateInput.value) {
-      loadReportData(dateInput.value);
-    }
-  }
-
-  const staffInput = document.getElementById('closingStaff');
-  if (staffInput) {
-    staffInput.addEventListener('change', (e) => {
-      const date = document.getElementById('reportDate')?.value;
-      if (date) {
-        saveClosingStaff(date, e.target.value);
-      }
-    });
-  }
-}
-
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeEnhancements);
-} else {
-  initializeEnhancements();
 }
