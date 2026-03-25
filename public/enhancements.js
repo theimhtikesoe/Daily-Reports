@@ -172,14 +172,24 @@ window.exportReportToExcel = async function() {
 
   try {
     window.showMessage("Generating Excel file...", "info");
-    const rawData = window.lastSyncedData;
+    
+    // Ensure we use the correct data for the selected date
+    let rawData = window.lastSyncedData;
+    
+    // If the date in lastSyncedData doesn't match the selected date, we must re-sync
+    if (rawData && rawData.date !== date) {
+      console.log(`Date mismatch: selected ${date}, but data is for ${rawData.date}. Re-syncing...`);
+      rawData = null;
+    }
+
     const expenses = getLocalExpenses(date);
 
     // Check for synced data in various possible formats
-    const receipts = rawData?.orders || rawData?.receipts || rawData?.items || [];
+    // Backend returns receipts in 'orders'
+    let receipts = rawData?.orders || rawData?.receipts || rawData?.items || [];
     
     console.log('Exporting data. RawData:', rawData);
-    console.log('Extracted receipts:', receipts);
+    console.log('Extracted receipts count:', receipts.length);
 
     // If no data in memory, try to trigger a sync or show error
     if (!rawData || (receipts.length === 0 && !rawData.net_sale)) {
@@ -199,7 +209,6 @@ window.exportReportToExcel = async function() {
         return;
       }
     }
-
     const cashTotal = Number(rawData.cash_total || 0);
     const cardTotal = Number(rawData.card_total || 0);
     const transferTotal = Number(rawData.transfer_total || 0);
@@ -224,16 +233,32 @@ window.exportReportToExcel = async function() {
         let category = String(item.category_name || "").toLowerCase();
         let qty = Number(item.quantity || item.qty || 0);
         
-        let grossPrice = Number(item.gross_total_money?.amount ?? item.total_money?.amount ?? 0);
+        // Handle Loyverse nested money objects
+        let grossPrice = 0;
+        if (item.gross_total_money && typeof item.gross_total_money.amount !== 'undefined') {
+          grossPrice = Number(item.gross_total_money.amount);
+        } else if (item.total_money && typeof item.total_money.amount !== 'undefined') {
+          grossPrice = Number(item.total_money.amount);
+        } else {
+          grossPrice = Number(item.gross_total_money || item.total_money || 0);
+        }
+
         const lineItemDiscount = parseFloat(item.total_discount_money?.amount || item.discount_money?.amount || item.discount_amount || 0);
-        let itemNetPrice = item.total_money?.amount !== undefined ? parseFloat(item.total_money.amount) : (grossPrice - lineItemDiscount);
+        
+        let itemNetPrice = 0;
+        if (item.total_money && typeof item.total_money.amount !== 'undefined') {
+          itemNetPrice = parseFloat(item.total_money.amount);
+        } else {
+          itemNetPrice = grossPrice - lineItemDiscount;
+        }
         
         if (hasOrderDiscount && orderTotal > 0 && itemNetPrice > 0) {
           let allocatedOrderDiscount = (itemNetPrice / (orderTotal + orderDiscount)) * orderDiscount;
           itemNetPrice = Math.max(0, itemNetPrice - allocatedOrderDiscount);
         }
 
-        if (itemNetPrice <= 0.01) return;
+        // Only skip if both price and qty are zero
+        if (itemNetPrice <= 0 && qty <= 0) return;
 
         const totalItemDiscount = grossPrice - itemNetPrice;
         const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
