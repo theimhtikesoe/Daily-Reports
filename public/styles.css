@@ -680,5 +680,5 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .app-main-content {
-  display: none;
+  display: block;
 }

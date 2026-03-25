@@ -639,11 +639,46 @@ if (document.readyState === 'loading') {
   init();
 }
 
+// DOM elements cache
+const els = {
+  cashTotal: document.getElementById('cashTotal'),
+  cardTotal: document.getElementById('cardTotal'),
+  transferTotal: document.getElementById('transferTotal'),
+  netSale: document.getElementById('netSale'),
+  totalOrders: document.getElementById('totalOrders'),
+  totalGramsSold: document.getElementById('totalGramsSold'),
+  cashEntriesTotal: document.getElementById('cashEntriesTotal'),
+  cardEntriesTotal: document.getElementById('cardEntriesTotal'),
+  transferEntriesTotal: document.getElementById('transferEntriesTotal'),
+  discountEntriesTotal: document.getElementById('discountEntriesTotal'),
+  cashEntriesList: document.getElementById('cashEntriesList'),
+  cardEntriesList: document.getElementById('cardEntriesList'),
+  transferEntriesList: document.getElementById('transferEntriesList'),
+  discountEntriesList: document.getElementById('discountEntriesList')
+};
+
 function init() {
   const reportDateInput = document.getElementById('reportDate');
   if (reportDateInput) {
     reportDateInput.value = todayLocalDate();
   }
+  
+  // Refresh els references in case they weren't in DOM yet
+  els.cashTotal = document.getElementById('cashTotal');
+  els.cardTotal = document.getElementById('cardTotal');
+  els.transferTotal = document.getElementById('transferTotal');
+  els.netSale = document.getElementById('netSale');
+  els.totalOrders = document.getElementById('totalOrders');
+  els.totalGramsSold = document.getElementById('totalGramsSold');
+  els.cashEntriesTotal = document.getElementById('cashEntriesTotal');
+  els.cardEntriesTotal = document.getElementById('cardEntriesTotal');
+  els.transferEntriesTotal = document.getElementById('transferEntriesTotal');
+  els.discountEntriesTotal = document.getElementById('discountEntriesTotal');
+  els.cashEntriesList = document.getElementById('cashEntriesList');
+  els.cardEntriesList = document.getElementById('cardEntriesList');
+  els.transferEntriesList = document.getElementById('transferEntriesList');
+  els.discountEntriesList = document.getElementById('discountEntriesList');
+
   bindEvents();
   syncFromLoyverse();
   const mainContent = document.querySelector('.app-main-content');
