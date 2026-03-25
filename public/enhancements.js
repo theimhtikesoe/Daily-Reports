@@ -1,3 +1,156 @@
+/**
+ * Enhanced Daily Reports - Item Classification & Expense Tracking
+ * Performs full client-side Excel export using ExcelJS
+ */
+
+let currentEditingExpenseId = null;
+
+/**
+ * Get expenses from LocalStorage
+ */
+function getLocalExpenses(date) {
+  const allExpenses = JSON.parse(localStorage.getItem('daily_expenses') || '{}');
+  return allExpenses[date] || [];
+}
+
+/**
+ * Save expenses to LocalStorage
+ */
+function saveLocalExpenses(date, expenses) {
+  const allExpenses = JSON.parse(localStorage.getItem('daily_expenses') || '{}');
+  allExpenses[date] = expenses;
+  localStorage.setItem('daily_expenses', JSON.stringify(allExpenses));
+}
+
+/**
+ * Get Closing Staff from LocalStorage
+ */
+function getClosingStaff(date) {
+  const allStaff = JSON.parse(localStorage.getItem('closing_staff') || '{}');
+  return allStaff[date] || '';
+}
+
+/**
+ * Save Closing Staff to LocalStorage
+ */
+function saveClosingStaff(date, name) {
+  const allStaff = JSON.parse(localStorage.getItem('closing_staff') || '{}');
+  allStaff[date] = name;
+  localStorage.setItem('closing_staff', JSON.stringify(allStaff));
+}
+
+/**
+ * Add or Update expense (LocalStorage Version)
+ */
+async function addExpenseToReport() {
+  const dateInput = document.getElementById('reportDate');
+  const categorySelect = document.getElementById('expenseCategory');
+  const descriptionInput = document.getElementById('expenseDescription');
+  const amountInput = document.getElementById('expenseAmount');
+  const submitBtn = document.querySelector('#expenseSection button');
+
+  const date = dateInput?.value;
+  const category = categorySelect?.value;
+  const description = descriptionInput?.value || '';
+  const amount = parseFloat(amountInput?.value) || 0;
+
+  if (!date || !category || amount <= 0) {
+    showMessage('Please fill in all expense fields', 'warning');
+    return;
+  }
+
+  try {
+    let expenses = getLocalExpenses(date);
+
+    if (currentEditingExpenseId) {
+      // Update existing
+      expenses = expenses.map(exp => {
+        if (exp.id === currentEditingExpenseId) {
+          return { ...exp, category, description, amount };
+        }
+        return exp;
+      });
+      showMessage('Expense updated successfully', 'success');
+      currentEditingExpenseId = null;
+      if (submitBtn) submitBtn.textContent = 'Add Expense';
+    } else {
+      // Add new
+      const newExpense = {
+        id: Date.now(),
+        date,
+        category,
+        description,
+        amount,
+        created_at: new Date().toISOString()
+      };
+      expenses.push(newExpense);
+      showMessage('Expense added successfully', 'success');
+    }
+    
+    saveLocalExpenses(date, expenses);
+
+    // Clear form
+    categorySelect.value = '';
+    descriptionInput.value = '';
+    amountInput.value = '';
+    
+    renderExpensesList(expenses, date);
+  } catch (error) {
+    showMessage(`Error: ${error.message}`, 'danger');
+  }
+}
+
+/**
+ * Edit an expense (Load into form)
+ */
+function editExpense(id, date) {
+  const expenses = getLocalExpenses(date);
+  const expense = expenses.find(e => e.id === id);
+  
+  if (!expense) return;
+
+  document.getElementById('expenseCategory').value = expense.category;
+  document.getElementById('expenseDescription').value = expense.description || '';
+  document.getElementById('expenseAmount').value = expense.amount;
+  
+  currentEditingExpenseId = id;
+  const submitBtn = document.querySelector('#expenseSection button');
+  if (submitBtn) submitBtn.textContent = 'Update Expense';
+  
+  // Scroll to form
+  document.getElementById('expenseSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+/**
+ * Cancel editing
+ */
+function cancelEdit() {
+  currentEditingExpenseId = null;
+  document.getElementById('expenseCategory').value = '';
+  document.getElementById('expenseDescription').value = '';
+  document.getElementById('expenseAmount').value = '';
+  const submitBtn = document.querySelector('#expenseSection button');
+  if (submitBtn) submitBtn.textContent = 'Add Expense';
+}
+
+/**
+ * Load report data for a specific date (Staff + Expenses)
+ */
+async function loadReportData(date) {
+  const expenses = getLocalExpenses(date);
+  renderExpensesList(expenses, date);
+  
+  const staffName = getClosingStaff(date);
+  const staffInput = document.getElementById('closingStaff');
+  if (staffInput) staffInput.value = staffName;
+}
+
+/**
+ * Alias for exportReportToExcel to match HTML onclick
+ */
+function exportToExcel() {
+  return exportReportToExcel();
+}
 
 /**
  * Render expenses list in the UI

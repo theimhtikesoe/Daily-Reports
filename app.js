@@ -27,7 +27,20 @@ document.addEventListener('DOMContentLoaded', () => {
     return thailandTime.toISOString().slice(0, 10);
   }
 
-  if (els.reportDate) els.reportDate.value = getThailandDate();
+  if (els.reportDate) {
+    els.reportDate.value = getThailandDate();
+    els.reportDate.addEventListener('change', (e) => {
+      if (typeof loadReportData === 'function') {
+        loadReportData(e.target.value);
+      }
+    });
+    // Initial load
+    setTimeout(() => {
+      if (typeof loadReportData === 'function') {
+        loadReportData(els.reportDate.value);
+      }
+    }, 500);
+  }
 
   function showMessage(text, type = 'success') {
     if (!els.message) return;
@@ -98,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderEntries(els.transferEntriesList, els.transferEntriesTotal, data.transfer_entries || [], 'THB', false);
         renderEntries(els.discountEntriesList, els.discountEntriesTotal, data.discount_entries || [], 'THB', true);
 
+        window.lastSyncedData = data; // Ensure data is available for Excel export
         showMessage('Data synced successfully from Loyverse');
       } else {
         showMessage(result.message || 'Failed to sync data', 'danger');
