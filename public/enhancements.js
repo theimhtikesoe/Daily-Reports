@@ -10,54 +10,52 @@ let currentEditingExpenseId = null;
  * Get expenses from LocalStorage
  */
 function getLocalExpenses(date) {
-  const allExpenses = JSON.parse(localStorage.getItem('daily_expenses') || '{}');
-  return allExpenses[date] || [];
+  const key = `dailyExpenses_${date}`;
+  const stored = localStorage.getItem(key);
+  return stored ? JSON.parse(stored) : [];
 }
 
 /**
  * Save expenses to LocalStorage
  */
 function saveLocalExpenses(date, expenses) {
-  const allExpenses = JSON.parse(localStorage.getItem('daily_expenses') || '{}');
-  allExpenses[date] = expenses;
-  localStorage.setItem('daily_expenses', JSON.stringify(allExpenses));
+  const key = `dailyExpenses_${date}`;
+  localStorage.setItem(key, JSON.stringify(expenses));
 }
 
 /**
  * Get Closing Staff from LocalStorage
  */
 function getClosingStaff(date) {
-  const allStaff = JSON.parse(localStorage.getItem('closing_staff') || '{}');
-  return allStaff[date] || '';
+  const key = `closingStaff_${date}`;
+  return localStorage.getItem(key) || "";
 }
 
 /**
  * Save Closing Staff to LocalStorage
  */
 function saveClosingStaff(date, name) {
-  const allStaff = JSON.parse(localStorage.getItem('closing_staff') || '{}');
-  allStaff[date] = name;
-  localStorage.setItem('closing_staff', JSON.stringify(allStaff));
+  localStorage.setItem(`closingStaff_${date}`, name);
 }
 
 /**
  * Render expenses list in UI
  */
 function renderExpensesList(expenses, date) {
-  const container = document.getElementById('expensesList');
+  const container = document.getElementById("expensesList");
   if (!container) return;
   if (!expenses || expenses.length === 0) {
-    container.innerHTML = '<p class="text-muted">No expenses recorded</p>';
+    container.innerHTML = "<p class=\"text-muted\">No expenses recorded</p>";
     return;
   }
-  let html = `<div class="table-responsive"><table class="table table-sm table-hover align-middle"><thead class="table-dark"><tr><th>Category</th><th>Description</th><th>Amount</th><th class="text-end">Actions</th></tr></thead><tbody>`;
+  let html = `<div class=\"table-responsive\"><table class=\"table table-sm table-hover align-middle\"><thead class=\"table-dark\"><tr><th>Category</th><th>Description</th><th>Amount</th><th class=\"text-end\">Actions</th></tr></thead><tbody>`;
   let total = 0;
   expenses.forEach(expense => {
     const amount = parseFloat(expense.amount) || 0;
     total += amount;
-    html += `<tr><td><span class="badge bg-secondary">${expense.category}</span></td><td>${expense.description || '-'}</td><td class="fw-bold">${amount.toLocaleString()} THB</td><td class="text-end"><button class="btn btn-xs btn-outline-info me-1" onclick="editExpense(${expense.id}, '${date}')">Edit</button><button class="btn btn-xs btn-outline-danger" onclick="deleteExpense(${expense.id}, '${date}')">Delete</button></td></tr>`;
+    html += `<tr><td><span class=\"badge bg-secondary\">${expense.category}</span></td><td>${expense.description || "-"}</td><td class=\"fw-bold\">${amount.toLocaleString()} THB</td><td class=\"text-end\"><button class=\"btn btn-xs btn-outline-info me-1\" onclick=\"editExpense(${expense.id}, '${date}')\">Edit</button><button class=\"btn btn-xs btn-outline-danger\" onclick=\"deleteExpense(${expense.id}, '${date}')\">Delete</button></td></tr>`;
   });
-  html += `</tbody><tfoot class="table-light"><tr class="fw-bold"><td colspan="2">Total Expenses</td><td colspan="2" class="text-primary">${total.toLocaleString()} THB</td></tr></tfoot></table></div>`;
+  html += `</tbody><tfoot class=\"table-light\"><tr class=\"fw-bold\"><td colspan=\"2\">Total Expenses</td><td colspan=\"2\" class=\"text-primary\">${total.toLocaleString()} THB</td></tr></tfoot></table></div>`;
   container.innerHTML = html;
 }
 
@@ -65,19 +63,19 @@ function renderExpensesList(expenses, date) {
  * Add or Update expense
  */
 window.addExpenseToReport = async function() {
-  const dateInput = document.getElementById('reportDate');
-  const categorySelect = document.getElementById('expenseCategory');
-  const descriptionInput = document.getElementById('expenseDescription');
-  const amountInput = document.getElementById('expenseAmount');
-  const submitBtn = document.querySelector('#expenseSection button');
+  const dateInput = document.getElementById("reportDate");
+  const categorySelect = document.getElementById("expenseCategory");
+  const descriptionInput = document.getElementById("expenseDescription");
+  const amountInput = document.getElementById("expenseAmount");
+  const submitBtn = document.querySelector("#expenseSection button");
 
   const date = dateInput?.value;
   const category = categorySelect?.value;
-  const description = descriptionInput?.value || '';
+  const description = descriptionInput?.value || "";
   const amount = parseFloat(amountInput?.value) || 0;
 
   if (!date || !category || amount <= 0) {
-    window.showMessage('Please fill in all expense fields', 'warning');
+    window.showMessage("Please fill in all expense fields", "warning");
     return;
   }
 
@@ -91,9 +89,9 @@ window.addExpenseToReport = async function() {
         }
         return exp;
       });
-      window.showMessage('Expense updated successfully', 'success');
+      window.showMessage("Expense updated successfully", "success");
       currentEditingExpenseId = null;
-      if (submitBtn) submitBtn.textContent = 'Add Expense';
+      if (submitBtn) submitBtn.textContent = "Add Expense";
     } else {
       const newExpense = {
         id: Date.now(),
@@ -104,16 +102,16 @@ window.addExpenseToReport = async function() {
         created_at: new Date().toISOString()
       };
       expenses.push(newExpense);
-      window.showMessage('Expense added successfully', 'success');
+      window.showMessage("Expense added successfully", "success");
     }
     
     saveLocalExpenses(date, expenses);
-    if (categorySelect) categorySelect.value = '';
-    if (descriptionInput) descriptionInput.value = '';
-    if (amountInput) amountInput.value = '';
+    if (categorySelect) categorySelect.value = "";
+    if (descriptionInput) descriptionInput.value = "";
+    if (amountInput) amountInput.value = "";
     renderExpensesList(expenses, date);
   } catch (error) {
-    window.showMessage(`Error: ${error.message}`, 'danger');
+    window.showMessage(`Error: ${error.message}`, "danger");
   }
 };
 
@@ -121,30 +119,30 @@ window.editExpense = function(id, date) {
   const expenses = getLocalExpenses(date);
   const expense = expenses.find(e => e.id === id);
   if (!expense) return;
-  if (document.getElementById('expenseCategory')) document.getElementById('expenseCategory').value = expense.category;
-  if (document.getElementById('expenseDescription')) document.getElementById('expenseDescription').value = expense.description || '';
-  if (document.getElementById('expenseAmount')) document.getElementById('expenseAmount').value = expense.amount;
+  if (document.getElementById("expenseCategory")) document.getElementById("expenseCategory").value = expense.category;
+  if (document.getElementById("expenseDescription")) document.getElementById("expenseDescription").value = expense.description || "";
+  if (document.getElementById("expenseAmount")) document.getElementById("expenseAmount").value = expense.amount;
   currentEditingExpenseId = id;
-  const submitBtn = document.querySelector('#expenseSection button');
-  if (submitBtn) submitBtn.textContent = 'Update Expense';
-  document.getElementById('expenseSection')?.scrollIntoView({ behavior: 'smooth' });
+  const submitBtn = document.querySelector("#expenseSection button");
+  if (submitBtn) submitBtn.textContent = "Update Expense";
+  document.getElementById("expenseSection")?.scrollIntoView({ behavior: "smooth" });
 };
 
 window.deleteExpense = async function(id, date) {
-  if (!confirm('Are you sure you want to delete this expense?')) return;
+  if (!confirm("Are you sure you want to delete this expense?")) return;
   try {
     let expenses = getLocalExpenses(date);
     expenses = expenses.filter(e => e.id !== id);
     saveLocalExpenses(date, expenses);
-    window.showMessage('Expense deleted', 'success');
+    window.showMessage("Expense deleted", "success");
     renderExpensesList(expenses, date);
     if (currentEditingExpenseId === id) {
         currentEditingExpenseId = null;
-        const submitBtn = document.querySelector('#expenseSection button');
-        if (submitBtn) submitBtn.textContent = 'Add Expense';
+        const submitBtn = document.querySelector("#expenseSection button");
+        if (submitBtn) submitBtn.textContent = "Add Expense";
     }
   } catch (error) {
-    window.showMessage(`Error: ${error.message}`, 'danger');
+    window.showMessage(`Error: ${error.message}`, "danger");
   }
 };
 
@@ -152,33 +150,33 @@ window.loadReportData = function(date) {
   const expenses = getLocalExpenses(date);
   renderExpensesList(expenses, date);
   const staffName = getClosingStaff(date);
-  const staffInput = document.getElementById('closingStaff');
+  const staffInput = document.getElementById("closingStaff");
   if (staffInput) staffInput.value = staffName;
 };
 
 /**
  * Full Client-Side Excel Export
  */
-window.exportToExcel = async function() {
-  const dateInput = document.getElementById('reportDate');
-  const staffInput = document.getElementById('closingStaff');
+window.exportReportToExcel = async function() {
+  const dateInput = document.getElementById("reportDate");
+  const staffInput = document.getElementById("closingStaff");
   const date = dateInput?.value;
-  const staffName = staffInput?.value || 'N/A';
+  const staffName = staffInput?.value || "N/A";
 
   if (!date) {
-    window.showMessage('Please select a date first', 'warning');
+    window.showMessage("Please select a date first", "warning");
     return;
   }
 
   saveClosingStaff(date, staffName);
 
   try {
-    window.showMessage('Generating Excel file...', 'info');
+    window.showMessage("Generating Excel file...", "info");
     const rawData = window.lastSyncedData;
     const expenses = getLocalExpenses(date);
 
     if (!rawData || !rawData.receipts) {
-      window.showMessage('No synced data available for this date. Please sync first.', 'danger');
+      window.showMessage("No synced data available for this date. Please sync first.", "danger");
       return;
     }
 
@@ -195,8 +193,8 @@ window.exportToExcel = async function() {
     receipts.forEach(receipt => {
       const items = receipt.line_items || receipt.items || [];
       const paymentMethod = (receipt.payments && receipt.payments[0]?.payment_type?.name) || 
-                             (receipt.payments && receipt.payments[0]?.name) || 'N/A';
-      const receiptNumber = receipt.receipt_number || receipt.number || 'N/A';
+                             (receipt.payments && receipt.payments[0]?.name) || "N/A";
+      const receiptNumber = receipt.receipt_number || receipt.number || "N/A";
       
       const orderDiscount = parseFloat(receipt.total_discount_money?.amount || 0);
       const orderTotal = parseFloat(receipt.total_money?.amount || 0);
@@ -220,30 +218,30 @@ window.exportToExcel = async function() {
 
         const totalItemDiscount = grossPrice - itemNetPrice;
         const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
-        const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` : '-';
+        const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` : "-";
 
         const flowerStrains = [
-          'grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 
-          'moonbow', 'emergen c', 'tea time', 'silver shadow', 
-          'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
-          'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
-          'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
-          'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
-          'free pina colada', 'thc gummy'
+          "grape soda", "blue pave", "devil driver", "lemon cherry gelato", 
+          "moonbow", "emergen c", "tea time", "silver shadow", 
+          "rozay cake", "truffaloha", "the planet of grape", "crunch berriez",
+          "big foot", "honey bee", "jealousy mintz", "crystal candy",
+          "alien mint", "rocket fuel", "gold dust", "darth vader",
+          "cherry pop tarts", "white cherry gelato", "dosidos", "obama runtz",
+          "free pina colada", "thc gummy"
         ];
 
         let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
-        let isThcGummy = itemName.includes('thc gummy');
-        let isLobbyShirt = itemName.includes('the lobby shirt');
+        let isThcGummy = itemName.includes("thc gummy");
+        let isLobbyShirt = itemName.includes("the lobby shirt");
 
-        let fbKeywords = ['soft drink', 'snacks', 'gummy', 'water', 'soda', 'milk', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'food', 'coffee', 'juice', 'bakery', 'cookie', 'brownie', 'cake', 'soju'];
+        let fbKeywords = ["soft drink", "snacks", "gummy", "water", "soda", "milk", "beer", "drink", "beverage", "alcohol", "wine", "cider", "spirit", "cocktail", "food", "coffee", "juice", "bakery", "cookie", "brownie", "cake", "soju"];
         let hasFBKeyword = fbKeywords.some(keyword => itemName.includes(keyword) || category.includes(keyword)) ||
-                           (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time'));
+                           (["tea"].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes("tea time"));
 
         let isFB = !isFlowerStrain && (hasFBKeyword || (grossPrice / (qty || 1)) <= 50);
 
         const exportItem = {
-          type: isFB ? 'F&B' : 'Flower/Main',
+          type: isFB ? "F&B" : "Flower/Main",
           name: item.name || item.item_name,
           qty: qty,
           unitPrice: grossPrice / (qty || 1),
@@ -265,110 +263,140 @@ window.exportToExcel = async function() {
     });
 
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Daily Report');
+    const sheet = workbook.addWorksheet("Daily Report");
 
-    const border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+    const border = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } };
     const boldFont = { bold: true };
-    const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
+    const headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD3D3D3" } };
 
-    sheet.getCell('A1').value = `Daily Report - ${date}`;
-    sheet.getCell('A1').font = { size: 14, bold: true };
+    sheet.getCell("A1").value = `Daily Report - ${date}`;
+    sheet.getCell("A1").font = { size: 14, bold: true };
 
-    sheet.getCell('A3').value = 'Flower / Main / Accessories';
-    sheet.getCell('A3').font = boldFont;
+    sheet.mergeCells("A2:H2");
+    sheet.getCell("A2").value = `Closing Staff: ${staffName}`;
+    sheet.getCell("A2").font = { size: 12, bold: true, color: { argb: "FF555555" } };
+    sheet.getCell("A2").alignment = { horizontal: "center" };
 
-    const headers = ['Item Type', 'Item Name', 'Qty', 'Unit Price', 'Discount', 'Net Price', 'Payment', 'Note'];
-    headers.forEach((h, i) => {
-      const cell = sheet.getCell(4, i + 1);
-      cell.value = h;
-      cell.font = boldFont;
-      cell.fill = headerFill;
-      cell.border = border;
-    });
-
-    let currRow = 5;
-    flowerItems.forEach(item => {
-      const row = sheet.getRow(currRow);
-      row.values = [item.type, item.name, item.qty, item.unitPrice, item.discount, item.netPrice, item.payment, item.note];
-      row.eachCell(cell => cell.border = border);
-      currRow++;
-    });
-
-    currRow += 2;
-    sheet.getCell(`A${currRow}`).value = 'Expenses';
-    sheet.getCell(`A${currRow}`).font = boldFont;
+    let currRow = 4;
+    sheet.getCell(`A${currRow}`).value = "Flower / Main / Accessories";
+    sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: "FF0000FF" } };
     currRow++;
-    const expHeaders = ['Category', 'Description', 'Amount'];
-    expHeaders.forEach((h, i) => {
+
+    const headers = ["Item Type", "Item Name", "Qty", "Unit Price", "Discount", "Net Price", "Payment", "Note"];
+    headers.forEach((h, i) => {
       const cell = sheet.getCell(currRow, i + 1);
       cell.value = h;
+      cell.fill = headerFill;
       cell.font = boldFont;
+      cell.alignment = { horizontal: "center" };
       cell.border = border;
     });
     currRow++;
+
+    flowerItems.forEach(item => {
+      sheet.getCell(`A${currRow}`).value = item.type;
+      sheet.getCell(`B${currRow}`).value = item.name;
+      sheet.getCell(`C${currRow}`).value = item.qty;
+      sheet.getCell(`D${currRow}`).value = item.unitPrice;
+      sheet.getCell(`E${currRow}`).value = item.discount;
+      sheet.getCell(`F${currRow}`).value = item.netPrice;
+      sheet.getCell(`G${currRow}`).value = item.payment;
+      sheet.getCell(`H${currRow}`).value = item.note;
+      ["A","B","C","D","E","F","G","H"].forEach(col => sheet.getCell(`${col}${currRow}`).border = border);
+      currRow++;
+    });
+    currRow += 2;
+
+    sheet.getCell(`A${currRow}`).value = "Expenses";
+    sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: "FFFF0000" } };
+    currRow++;
+
+    const expenseHeaders = ["Category", "Description", "Amount"];
+    expenseHeaders.forEach((h, i) => {
+      const cell = sheet.getCell(currRow, i + 1);
+      cell.value = h;
+      cell.fill = headerFill;
+      cell.font = boldFont;
+      cell.alignment = { horizontal: "center" };
+      cell.border = border;
+    });
+    currRow++;
+
     let totalExp = 0;
     expenses.forEach(exp => {
+      sheet.getCell(`A${currRow}`).value = exp.category;
+      sheet.getCell(`B${currRow}`).value = exp.description || "-";
+      sheet.getCell(`C${currRow}`).value = exp.amount;
       totalExp += exp.amount;
-      const row = sheet.getRow(currRow);
-      row.values = [exp.category, exp.description || '-', exp.amount];
-      row.eachCell(cell => cell.border = border);
+      ["A","B","C"].forEach(col => sheet.getCell(`${col}${currRow}`).border = border);
       currRow++;
     });
     currRow += 2;
 
-    sheet.getCell(`A${currRow}`).value = 'Food & Drinks';
-    sheet.getCell(`A${currRow}`).font = boldFont;
+    sheet.getCell(`A${currRow}`).value = "Food & Drinks";
+    sheet.getCell(`A${currRow}`).font = { bold: true, color: { argb: "FF008000" } };
     currRow++;
+
     headers.forEach((h, i) => {
       const cell = sheet.getCell(currRow, i + 1);
       cell.value = h;
-      cell.font = boldFont;
       cell.fill = headerFill;
+      cell.font = boldFont;
+      cell.alignment = { horizontal: "center" };
       cell.border = border;
     });
     currRow++;
+
     fbItems.forEach(item => {
-      const row = sheet.getRow(currRow);
-      row.values = [item.type, item.name, item.qty, item.unitPrice, item.discount, item.netPrice, item.payment, item.note];
-      row.eachCell(cell => cell.border = border);
+      sheet.getCell(`A${currRow}`).value = item.type;
+      sheet.getCell(`B${currRow}`).value = item.name;
+      sheet.getCell(`C${currRow}`).value = item.qty;
+      sheet.getCell(`D${currRow}`).value = item.unitPrice;
+      sheet.getCell(`E${currRow}`).value = item.discount;
+      sheet.getCell(`F${currRow}`).value = item.netPrice;
+      sheet.getCell(`G${currRow}`).value = item.payment;
+      sheet.getCell(`H${currRow}`).value = item.note;
+      ["A","B","C","D","E","F","G","H"].forEach(col => sheet.getCell(`${col}${currRow}`).border = border);
       currRow++;
     });
     currRow += 2;
 
-    sheet.getCell(`A${currRow}`).value = 'Daily Summary Dashboard';
-    sheet.getCell(`A${currRow}`).font = boldFont;
+    sheet.getCell(`A${currRow}`).value = "Daily Summary Dashboard";
+    sheet.getCell(`A${currRow}`).font = { bold: true, size: 12 };
     currRow++;
 
-    const dashboard = [
-      ['Total Grams Sold', totalFlowerGrams, 'G'],
-      ['Cash In', cashTotal, 'THB'],
-      ['Card In', cardTotal, 'THB'],
-      ['Transfer In', transferTotal, 'THB'],
-      ['Total Expenses', totalExp, 'THB'],
-      ['Net Sales (Total)', netSale, 'THB'],
-      ['Net Profit (After Expenses)', netSale - totalExp, 'THB']
+    const fbTotal = fbItems.reduce((acc, item) => acc + item.netPrice, 0);
+    const summaryData = [
+      ["Total Grams Sold", totalFlowerGrams, "G"],
+      ["Cash In", cashTotal, "THB"],
+      ["Card In", cardTotal, "THB"],
+      ["Transfer In", transferTotal, "THB"],
+      ["F&B Total Price", fbTotal, "THB"],
+      ["Total Expenses", totalExp, "THB"],
+      ["Net Sales (Total)", netSale, "THB"],
+      ["Net Profit (After Expenses)", netSale - totalExp, "THB"]
     ];
 
-    dashboard.forEach(d => {
-      sheet.getCell(`A${currRow}`).value = d[0];
-      sheet.getCell(`B${currRow}`).value = d[1];
-      sheet.getCell(`C${currRow}`).value = d[2];
-      ['A','B','C'].forEach(col => sheet.getCell(`${col}${currRow}`).border = border);
+    summaryData.forEach(row => {
+      sheet.getCell(`A${currRow}`).value = row[0];
+      sheet.getCell(`B${currRow}`).value = row[1];
+      sheet.getCell(`C${currRow}`).value = row[2];
+      ["A","B","C"].forEach(col => sheet.getCell(`${col}${currRow}`).border = border);
       currRow++;
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = window.URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
+    const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `BestBuds_Report_${date}.xlsx`;
+    anchor.download = `Daily_Report_${date}.xlsx`;
     anchor.click();
     window.URL.revokeObjectURL(url);
 
-    window.showMessage('Excel report exported successfully', 'success');
+    window.showMessage("Excel report exported successfully", "success");
   } catch (error) {
-    console.error('Excel Export Error:', error);
-    window.showMessage(`Error: ${error.message}`, 'danger');
+    console.error("Excel Export Error:", error);
+    window.showMessage(`Error: ${error.message}`, "danger");
   }
 };
