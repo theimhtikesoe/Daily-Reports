@@ -479,11 +479,13 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
       // 1. Price 0 (THB 0) items are excluded
       // 2. Name containing "free" are excluded
       // 3. "The Lobby Shirt" is excluded
-      // 4. 100% Discounted items are excluded (itemTotal would be 0)
+      // 4. "THC Gummy" is excluded (sold by pieces)
+      // 5. 100% Discounted items are excluded (itemTotal would be 0)
       const isFree = itemTotal <= 0 || itemName.includes('free');
       const isLobbyShirt = itemName.includes('the lobby shirt');
+      const isThcGummy = itemName.includes('thc gummy');
       
-      if (!isFree && !isLobbyShirt) {
+      if (!isFree && !isLobbyShirt && !isThcGummy) {
         totalGram += qty;
         if (!mainItemName) {
           mainItemName = String(lineItem.item_name || lineItem.name || "").trim();
