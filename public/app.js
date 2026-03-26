@@ -201,7 +201,7 @@ function normalizeEntries(entries) {
 
 function renderEntryList(listElement, entries, options = {}) {
   if (!listElement) return;
-  const { showPercentage = false, percentageOnly = false, percentageFallbackText = 'N/A%', showGram = false } = options;
+  const { showPercentage = false, percentageOnly = false, percentageFallbackText = 'N/A%', showGram = false, showDiscount = false } = options;
   
   listElement.innerHTML = '';
   if (!entries.length) {
@@ -230,8 +230,10 @@ function renderEntryList(listElement, entries, options = {}) {
         const mainText = entry.mainAccTotal > 0 ? formatCompactNumber(entry.mainAccTotal) : '';
         const fbText = entry.fbTotal > 0 ? formatCompactNumber(entry.fbTotal) : '-';
         const splitText = `${mainText} / ${fbText}`;
+        li.appendChild(document.createTextNode(splitText));
+
         if (showGram && entry.gramShare > 0) {
-          li.appendChild(document.createTextNode(`${splitText} `));
+          li.appendChild(document.createTextNode(' '));
           const gramBadge = document.createElement('span');
           gramBadge.className = 'entry-gram-badge';
           const gramValue = document.createElement('span');
@@ -244,8 +246,15 @@ function renderEntryList(listElement, entries, options = {}) {
           gramBadge.append(' ');
           gramBadge.appendChild(gramUnit);
           li.appendChild(gramBadge);
-        } else {
-          li.textContent = splitText;
+        }
+
+        const discountPercent = parsePercentage(entry?.discountPercentage);
+        if (showDiscount && discountPercent > 0) {
+          li.appendChild(document.createTextNode(' '));
+          const discountBadge = document.createElement('span');
+          discountBadge.className = 'entry-discount-badge';
+          discountBadge.textContent = formatPercentage(discountPercent);
+          li.appendChild(discountBadge);
         }
       } else {
         li.textContent = `${formatCurrency(entry.amount)}`;
@@ -309,15 +318,78 @@ function attachGramShare(entries, receiptGramMap) {
   });
 }
 
-function applyPaymentDetails(data, receiptGramMap = new Map()) {
-  const cashEntries = attachGramShare(sortEntriesByTimeAsc(normalizeEntries(data?.cash_entries || [])), receiptGramMap);
-  const cardEntries = attachGramShare(sortEntriesByTimeAsc(normalizeEntries(data?.card_entries || [])), receiptGramMap);
-  const transferEntries = attachGramShare(sortEntriesByTimeAsc(normalizeEntries(data?.transfer_entries || [])), receiptGramMap);
-  const discountEntries = normalizeEntries(Array.isArray(data?.discount_entry_details) && data.discount_entry_details.length ? data.discount_entry_details : data?.discount_entries || []);
+function buildDiscountLookup(discountEntries) {
+  const byReceipt = new Map();
+  const byTime = new Map();
 
-  renderEntryList(els.cashEntriesList, cashEntries, { showGram: true });
-  renderEntryList(els.cardEntriesList, cardEntries, { showGram: true });
-  renderEntryList(els.transferEntriesList, transferEntries, { showGram: true });
+  discountEntries.forEach((entry) => {
+    const percentage = parsePercentage(entry?.percentage);
+    if (!(percentage > 0)) return;
+
+    const receiptKey = String(entry?.receiptNumber || '').trim();
+    if (receiptKey && !byReceipt.has(receiptKey)) {
+      byReceipt.set(receiptKey, percentage);
+    }
+
+    const timeKey = formatTime(entry?.time);
+    if (timeKey) {
+      if (!byTime.has(timeKey)) byTime.set(timeKey, []);
+      byTime.get(timeKey).push(percentage);
+    }
+  });
+
+  return { byReceipt, byTime };
+}
+
+function attachDiscountPercentage(entries, discountEntries) {
+  const lookup = buildDiscountLookup(discountEntries);
+  const pendingByTime = new Map(
+    Array.from(lookup.byTime.entries()).map(([timeKey, percentages]) => [timeKey, [...percentages]])
+  );
+
+  return entries.map((entry) => {
+    let discountPercentage = parsePercentage(entry?.percentage);
+
+    if (!(discountPercentage > 0)) {
+      const receiptKey = String(entry?.receiptNumber || '').trim();
+      if (receiptKey && lookup.byReceipt.has(receiptKey)) {
+        discountPercentage = lookup.byReceipt.get(receiptKey);
+      }
+    }
+
+    if (!(discountPercentage > 0)) {
+      const timeKey = formatTime(entry?.time);
+      const queuedPercentages = timeKey ? pendingByTime.get(timeKey) : null;
+      if (queuedPercentages && queuedPercentages.length > 0) {
+        discountPercentage = queuedPercentages.shift();
+      }
+    }
+
+    return {
+      ...entry,
+      discountPercentage: discountPercentage > 0 ? round2(discountPercentage) : null
+    };
+  });
+}
+
+function applyPaymentDetails(data, receiptGramMap = new Map()) {
+  const discountEntries = normalizeEntries(Array.isArray(data?.discount_entry_details) && data.discount_entry_details.length ? data.discount_entry_details : data?.discount_entries || []);
+  const cashEntries = attachDiscountPercentage(
+    attachGramShare(sortEntriesByTimeAsc(normalizeEntries(data?.cash_entries || [])), receiptGramMap),
+    discountEntries
+  );
+  const cardEntries = attachDiscountPercentage(
+    attachGramShare(sortEntriesByTimeAsc(normalizeEntries(data?.card_entries || [])), receiptGramMap),
+    discountEntries
+  );
+  const transferEntries = attachDiscountPercentage(
+    attachGramShare(sortEntriesByTimeAsc(normalizeEntries(data?.transfer_entries || [])), receiptGramMap),
+    discountEntries
+  );
+
+  renderEntryList(els.cashEntriesList, cashEntries, { showGram: true, showDiscount: true });
+  renderEntryList(els.cardEntriesList, cardEntries, { showGram: true, showDiscount: true });
+  renderEntryList(els.transferEntriesList, transferEntries, { showGram: true, showDiscount: true });
   renderEntryList(els.discountEntriesList, discountEntries, { showPercentage: true, percentageOnly: true });
 
   const cashTotal = cashEntries.reduce((s, e) => s + e.amount, 0);
