@@ -32,6 +32,38 @@ body {
   gap: 14px;
 }
 
+.header-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-mascot {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(200, 136, 46, 0.45);
+  background: linear-gradient(180deg, #2b2110, #1a1408);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.38);
+  font-size: 0.95rem;
+  line-height: 1;
+  animation: bee-fly 3.6s ease-in-out infinite;
+  will-change: transform;
+  user-select: none;
+  pointer-events: none;
+}
+
+@keyframes bee-fly {
+  0%, 100% { transform: translate(0, 0) rotate(-8deg); }
+  20% { transform: translate(3px, -4px) rotate(2deg); }
+  40% { transform: translate(-2px, -8px) rotate(-4deg); }
+  60% { transform: translate(4px, -3px) rotate(4deg); }
+  80% { transform: translate(-1px, -6px) rotate(-2deg); }
+}
+
 .brand-wrap {
   display: flex;
   align-items: center;
@@ -126,6 +158,23 @@ body {
   .made-by-tag {
     font-size: 0.78rem;
     padding: 5px 10px;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .nav-mascot {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-mascot {
+    animation: none;
   }
 }
 
