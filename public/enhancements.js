@@ -5,6 +5,7 @@
  */
 
 let currentEditingExpenseId = null;
+let currentEditingClosingStaffId = null;
 
 /**
  * Get expenses from LocalStorage
@@ -23,19 +24,77 @@ function saveLocalExpenses(date, expenses) {
   localStorage.setItem(key, JSON.stringify(expenses));
 }
 
-/**
- * Get Closing Staff from LocalStorage
- */
-function getClosingStaff(date) {
-  const key = `closingStaff_${date}`;
-  return localStorage.getItem(key) || "";
+function getClosingStaffEntries(date) {
+  if (!date) return [];
+
+  const listKey = `dailyClosingStaff_${date}`;
+  const stored = localStorage.getItem(listKey);
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((entry) => entry && String(entry.name || "").trim() !== "")
+          .map((entry) => ({
+            id: entry.id || Date.now() + Math.random(),
+            name: String(entry.name).trim(),
+            created_at: entry.created_at || new Date().toISOString()
+          }));
+      }
+    } catch (error) {
+      console.warn("Failed to parse closing staff list:", error);
+    }
+  }
+
+  const legacy = localStorage.getItem(`closingStaff_${date}`) || "";
+  const legacyName = String(legacy).trim();
+  if (!legacyName) return [];
+  return [{
+    id: `legacy-${date}`,
+    name: legacyName,
+    created_at: new Date().toISOString()
+  }];
+}
+
+function saveClosingStaffEntries(date, entries) {
+  if (!date) return;
+  const cleaned = (Array.isArray(entries) ? entries : [])
+    .filter((entry) => entry && String(entry.name || "").trim() !== "")
+    .map((entry) => ({
+      id: entry.id || Date.now() + Math.random(),
+      name: String(entry.name).trim(),
+      created_at: entry.created_at || new Date().toISOString()
+    }));
+
+  localStorage.setItem(`dailyClosingStaff_${date}`, JSON.stringify(cleaned));
+  localStorage.setItem(`closingStaff_${date}`, cleaned.map((entry) => entry.name).join(", "));
 }
 
 /**
- * Save Closing Staff to LocalStorage
+ * Get Closing Staff display string from LocalStorage
+ */
+function getClosingStaff(date) {
+  const entries = getClosingStaffEntries(date);
+  return entries.map((entry) => entry.name).join(", ");
+}
+
+/**
+ * Add one Closing Staff name into LocalStorage
  */
 function saveClosingStaff(date, name) {
-  localStorage.setItem(`closingStaff_${date}`, name);
+  const staffName = String(name || "").trim();
+  if (!date || !staffName) return;
+
+  const entries = getClosingStaffEntries(date);
+  const alreadyExists = entries.some((entry) => entry.name.toLowerCase() === staffName.toLowerCase());
+  if (!alreadyExists) {
+    entries.push({
+      id: Date.now(),
+      name: staffName,
+      created_at: new Date().toISOString()
+    });
+  }
+  saveClosingStaffEntries(date, entries);
 }
 
 /**
@@ -146,12 +205,120 @@ window.deleteExpense = async function(id, date) {
   }
 };
 
+function renderClosingStaffList(staffEntries, date) {
+  const container = document.getElementById("closingStaffList");
+  if (!container) return;
+
+  if (!Array.isArray(staffEntries) || staffEntries.length === 0) {
+    container.innerHTML = "<p class=\"text-muted mb-0\">No closing staff recorded</p>";
+    return;
+  }
+
+  let html = "<div class=\"table-responsive\"><table class=\"table table-sm table-hover align-middle\"><thead class=\"table-dark\"><tr><th>#</th><th>Name</th><th class=\"text-end\">Actions</th></tr></thead><tbody>";
+  staffEntries.forEach((entry, index) => {
+    html += `<tr>
+      <td>${index + 1}</td>
+      <td class=\"fw-semibold\">${entry.name}</td>
+      <td class=\"text-end\">
+        <button class=\"btn btn-xs btn-outline-info me-1\" onclick=\"editClosingStaff('${entry.id}', '${date}')\">Edit</button>
+        <button class=\"btn btn-xs btn-outline-danger\" onclick=\"deleteClosingStaff('${entry.id}', '${date}')\">Delete</button>
+      </td>
+    </tr>`;
+  });
+  html += "</tbody></table></div>";
+  container.innerHTML = html;
+}
+
+window.addClosingStaffToReport = function() {
+  const date = document.getElementById("reportDate")?.value;
+  const staffInput = document.getElementById("closingStaff");
+  const addBtn = document.getElementById("addClosingStaffBtn");
+  const staffName = String(staffInput?.value || "").trim();
+
+  if (!date) {
+    window.showMessage("Please select a report date first", "warning");
+    return;
+  }
+  if (!staffName) {
+    window.showMessage("Please enter closing staff name", "warning");
+    return;
+  }
+
+  let entries = getClosingStaffEntries(date);
+
+  if (currentEditingClosingStaffId) {
+    entries = entries.map((entry) => {
+      if (String(entry.id) === String(currentEditingClosingStaffId)) {
+        return { ...entry, name: staffName };
+      }
+      return entry;
+    });
+    window.showMessage("Closing staff updated successfully", "success");
+    currentEditingClosingStaffId = null;
+    if (addBtn) addBtn.textContent = "➕ Add Closing Staff";
+  } else {
+    const exists = entries.some((entry) => entry.name.toLowerCase() === staffName.toLowerCase());
+    if (exists) {
+      window.showMessage("This closing staff is already added for this date", "warning");
+      return;
+    }
+    entries.push({
+      id: Date.now(),
+      name: staffName,
+      created_at: new Date().toISOString()
+    });
+    window.showMessage("Closing staff added successfully", "success");
+  }
+
+  saveClosingStaffEntries(date, entries);
+  renderClosingStaffList(entries, date);
+  if (staffInput) staffInput.value = "";
+};
+
+window.editClosingStaff = function(id, date) {
+  const staffInput = document.getElementById("closingStaff");
+  const addBtn = document.getElementById("addClosingStaffBtn");
+  const entries = getClosingStaffEntries(date);
+  const staff = entries.find((entry) => String(entry.id) === String(id));
+  if (!staff || !staffInput) return;
+
+  staffInput.value = staff.name;
+  currentEditingClosingStaffId = staff.id;
+  if (addBtn) addBtn.textContent = "Update Closing Staff";
+  document.getElementById("closingStaffSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+window.deleteClosingStaff = function(id, date) {
+  if (!confirm("Are you sure you want to delete this closing staff?")) return;
+
+  let entries = getClosingStaffEntries(date);
+  entries = entries.filter((entry) => String(entry.id) !== String(id));
+  saveClosingStaffEntries(date, entries);
+  renderClosingStaffList(entries, date);
+
+  if (String(currentEditingClosingStaffId) === String(id)) {
+    currentEditingClosingStaffId = null;
+    const staffInput = document.getElementById("closingStaff");
+    const addBtn = document.getElementById("addClosingStaffBtn");
+    if (staffInput) staffInput.value = "";
+    if (addBtn) addBtn.textContent = "➕ Add Closing Staff";
+  }
+  window.showMessage("Closing staff deleted", "success");
+};
+
 window.loadReportData = function(date) {
   const expenses = getLocalExpenses(date);
   renderExpensesList(expenses, date);
-  const staffName = getClosingStaff(date);
+  const staffEntries = getClosingStaffEntries(date);
+  renderClosingStaffList(staffEntries, date);
   const staffInput = document.getElementById("closingStaff");
-  if (staffInput) staffInput.value = staffName;
+  if (staffInput) {
+    staffInput.value = "";
+    staffInput.placeholder = "Enter name";
+  }
+  currentEditingClosingStaffId = null;
+  const addBtn = document.getElementById("addClosingStaffBtn");
+  if (addBtn) addBtn.textContent = "➕ Add Closing Staff";
 };
 
 /**
@@ -161,14 +328,17 @@ window.exportReportToExcel = async function() {
   const dateInput = document.getElementById("reportDate");
   const staffInput = document.getElementById("closingStaff");
   const date = dateInput?.value;
-  const staffName = staffInput?.value || "N/A";
+  const typedStaffName = String(staffInput?.value || "").trim();
 
   if (!date) {
     window.showMessage("Please select a date first", "warning");
     return;
   }
 
-  saveClosingStaff(date, staffName);
+  if (typedStaffName) {
+    saveClosingStaff(date, typedStaffName);
+  }
+  const staffName = getClosingStaff(date) || typedStaffName || "N/A";
 
   try {
     window.showMessage("Generating Excel file...", "info");

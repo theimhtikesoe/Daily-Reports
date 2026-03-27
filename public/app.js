@@ -845,6 +845,9 @@ function bindEvents() {
       if (monthInput && reportDateInput.value) {
         monthInput.value = reportDateInput.value.slice(0, 7);
       }
+      if (typeof window.loadReportData === 'function' && reportDateInput.value) {
+        window.loadReportData(reportDateInput.value);
+      }
       syncFromLoyverse();
     });
   }
@@ -918,6 +921,9 @@ function init() {
   els.discountEntriesList = document.getElementById('discountEntriesList');
 
   bindEvents();
+  if (typeof window.loadReportData === 'function' && reportDateInput?.value) {
+    window.loadReportData(reportDateInput.value);
+  }
   syncFromLoyverse();
   const mainContent = document.querySelector('.app-main-content');
   if (mainContent) {
