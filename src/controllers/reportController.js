@@ -21,9 +21,14 @@ function eventsHandler(req, res) {
   const headers = {
     'Content-Type': 'text/event-stream',
     'Connection': 'keep-alive',
-    'Cache-Control': 'no-cache'
+    'Cache-Control': 'no-cache',
+    'X-Accel-Buffering': 'no' // Disable buffering for Nginx/Proxy
   };
   res.writeHead(200, headers);
+
+  // Send a comment to keep connection alive
+  res.write('retry: 10000\n\n');
+  res.write(':ok\n\n');
 
   const clientId = Date.now();
   const newClient = {

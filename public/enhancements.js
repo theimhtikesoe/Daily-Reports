@@ -19,23 +19,38 @@ function setupRealtimeListener() {
 
   eventSource.onmessage = (event) => {
     try {
-      const data = JSON.parse(event.data);
+      // Handle potential double-stringified data from some SSE implementations
+      let rawData = event.data;
+      if (typeof rawData === 'string' && (rawData.startsWith('"') || rawData.startsWith('{'))) {
+        try {
+          const parsedOnce = JSON.parse(rawData);
+          if (typeof parsedOnce === 'string') {
+            rawData = parsedOnce;
+          }
+        } catch(e) {}
+      }
+      
+      const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+      console.log('Received real-time event:', data);
+      
       const currentDate = document.getElementById("reportDate")?.value;
 
       if (data.date === currentDate) {
         if (data.type === 'EXPENSE_UPDATE') {
+          console.log('Updating expenses for', currentDate);
           fetchExpenses(currentDate);
         } else if (data.type === 'STAFF_UPDATE') {
+          console.log('Updating staff for', currentDate);
           fetchStaff(currentDate);
         } else if (data.type === 'REPORT_UPDATE') {
-          // Full report update, refresh everything
+          console.log('Updating full report for', currentDate);
           if (typeof window.loadReportData === 'function') {
             window.loadReportData(currentDate);
           }
         }
       }
     } catch (error) {
-      console.error('Error processing real-time event:', error);
+      console.error('Error processing real-time event:', error, event.data);
     }
   };
 
