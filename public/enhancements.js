@@ -307,10 +307,12 @@ window.deleteClosingStaff = function(id, date) {
 };
 
 window.loadReportData = function(date) {
-  const expenses = getLocalExpenses(date);
-  renderExpensesList(expenses, date);
-  const staffEntries = getClosingStaffEntries(date);
-  renderClosingStaffList(staffEntries, date);
+  // Load expenses from API
+  fetchExpenses(date);
+
+  // Load staff from API
+  fetchStaff(date);
+
   const staffInput = document.getElementById("closingStaff");
   if (staffInput) {
     staffInput.value = "";

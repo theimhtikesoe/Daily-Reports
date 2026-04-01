@@ -9,10 +9,17 @@ const {
   exportToExcel,
   addExpense,
   removeExpense,
-  listExpenses
+  listExpenses,
+  addStaff,
+  removeStaff,
+  listStaff,
+  eventsHandler
 } = require('../controllers/reportController');
 
 const router = express.Router();
+
+// Real-time events
+router.get('/events', eventsHandler);
 
 router.get('/loyverse/sync', syncFromLoyverse);
 
@@ -53,5 +60,10 @@ router.get('/reports/:date/export', exportToExcel);
 router.post('/expenses', addExpense);
 router.delete('/expenses/:id', removeExpense);
 router.get('/expenses/:date', listExpenses);
+
+// Staff management
+router.post('/staff', addStaff);
+router.delete('/staff/:id', removeStaff);
+router.get('/staff/:date', listStaff);
 
 module.exports = router;

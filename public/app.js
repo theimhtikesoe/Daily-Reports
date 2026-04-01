@@ -29,9 +29,13 @@ const SYNC_TIMEOUT_MS = 25000;
 function renderExpenses() {
   const date = document.getElementById('reportDate')?.value;
   if (!date) return;
-  const expenses = typeof getLocalExpenses === 'function' ? getLocalExpenses(date) : [];
-  if (typeof renderExpensesList === 'function') {
-    renderExpensesList(expenses, date);
+  if (typeof fetchExpenses === 'function') {
+    fetchExpenses(date);
+  } else {
+    const expenses = typeof getLocalExpenses === 'function' ? getLocalExpenses(date) : [];
+    if (typeof renderExpensesList === 'function') {
+      renderExpensesList(expenses, date);
+    }
   }
 }
 // ----------------------

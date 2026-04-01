@@ -46,3 +46,13 @@ CREATE TABLE IF NOT EXISTS item_classifications (
 );
 
 CREATE INDEX IF NOT EXISTS idx_item_classifications_name ON item_classifications (item_name);
+
+CREATE TABLE IF NOT EXISTS daily_staff (
+  id SERIAL PRIMARY KEY,
+  date DATE NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (date) REFERENCES daily_reports(date) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_daily_staff_date ON daily_staff (date);

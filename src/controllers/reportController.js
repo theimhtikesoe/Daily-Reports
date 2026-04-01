@@ -10,6 +10,39 @@ const { calculateReportValues, toNumber } = require('../utils/calculations');
 const { calculatePeriodBusinessSummary } = require('../services/settlementService');
 
 const isPostgres = getDialect() === 'postgres';
+
+// SSE Clients
+let clients = [];
+
+/**
+ * SSE middleware to handle real-time updates
+ */
+function eventsHandler(req, res) {
+  const headers = {
+    'Content-Type': 'text/event-stream',
+    'Connection': 'keep-alive',
+    'Cache-Control': 'no-cache'
+  };
+  res.writeHead(200, headers);
+
+  const clientId = Date.now();
+  const newClient = {
+    id: clientId,
+    res
+  };
+  clients.push(newClient);
+
+  req.on('close', () => {
+    clients = clients.filter(client => client.id !== clientId);
+  });
+}
+
+/**
+ * Broadcast event to all connected clients
+ */
+function broadcast(data) {
+  clients.forEach(client => client.res.write(`data: ${JSON.stringify(data)}\n\n`));
+}
 const ONE_K_BILL_AMOUNT = 1000;
 
 function placeholder(index) {
@@ -412,6 +445,9 @@ async function addExpense(req, res, next) {
 
     const result = await query(sql, [date, category, description || '', expenseAmount]);
 
+    // Broadcast update
+    broadcast({ type: 'EXPENSE_UPDATE', date });
+
     res.status(201).json({
       success: true,
       expense: result[0]
@@ -432,7 +468,14 @@ async function removeExpense(req, res, next) {
       ? `DELETE FROM daily_expenses WHERE id = $1 RETURNING *`
       : `DELETE FROM daily_expenses WHERE id = ?`;
 
+    const rows = await query(`SELECT date FROM daily_expenses WHERE id = ${placeholder(1)}`, [id]);
+    const date = rows[0]?.date;
+
     await query(sql, [id]);
+
+    if (date) {
+      broadcast({ type: 'EXPENSE_UPDATE', date: dayjs(date).format('YYYY-MM-DD') });
+    }
 
     res.json({ success: true, message: 'Expense deleted' });
   } catch (error) {
@@ -464,7 +507,96 @@ async function listExpenses(req, res, next) {
   }
 }
 
+/**
+ * Add staff
+ */
+async function addStaff(req, res, next) {
+  try {
+    const { date, name } = req.body;
+    validateDateOrThrow(date);
+
+    if (!name) {
+      const error = new Error('Name is required');
+      error.status = 400;
+      throw error;
+    }
+
+    // Ensure daily_report exists
+    const existingReport = await query(`SELECT date FROM daily_reports WHERE date = ${placeholder(1)}`, [date]);
+    if (existingReport.length === 0) {
+      const insertSql = isPostgres 
+        ? `INSERT INTO daily_reports (date) VALUES ($1) ON CONFLICT (date) DO NOTHING`
+        : `INSERT IGNORE INTO daily_reports (date) VALUES (?)`;
+      await query(insertSql, [date]);
+    }
+
+    const sql = isPostgres
+      ? `INSERT INTO daily_staff (date, name) VALUES ($1, $2) RETURNING *`
+      : `INSERT INTO daily_staff (date, name) VALUES (?, ?)`;
+    
+    const result = await query(sql, [date, name]);
+
+    broadcast({ type: 'STAFF_UPDATE', date });
+
+    res.status(201).json({
+      success: true,
+      staff: result[0]
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Remove staff
+ */
+async function removeStaff(req, res, next) {
+  try {
+    const { id } = req.params;
+    const rows = await query(`SELECT date FROM daily_staff WHERE id = ${placeholder(1)}`, [id]);
+    const date = rows[0]?.date;
+
+    const sql = isPostgres
+      ? `DELETE FROM daily_staff WHERE id = $1`
+      : `DELETE FROM daily_staff WHERE id = ?`;
+    
+    await query(sql, [id]);
+
+    if (date) {
+      broadcast({ type: 'STAFF_UPDATE', date: dayjs(date).format('YYYY-MM-DD') });
+    }
+
+    res.json({ success: true, message: 'Staff deleted' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * List staff for a date
+ */
+async function listStaff(req, res, next) {
+  try {
+    const { date } = req.params;
+    validateDateOrThrow(date);
+
+    const sql = isPostgres
+      ? `SELECT * FROM daily_staff WHERE date = $1 ORDER BY created_at DESC`
+      : `SELECT * FROM daily_staff WHERE date = ? ORDER BY created_at DESC`;
+
+    const staff = await query(sql, [date]);
+
+    res.json({
+      date,
+      staff
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
+  eventsHandler,
   syncFromLoyverse,
   getReportByDate,
   upsertReport,
@@ -474,5 +606,8 @@ module.exports = {
   exportToExcel,
   addExpense,
   removeExpense,
-  listExpenses
+  listExpenses,
+  addStaff,
+  removeStaff,
+  listStaff
 };
