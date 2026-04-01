@@ -157,13 +157,26 @@ async function generateExcelReport(date, reportData, receipts, expenses) {
       let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
       let isLobbyShirt = itemName.includes('the lobby shirt');
 
-      let isFB = !isFlowerStrain && !isThcGummy && (
+      let isFB = !isFlowerStrain && !isThcGummy && !isAccessory && (
         fbKeywords.some(k => itemName.includes(k) || category.includes(k)) ||
+        category.includes('soft drink') || 
+        category.includes('snacks') || 
+        category.includes('beverage') ||
+        category.includes('drink') ||
+        category.includes('food') ||
+        category.includes('bakery') ||
         (['tea'].some(k => itemName.includes(k) || category.includes(k)) && !itemName.includes('tea time'))
       );
 
       if (!isFlowerStrain && !isFB && !isThcGummy && !isAccessory) {
-        if (grossPrice / (qty || 1) <= 50) isFB = true; else isFlowerStrain = true;
+        const unitPrice = itemNetPrice / (qty || 1);
+        if (unitPrice > 50) {
+          isFlowerStrain = true;
+        } else if (unitPrice > 0) {
+          isFB = true;
+        } else {
+          isFlowerStrain = true;
+        }
       }
 
       const exportType = isFB ? 'F&B' : (isAccessory ? 'Accessories' : 'Flower/Main');
@@ -260,11 +273,11 @@ async function generateExcelReport(date, reportData, receipts, expenses) {
   currRow++;
 
   const dashboard = [
-    ['Total Grams Sold', totalFlowerGrams, 'G'],
+    ['Total Grams Sold', Number(reportData.total_grams || 0), 'G'],
     ['Cash Total', reportData.cash_total || 0, 'THB'],
     ['Card Total', reportData.card_total || 0, 'THB'],
     ['Transfer Total', reportData.transfer_total || 0, 'THB'],
-    ['F&B Total', fbItems.reduce((a, b) => a + b.netPrice, 0), 'THB'],
+    ['F&B Total', Number(reportData.fb_total || 0), 'THB'],
     ['Total Expenses', totalExp, 'THB'],
     ['Net Sale', reportData.net_sale || 0, 'THB'],
     ['Net Profit', (reportData.net_sale || 0) - totalExp, 'THB']

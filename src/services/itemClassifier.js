@@ -76,8 +76,38 @@ function classifyItem(itemName, categoryName = '', unitPrice = 0) {
   return 'main';
 }
 
+/**
+ * Bulk classify items from a list of receipts.
+ * @param {Array} receipts - List of Loyverse receipts.
+ * @returns {Array} - List of classified items.
+ */
+function classifyItems(receipts) {
+  const classifiedItems = [];
+  if (!Array.isArray(receipts)) return classifiedItems;
+
+  receipts.forEach(receipt => {
+    const items = receipt.line_items || receipt.items || [];
+    items.forEach(item => {
+      const itemName = item.name || item.item_name || '';
+      const categoryName = item.category_name || '';
+      const qty = Number(item.quantity || item.qty || 0);
+      const grossPrice = Number(item.gross_total_money?.amount || item.subtotal_money?.amount || 0);
+      const unitPrice = qty > 0 ? grossPrice / qty : 0;
+
+      const type = classifyItem(itemName, categoryName, unitPrice);
+      classifiedItems.push({
+        ...item,
+        classification: type
+      });
+    });
+  });
+
+  return classifiedItems;
+}
+
 module.exports = {
   classifyItem,
+  classifyItems,
   MAIN_KEYWORDS,
   FB_KEYWORDS,
   ACCESSORY_KEYWORDS
