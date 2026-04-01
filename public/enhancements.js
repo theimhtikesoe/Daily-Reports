@@ -408,21 +408,20 @@ function paintDailySheet(sheet, date, staffName, rawData, expenses, flowerItems,
     ));
 
     // Sync missing days from Loyverse to Database
-    for (let i = 0; i < targetDays.length; i++) {
-      const dateStr = targetDays[i];
-      if (!existingDates.has(dateStr)) {
-        updateProgress(`Syncing ${i+1}/${targetDays.length}: ${dateStr}...`);
-        try {
-          const syncRes = await fetch(`/api/loyverse/sync?date=${dateStr}`);
-          if (syncRes.ok) console.log(`Synced ${dateStr}`);
-        } catch (e) {
-          console.warn(`Failed to sync ${dateStr}:`, e);
-        }
+    const missingDays = targetDays.filter(d => !existingDates.has(d));
+    for (let i = 0; i < missingDays.length; i++) {
+      const dateStr = missingDays[i];
+      updateProgress(`Syncing ${i+1}/${missingDays.length}: ${dateStr}...`);
+      try {
+        const syncRes = await fetch(`/api/loyverse/sync?date=${dateStr}`);
+        if (syncRes.ok) console.log(`Synced ${dateStr}`);
+      } catch (e) {
+        console.warn(`Failed to sync ${dateStr}:`, e);
       }
     }
 
     // Now fetch the updated reports list
-    updateProgress("Generating Excel File...");
+    updateProgress("Loading Data...");
     const response = await fetch(`/api/reports`);
     if (!response.ok) throw new Error("Failed to fetch updated reports list");
     const updatedReports = await response.json();
@@ -439,7 +438,7 @@ function paintDailySheet(sheet, date, staffName, rawData, expenses, flowerItems,
       });
 
     if (monthReports.length === 0) {
-      window.showMessage("No data found for this month even after sync.", "warning");
+      window.showMessage("No data found for this month.", "warning");
       return;
     }
 
@@ -467,9 +466,12 @@ function paintDailySheet(sheet, date, staffName, rawData, expenses, flowerItems,
     let totalGrams = 0, totalCash = 0, totalCard = 0, totalTransfer = 0, totalFb = 0, totalNet = 0;
     let sRow = 4;
 
-    for (const report of monthReports) {
+    for (let i = 0; i < monthReports.length; i++) {
+      const report = monthReports[i];
       const dateStr = typeof report.date === 'string' ? report.date.split('T')[0] : new Date(report.date).toISOString().split('T')[0];
       
+      updateProgress(`Adding Day ${i+1}/${monthReports.length}: ${dateStr}...`);
+
       // Fetch details for daily sheet
       let detailedData = null;
       try {
@@ -503,6 +505,9 @@ function paintDailySheet(sheet, date, staffName, rawData, expenses, flowerItems,
       const daySheet = workbook.addWorksheet(sheetName);
       const { flowerItems, fbItems, totalFlowerGrams } = processItemsForExcel(detailedData?.orders || detailedData?.receipts || []);
       paintDailySheet(daySheet, dateStr, staff, detailedData || report, expenses, flowerItems, fbItems, totalFlowerGrams);
+      
+      // Small delay to keep UI responsive
+      await new Promise(r => setTimeout(r, 10));
     }
 
     // Monthly Total Row
