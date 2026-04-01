@@ -139,13 +139,19 @@ async function upsertReport(req, res, next) {
     const safeBoxLabel = normalizeSafeBoxLabel(payload.safe_box_label);
     const oneKQty = toNonNegativeInteger(payload['1k_qty']);
     const oneKTotal = roundCurrency(oneKQty * ONE_K_BILL_AMOUNT);
+    const transferTotal = toNumber(payload.transfer_total);
+    const totalGrams = toNumber(payload.total_grams);
+    const fbTotal = toNumber(payload.fb_total);
 
     const values = [
       payload.date,
       reportValues.net_sale,
       reportValues.cash_total,
       reportValues.card_total,
+      transferTotal,
       totalOrders,
+      totalGrams,
+      fbTotal,
       reportValues.expense,
       tip,
       oneKQty,
@@ -165,7 +171,10 @@ async function upsertReport(req, res, next) {
           net_sale,
           cash_total,
           card_total,
+          transfer_total,
           total_orders,
+          total_grams,
+          fb_total,
           expense,
           tip,
           ${oneKQtyColumn()},
@@ -176,12 +185,15 @@ async function upsertReport(req, res, next) {
           actual_cash_counted,
           expected_cash,
           difference
-        ) VALUES (${placeholder(1)}, ${placeholder(2)}, ${placeholder(3)}, ${placeholder(4)}, ${placeholder(5)}, ${placeholder(6)}, ${placeholder(7)}, ${placeholder(8)}, ${placeholder(9)}, ${placeholder(10)}, ${placeholder(11)}, ${placeholder(12)}, ${placeholder(13)}, ${placeholder(14)}, ${placeholder(15)})
+        ) VALUES (${placeholder(1)}, ${placeholder(2)}, ${placeholder(3)}, ${placeholder(4)}, ${placeholder(5)}, ${placeholder(6)}, ${placeholder(7)}, ${placeholder(8)}, ${placeholder(9)}, ${placeholder(10)}, ${placeholder(11)}, ${placeholder(12)}, ${placeholder(13)}, ${placeholder(14)}, ${placeholder(15)}, ${placeholder(16)}, ${placeholder(17)}, ${placeholder(18)})
         ON CONFLICT (date) DO UPDATE SET
           net_sale = EXCLUDED.net_sale,
           cash_total = EXCLUDED.cash_total,
           card_total = EXCLUDED.card_total,
+          transfer_total = EXCLUDED.transfer_total,
           total_orders = EXCLUDED.total_orders,
+          total_grams = EXCLUDED.total_grams,
+          fb_total = EXCLUDED.fb_total,
           expense = EXCLUDED.expense,
           tip = EXCLUDED.tip,
           ${oneKQtyColumn()} = EXCLUDED.${oneKQtyColumn()},
@@ -197,6 +209,7 @@ async function upsertReport(req, res, next) {
         values
       );
 
+      broadcast({ type: 'REPORT_UPDATE', date: payload.date });
       return res.status(201).json(savedRows[0]);
     }
 
@@ -206,7 +219,10 @@ async function upsertReport(req, res, next) {
         net_sale,
         cash_total,
         card_total,
+        transfer_total,
         total_orders,
+        total_grams,
+        fb_total,
         expense,
         tip,
         ${oneKQtyColumn()},
@@ -217,12 +233,15 @@ async function upsertReport(req, res, next) {
         actual_cash_counted,
         expected_cash,
         difference
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         net_sale = VALUES(net_sale),
         cash_total = VALUES(cash_total),
         card_total = VALUES(card_total),
+        transfer_total = VALUES(transfer_total),
         total_orders = VALUES(total_orders),
+        total_grams = VALUES(total_grams),
+        fb_total = VALUES(fb_total),
         expense = VALUES(expense),
         tip = VALUES(tip),
         ${oneKQtyColumn()} = VALUES(${oneKQtyColumn()}),
@@ -237,6 +256,7 @@ async function upsertReport(req, res, next) {
       values
     );
 
+    broadcast({ type: 'REPORT_UPDATE', date: payload.date });
     const savedRows = await query(`SELECT * FROM daily_reports WHERE date = ${placeholder(1)}`, [payload.date]);
     return res.status(201).json(savedRows[0]);
   } catch (error) {

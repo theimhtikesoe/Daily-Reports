@@ -731,6 +731,39 @@ async function syncFromLoyverse() {
     // Use the totalGrams calculated during processing
     if (els.totalGramsSold) els.totalGramsSold.innerText = totalGramsCalculated.toFixed(3) + ' G';
 
+    // Auto-save the report data to the database
+    const fbTotalFromPayments = [
+      ...(data?.cash_entries || []),
+      ...(data?.card_entries || []),
+      ...(data?.transfer_entries || [])
+    ].reduce((sum, entry) => sum + parseNumber(entry?.fb_total), 0);
+
+    const reportPayload = {
+      date: date,
+      net_sale: data.net_sale,
+      cash_total: data.cash_total,
+      card_total: data.card_total,
+      transfer_total: data.transfer_total,
+      total_orders: data.total_orders,
+      total_grams: totalGramsCalculated,
+      fb_total: fbTotalFromPayments,
+      // Include current UI values for other fields if they exist
+      tip: document.getElementById('tip')?.value || 0,
+      '1k_qty': document.getElementById('1k_qty')?.value || 0,
+      opening_cash: document.getElementById('opening_cash')?.value || 0,
+      actual_cash_counted: document.getElementById('actual_cash_counted')?.value || 0
+    };
+
+    try {
+      await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reportPayload)
+      });
+    } catch (saveError) {
+      console.error("Auto-save failed:", saveError);
+    }
+
     // Refresh Expense display
     renderExpenses();
     

@@ -27,6 +27,11 @@ function setupRealtimeListener() {
           fetchExpenses(currentDate);
         } else if (data.type === 'STAFF_UPDATE') {
           fetchStaff(currentDate);
+        } else if (data.type === 'REPORT_UPDATE') {
+          // Full report update, refresh everything
+          if (typeof window.loadReportData === 'function') {
+            window.loadReportData(currentDate);
+          }
         }
       }
     } catch (error) {
@@ -336,9 +341,48 @@ window.deleteClosingStaff = async function(id, date) {
   }
 };
 
-window.loadReportData = function(date) {
+window.loadReportData = async function(date) {
   fetchExpenses(date);
   fetchStaff(date);
+  
+  // Fetch persisted report data
+  try {
+    const res = await fetch(`/api/reports/${date}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.date) {
+        // Update UI fields if they exist
+        const fields = {
+          'netSale': data.net_sale,
+          'cashTotal': data.cash_total,
+          'cardTotal': data.card_total,
+          'transferTotal': data.transfer_total,
+          'totalOrders': data.total_orders,
+          'tip': data.tip,
+          '1k_qty': data['1k_qty'],
+          'opening_cash': data.opening_cash,
+          'actual_cash_counted': data.actual_cash_counted
+        };
+        
+        for (const [id, val] of Object.entries(fields)) {
+          const el = document.getElementById(id);
+          if (el) el.value = val;
+        }
+        
+        // Update read-only displays
+        const gramsEl = document.getElementById('totalGramsSold');
+        if (gramsEl) gramsEl.innerText = (Number(data.total_grams) || 0).toFixed(3) + ' G';
+        
+        const fbEl = document.getElementById('orderEntriesFbTotal');
+        if (fbEl) fbEl.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'THB' }).format(data.fb_total || 0);
+        
+        // Trigger any dependent calculations (like difference)
+        if (typeof window.calculateDifference === 'function') window.calculateDifference();
+      }
+    }
+  } catch (e) {
+    console.error("Error loading persisted report:", e);
+  }
 
   const staffInput = document.getElementById("closingStaff");
   if (staffInput) {
