@@ -367,17 +367,26 @@ function paintDailySheet(sheet, date, staffName, rawData, expenses, flowerItems,
 /**
  * Export Monthly Detailed Report
  */
-window.exportMonthlyToExcel = async function() {
+  window.exportMonthlyToExcel = async function() {
   const monthInput = document.getElementById("reportMonth");
   const month = monthInput?.value;
+  const exportBtn = document.getElementById("exportMonthlyBtn");
+  const originalBtnText = exportBtn ? exportBtn.innerText : "📦 Export Monthly Excel";
 
   if (!month) {
     window.showMessage("Please select a month first", "warning");
     return;
   }
 
+  const updateProgress = (text) => {
+    if (exportBtn) exportBtn.innerText = text;
+    window.showMessage(text, "info");
+    console.log(text);
+  };
+
   try {
-    window.showMessage(`Checking and syncing data for ${month}... Please wait.`, "info");
+    if (exportBtn) exportBtn.disabled = true;
+    updateProgress(`Preparing for ${month}...`);
 
     // Get all days in the selected month
     const [year, monthNum] = month.split('-').map(Number);
@@ -399,17 +408,13 @@ window.exportMonthlyToExcel = async function() {
     ));
 
     // Sync missing days from Loyverse to Database
-    // We use sequential sync to avoid overloading the API and ensure DB is updated
-    for (const dateStr of targetDays) {
+    for (let i = 0; i < targetDays.length; i++) {
+      const dateStr = targetDays[i];
       if (!existingDates.has(dateStr)) {
-        console.log(`Syncing missing date: ${dateStr}`);
-        window.showMessage(`Syncing missing data for ${dateStr}...`, "info");
+        updateProgress(`Syncing ${i+1}/${targetDays.length}: ${dateStr}...`);
         try {
-          // The backend now auto-saves to DB when this endpoint is called
           const syncRes = await fetch(`/api/loyverse/sync?date=${dateStr}`);
-          if (syncRes.ok) {
-            console.log(`Successfully synced and saved ${dateStr}`);
-          }
+          if (syncRes.ok) console.log(`Synced ${dateStr}`);
         } catch (e) {
           console.warn(`Failed to sync ${dateStr}:`, e);
         }
@@ -417,7 +422,7 @@ window.exportMonthlyToExcel = async function() {
     }
 
     // Now fetch the updated reports list
-    window.showMessage("Generating monthly report...", "info");
+    updateProgress("Generating Excel File...");
     const response = await fetch(`/api/reports`);
     if (!response.ok) throw new Error("Failed to fetch updated reports list");
     const updatedReports = await response.json();
@@ -517,6 +522,11 @@ window.exportMonthlyToExcel = async function() {
   } catch (error) {
     console.error('Monthly export error:', error);
     window.showMessage(`Error: ${error.message}`, "danger");
+  } finally {
+    if (exportBtn) {
+      exportBtn.disabled = false;
+      exportBtn.innerText = originalBtnText;
+    }
   }
 };
 
