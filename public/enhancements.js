@@ -396,14 +396,14 @@ window.exportReportToExcel = async function() {
     
     // Calculate F&B Total from all F&B items
     const fbTotal = fbItems.reduce((a, b) => {
-      const val = typeof b.netPrice === 'number' ? b.netPrice : 0;
-      return a + val;
+      const val = Number(b.netPrice);
+      return a + (isNaN(val) ? 0 : val);
     }, 0);
     
     // Calculate Main/Accessories Total from flower items
     const mainAccTotal = flowerItems.reduce((a, b) => {
-      const val = typeof b.netPrice === 'number' ? b.netPrice : 0;
-      return a + val;
+      const val = Number(b.netPrice);
+      return a + (isNaN(val) ? 0 : val);
     }, 0);
     
     const summaryData = [
