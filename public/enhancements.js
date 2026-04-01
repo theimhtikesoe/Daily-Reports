@@ -285,7 +285,8 @@ window.exportReportToExcel = async function() {
 
         if (isFB) fbItems.push(exportItem); else {
           flowerItems.push(exportItem);
-          if (isFlowerStrain && !isThcGummy && !isLobbyShirt && !isAccessory) totalFlowerGrams += qty;
+          // Only count actual flower strains (not accessories or gummy)
+          if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) totalFlowerGrams += qty;
         }
       });
     });

@@ -495,6 +495,7 @@ function processOrdersData(data) {
       let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
       let isThcGummy = itemName.includes('thc gummy');
       let isAccessory = accessoryKeywords.some(keyword => itemName.includes(keyword) || category.includes(keyword));
+      let isLobbyShirt = itemName.includes('the lobby shirt');
       
       let isFB = !isFlowerStrain && !isThcGummy && (fbKeywords.some(keyword => itemName.includes(keyword) || category.includes(keyword)) ||
                  (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time')));
@@ -517,7 +518,8 @@ function processOrdersData(data) {
         fbPriceTotal += itemNetPrice;
       } else {
         mainAndAccPrice += itemNetPrice;
-        if (isFlowerStrain && !isThcGummy && !isAccessory) {
+        // Only count actual flower strains (not accessories or gummy)
+        if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) {
           orderLineGram += qty;
         }
       }
@@ -525,7 +527,7 @@ function processOrdersData(data) {
       detailedItems.push({
         receipt: receiptNumber,
         time: receiptTime,
-        gram: (isFlowerStrain && !isThcGummy && !isAccessory) ? `${qty.toFixed(3)} G` : '',
+        gram: (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) ? `${qty.toFixed(3)} G` : '',
         itemName: item.name || item.item_name,
         price: itemNetPrice,
         isFB: isFB,
@@ -591,6 +593,7 @@ function processAutomatedReportRows(data) {
       let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
       let isThcGummy = itemName.includes('thc gummy');
       let isAccessory = accessoryKeywords.some(keyword => itemName.includes(keyword) || category.includes(keyword));
+      let isLobbyShirt = itemName.includes('the lobby shirt');
       
       let isFB = !isFlowerStrain && !isThcGummy && (fbKeywords.some(keyword => itemName.includes(keyword) || category.includes(keyword)) ||
                  (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time')));
@@ -613,7 +616,8 @@ function processAutomatedReportRows(data) {
         fbPriceTotal += price;
       } else {
         mainAndAccPrice += price;
-        if (isFlowerStrain && !isThcGummy && !isAccessory) {
+        // Only count actual flower strains (not accessories or gummy)
+        if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) {
           orderLineGram += qty;
         }
       }
@@ -621,7 +625,7 @@ function processAutomatedReportRows(data) {
       detailedItems.push({
         receipt: row.receipt_number,
         time: row.time,
-        gram: (isFlowerStrain && !isThcGummy && !isAccessory) ? `${qty.toFixed(3)} G` : '',
+        gram: (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) ? `${qty.toFixed(3)} G` : '',
         itemName: item.item_name,
         price: price,
         isFB: isFB,
