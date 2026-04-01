@@ -393,13 +393,21 @@ window.exportReportToExcel = async function() {
 
     currRow++;
     paintSection("Daily Summary Dashboard");
+    
+    // Calculate F&B Total from all F&B items
     const fbTotal = fbItems.reduce((a, b) => {
       const val = typeof b.netPrice === 'number' ? b.netPrice : 0;
       return a + val;
     }, 0);
     
+    // Calculate Main/Accessories Total from flower items
+    const mainAccTotal = flowerItems.reduce((a, b) => {
+      const val = typeof b.netPrice === 'number' ? b.netPrice : 0;
+      return a + val;
+    }, 0);
+    
     const summaryData = [
-      ["Total Grams Sold", "", "", `${totalFlowerGrams.toFixed(0)} G`],
+      ["Total Grams Sold", "", "", `${totalFlowerGrams.toFixed(3)} G`],
       ["Cash In", "", "", `${cashTotal.toFixed(0)} THB`],
       ["Card In", "", "", `${cardTotal.toFixed(0)} THB`],
       ["Transfer In", "", "", `${transferTotal.toFixed(0)} THB`],
