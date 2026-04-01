@@ -48,7 +48,7 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
     'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
     'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
     'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
-    'free pina colada', 'flower', 'bud', 'pre-roll', 'joint'
+    'free pina colada', 'thc gummy', 'flower', 'bud', 'pre-roll', 'joint'
   ];
 
   const fbKeywords = [

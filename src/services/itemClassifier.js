@@ -46,6 +46,7 @@ function classifyItem(itemName, categoryName = '', unitPrice = 0) {
   }
 
   // 2. Check for Main/Flower keywords
+  // Priority: Check Main keywords before F&B keywords to catch items like "Thc Gummy" (Main) vs "Gummy" (F&B)
   if (MAIN_KEYWORDS.some(keyword => name.includes(keyword))) {
     return 'main';
   }
