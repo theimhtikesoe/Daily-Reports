@@ -144,11 +144,14 @@ async function generateExcelReport(date, reportData, receipts, expenses) {
         itemNetPrice = Math.max(0, itemNetPrice - allocatedOrderDiscount);
       }
 
-      // Rule: Skip items where price is 0 OR discount is 100%
       const totalItemDiscount = Math.max(0, grossPrice - itemNetPrice);
       const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
       
-      if (itemNetPrice <= 0.01 || discountPercent >= 99.99) return;
+      // Rule: Skip items where price is 0 OR discount is 100%
+      if (itemNetPrice <= 0.01 || discountPercent >= 99.99) {
+        console.log(`[EXPORT] Skipping zero-value item: ${itemName} (Net: ${itemNetPrice}, Discount: ${discountPercent}%)`);
+        return;
+      }
 
       const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` : '-';
 
