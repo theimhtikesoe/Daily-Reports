@@ -377,14 +377,48 @@ window.exportMonthlyToExcel = async function() {
   }
 
   try {
-    window.showMessage("Generating monthly report... Please wait.", "info");
+    window.showMessage(`Checking and syncing data for ${month}... Please wait.`, "info");
 
+    // Get all days in the selected month
+    const [year, monthNum] = month.split('-').map(Number);
+    const lastDay = new Date(year, monthNum, 0).getDate();
+    const daysInMonth = [];
+    for (let d = 1; d <= lastDay; d++) {
+      daysInMonth.push(`${month}-${String(d).padStart(2, '0')}`);
+    }
+
+    // Filter out future dates
+    const today = new Date().toISOString().split('T')[0];
+    const targetDays = daysInMonth.filter(d => d <= today);
+
+    // Fetch existing reports to see what's missing
+    const listRes = await fetch(`/api/reports`);
+    const existingReports = listRes.ok ? await listRes.json() : [];
+    const existingDates = new Set(existingReports.map(r => 
+      typeof r.date === 'string' ? r.date.split('T')[0] : new Date(r.date).toISOString().split('T')[0]
+    ));
+
+    // Sync missing days from Loyverse to Database
+    for (const dateStr of targetDays) {
+      if (!existingDates.has(dateStr)) {
+        console.log(`Syncing missing date: ${dateStr}`);
+        window.showMessage(`Syncing missing data for ${dateStr}...`, "info");
+        try {
+          // Trigger sync and save to DB
+          await fetch(`/api/loyverse/sync?date=${dateStr}`);
+        } catch (e) {
+          console.warn(`Failed to sync ${dateStr}:`, e);
+        }
+      }
+    }
+
+    // Now fetch the updated reports list
+    window.showMessage("Generating monthly report...", "info");
     const response = await fetch(`/api/reports`);
-    if (!response.ok) throw new Error("Failed to fetch reports list");
-    const allReports = await response.json();
-    const reportsArray = Array.isArray(allReports) ? allReports : [];
-
-    const monthReports = reportsArray
+    if (!response.ok) throw new Error("Failed to fetch updated reports list");
+    const updatedReports = await response.json();
+    
+    const monthReports = updatedReports
       .filter(report => {
         const rDate = typeof report.date === 'string' ? report.date : new Date(report.date).toISOString();
         return rDate.startsWith(month);
@@ -396,7 +430,7 @@ window.exportMonthlyToExcel = async function() {
       });
 
     if (monthReports.length === 0) {
-      window.showMessage("No reports found for this month", "warning");
+      window.showMessage("No data found for this month even after sync.", "warning");
       return;
     }
 
