@@ -19,7 +19,6 @@ function setupRealtimeListener() {
 
   eventSource.onmessage = (event) => {
     try {
-      // Handle potential double-stringified data from some SSE implementations
       let rawData = event.data;
       if (typeof rawData === 'string' && (rawData.startsWith('"') || rawData.startsWith('{'))) {
         try {
@@ -31,15 +30,9 @@ function setupRealtimeListener() {
       }
       
       const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-      console.log('Received real-time event:', data);
-      
       const currentDate = document.getElementById("reportDate")?.value;
 
       if (data.date === currentDate) {
-        console.log(`Received ${data.type} for ${data.date}. Triggering UI update.`);
-        // Any update type (EXPENSE, STAFF, REPORT) should refresh relevant parts
-        // To be safe and meet the user's "auto refresh/syncing" requirement, 
-        // we refresh everything when any update occurs for the current date.
         if (typeof window.loadReportData === 'function') {
           window.loadReportData(currentDate);
         } else {
@@ -53,7 +46,6 @@ function setupRealtimeListener() {
   };
 
   eventSource.onerror = () => {
-    console.warn('SSE connection lost, will retry...');
     eventSource.close();
     eventSource = null;
     setTimeout(setupRealtimeListener, 3000);
@@ -61,7 +53,7 @@ function setupRealtimeListener() {
 }
 
 /**
- * Fetch expenses from backend (with fallback to LocalStorage)
+ * Fetch expenses from backend
  */
 async function fetchExpenses(date) {
   try {
@@ -75,7 +67,6 @@ async function fetchExpenses(date) {
     }
   } catch (error) {
     console.error('Error fetching expenses:', error);
-    // Fallback to local storage
     const local = getLocalExpenses(date);
     renderExpensesList(local, date);
     return local;
@@ -84,7 +75,7 @@ async function fetchExpenses(date) {
 }
 
 /**
- * Fetch staff from backend (with fallback to LocalStorage)
+ * Fetch staff from backend
  */
 async function fetchStaff(date) {
   try {
@@ -100,7 +91,6 @@ async function fetchStaff(date) {
     }
   } catch (error) {
     console.error('Error fetching staff:', error);
-    // Fallback to local storage
     const local = getClosingStaffEntries(date);
     renderClosingStaffList(local, date);
     return local;
@@ -108,35 +98,22 @@ async function fetchStaff(date) {
   return [];
 }
 
-/**
- * Get expenses from LocalStorage (Fallback)
- */
 function getLocalExpenses(date) {
   const key = `dailyExpenses_${date}`;
   const stored = localStorage.getItem(key);
   return stored ? JSON.parse(stored) : [];
 }
 
-/**
- * Get Closing Staff entries
- */
 function getClosingStaffEntries(date) {
   if (!date) return [];
   const listKey = `dailyClosingStaff_${date}`;
   const stored = localStorage.getItem(listKey);
   if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      return [];
-    }
+    try { return JSON.parse(stored); } catch (e) { return []; }
   }
   return [];
 }
 
-/**
- * Get Closing Staff display string
- */
 function getClosingStaff(date) {
   const stored = localStorage.getItem(`dailyClosingStaff_${date}`);
   if (stored) {
@@ -148,9 +125,6 @@ function getClosingStaff(date) {
   return "";
 }
 
-/**
- * Helper to get money value from Loyverse data
- */
 function getMoney(...candidates) {
   for (const candidate of candidates) {
     if (candidate === undefined || candidate === null) continue;
@@ -165,7 +139,7 @@ function getMoney(...candidates) {
 }
 
 /**
- * Helper to classify and format items for Excel
+ * Item Classification Logic
  */
 function processItemsForExcel(receipts) {
   const flowerItems = [];
@@ -197,17 +171,16 @@ function processItemsForExcel(receipts) {
       const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
 
       if (itemNetPrice <= 0.01 || discountPercent >= 99.9) return;
-      const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` : "-";
+      const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}%` : "-";
 
       const flowerStrains = ['grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 'moonbow', 'emergen c', 'tea time', 'silver shadow', 'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez', 'big foot', 'honey bee', 'jealousy mintz', 'crystal candy', 'alien mint', 'rocket fuel', 'gold dust', 'darth vader', 'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz', 'free pina colada', 'thc gummy', 'flower', 'bud', 'pre-roll', 'joint'];
       const fbKeywords = ['water', 'soda', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'milk', 'coffee', 'tea', 'juice', 'cookie', 'brownie', 'cake', 'soju', 'gummy', 'snack', 'food', 'bakery'];
-      const accessoryKeywords = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray', 'pipe', 'small pipe', 'best buds grinder', 'best buds shirt', 'nf best buds shirt', 'sw best buds shirt'];
+      const accessoryKeywords = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray', 'pipe', 'small pipe', 'best buds grinder', 'best buds shirt'];
 
       let isFlowerStrain = flowerStrains.some(s => itemName.includes(s));
       let isThcGummy = itemName.includes("thc gummy");
       let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
-      let isLobbyShirt = itemName.includes("the lobby shirt");
-      let isFB = !isFlowerStrain && !isThcGummy && (fbKeywords.some(k => itemName.includes(k) || category.includes(k)) || (['tea'].some(k => itemName.includes(k) || category.includes(k)) && !itemName.includes('tea time')));
+      let isFB = !isFlowerStrain && !isThcGummy && (fbKeywords.some(k => itemName.includes(k) || category.includes(k)));
 
       if (!isFlowerStrain && !isFB && !isThcGummy && !isAccessory) {
         if (grossPrice / (qty || 1) <= 50) isFB = true; else isFlowerStrain = true;
@@ -217,7 +190,7 @@ function processItemsForExcel(receipts) {
       let displayGram = "-";
       let displayType = isFB ? "F&B" : (isAccessory ? "Accessories" : "Flower/Main");
 
-      if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) {
+      if (isFlowerStrain && !isThcGummy && !isAccessory) {
         displayQty = "-";
         displayGram = `${qty.toFixed(3)} G`;
         totalFlowerGrams += qty;
@@ -228,7 +201,7 @@ function processItemsForExcel(receipts) {
         name: item.name || item.item_name,
         qty: displayQty,
         gram: displayGram,
-        unitPrice: (itemNetPrice / (qty || 1)).toFixed(2),
+        unitPrice: Number((itemNetPrice / (qty || 1)).toFixed(2)),
         discount: discountStr,
         netPrice: Number(itemNetPrice.toFixed(2)),
         payment: paymentMethod,
@@ -243,20 +216,20 @@ function processItemsForExcel(receipts) {
 }
 
 /**
- * Helper to paint a daily sheet in the workbook
+ * Excel Painting Logic
  */
 function paintDailySheet(sheet, date, staffName, rawData, expenses, flowerItems, fbItems, totalFlowerGrams) {
   sheet.properties.defaultRowHeight = 22;
   sheet.columns = [
-    { header: 'Item Type', key: 'type', width: 15 },
-    { header: 'Item Name', key: 'name', width: 35 },
-    { header: 'Qty', key: 'qty', width: 10 },
-    { header: 'Gram', key: 'gram', width: 12 },
-    { header: 'Unit Price', key: 'unitPrice', width: 15 },
-    { header: 'Discount', key: 'discount', width: 20 },
-    { header: 'Net Price', key: 'netPrice', width: 15 },
-    { header: 'Payment', key: 'payment', width: 15 },
-    { header: 'Note', key: 'note', width: 25 }
+    { key: 'type', width: 15 },
+    { key: 'name', width: 35 },
+    { key: 'qty', width: 10 },
+    { key: 'gram', width: 12 },
+    { key: 'unitPrice', width: 15 },
+    { key: 'discount', width: 15 },
+    { key: 'netPrice', width: 15 },
+    { key: 'payment', width: 15 },
+    { key: 'note', width: 25 }
   ];
 
   const border = { top: { style: "thin", color: { argb: "FFD5B68A" } }, left: { style: "thin", color: { argb: "FFD5B68A" } }, bottom: { style: "thin", color: { argb: "FFD5B68A" } }, right: { style: "thin", color: { argb: "FFD5B68A" } } };
@@ -266,186 +239,133 @@ function paintDailySheet(sheet, date, staffName, rawData, expenses, flowerItems,
   const rowLight = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFBF4" } };
   const rowDark = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF4E0" } };
 
+  // Title
   sheet.mergeCells("A1:I1");
-  sheet.getCell("A1").value = `BestBuds Daily Report - ${date}`;
-  sheet.getCell("A1").fill = titleFill;
-  sheet.getCell("A1").font = { size: 14, bold: true, color: { argb: "FFF8EBCF" } };
-  sheet.getCell("A1").alignment = { horizontal: "center" };
+  const titleCell = sheet.getCell("A1");
+  titleCell.value = `BestBuds Daily Report - ${date}`;
+  titleCell.fill = titleFill;
+  titleCell.font = { size: 14, bold: true, color: { argb: "FFF8EBCF" } };
+  titleCell.alignment = { horizontal: "center", vertical: "middle" };
 
   sheet.mergeCells("A2:I2");
-  sheet.getCell("A2").value = `Closing Staff: ${staffName}`;
-  sheet.getCell("A2").font = { bold: true };
+  const staffCell = sheet.getCell("A2");
+  staffCell.value = `Closing Staff: ${staffName}`;
+  staffCell.font = { bold: true };
 
   let currRow = 4;
   const paintSection = (label) => {
     sheet.mergeCells(`A${currRow}:I${currRow}`);
     const c = sheet.getCell(`A${currRow}`);
     c.value = label; c.fill = sectionFill; c.font = { bold: true, color: { argb: "FFF6E5C4" } };
+    c.alignment = { vertical: "middle" };
     currRow++;
   };
 
-  const paintHeader = () => {
-    ["Item Type", "Item Name", "Qty", "Gram", "Unit Price", "Discount", "Net Price", "Payment", "Note"].forEach((h, i) => {
+  const paintHeader = (headers) => {
+    headers.forEach((h, i) => {
       const c = sheet.getCell(currRow, i + 1);
       c.value = h; c.fill = headerFill; c.font = { bold: true }; c.border = border;
+      c.alignment = { horizontal: "center", vertical: "middle" };
     });
     currRow++;
   };
 
+  // Flower Section
   paintSection("Flower / Main / Accessories");
-  paintHeader();
+  paintHeader(["Item Type", "Item Name", "Qty", "Gram", "Unit Price", "Discount", "Net Price", "Payment", "Note"]);
   flowerItems.forEach((item, i) => {
-    const r = sheet.getRow(currRow);
-    [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note].forEach((v, idx) => {
-      const c = r.getCell(idx + 1);
+    const rowValues = [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note];
+    rowValues.forEach((v, idx) => {
+      const c = sheet.getCell(currRow, idx + 1);
       c.value = v; c.fill = i % 2 === 0 ? rowLight : rowDark; c.border = border;
       c.alignment = { vertical: 'middle' };
+      if (idx === 4 || idx === 6) c.numFmt = '#,##0.00';
     });
     currRow++;
   });
 
-  const flowerTotalRow = sheet.getRow(currRow);
-  flowerTotalRow.getCell(1).value = 'TOTAL FLOWERS';
-  flowerTotalRow.getCell(4).value = `${totalFlowerGrams.toFixed(3)} G`;
-  flowerTotalRow.eachCell((cell, colNumber) => {
-    if (colNumber === 1 || colNumber === 4) {
-      cell.font = { bold: true }; cell.fill = headerFill; cell.border = border; cell.alignment = { vertical: 'middle' };
-    }
-  });
+  // Flower Total
+  sheet.getCell(`A${currRow}`).value = "TOTAL FLOWERS";
+  sheet.getCell(`A${currRow}`).font = { bold: true };
+  sheet.getCell(`D${currRow}`).value = `${totalFlowerGrams.toFixed(3)} G`;
+  sheet.getCell(`D${currRow}`).font = { bold: true };
+  ["A", "D"].forEach(col => { sheet.getCell(`${col}${currRow}`).fill = headerFill; sheet.getCell(`${col}${currRow}`).border = border; });
   currRow += 2;
 
+  // Expenses Section
   paintSection("Expenses");
-  ["Category", "Description", "Amount"].forEach((h, i) => {
-    const c = sheet.getCell(currRow, i + 1);
-    c.value = h; c.fill = headerFill; c.border = border;
-  });
-  currRow++;
+  paintHeader(["Category", "Description", "Amount", "", "", "", "", "", ""]);
   let totalExp = 0;
   if (expenses.length === 0) {
-    sheet.getCell(`A${currRow}`).value = "-"; sheet.getCell(`B${currRow}`).value = "No expenses"; sheet.getCell(`C${currRow}`).value = 0;
+    sheet.getCell(`A${currRow}`).value = "No expenses";
+    sheet.getCell(`C${currRow}`).value = 0;
     ["A", "B", "C"].forEach(col => { sheet.getCell(`${col}${currRow}`).border = border; });
     currRow++;
   } else {
     expenses.forEach((exp, i) => {
       const amt = Number(exp.amount || 0); totalExp += amt;
-      sheet.getCell(`A${currRow}`).value = exp.category; sheet.getCell(`B${currRow}`).value = exp.description; sheet.getCell(`C${currRow}`).value = amt;
+      sheet.getCell(`A${currRow}`).value = exp.category;
+      sheet.getCell(`B${currRow}`).value = exp.description;
+      sheet.getCell(`C${currRow}`).value = amt;
+      sheet.getCell(`C${currRow}`).numFmt = '#,##0.00';
       ["A", "B", "C"].forEach(col => { sheet.getCell(`${col}${currRow}`).fill = i % 2 === 0 ? rowLight : rowDark; sheet.getCell(`${col}${currRow}`).border = border; });
       currRow++;
     });
   }
-  currRow++;
-
-  paintSection("Food & Drinks");
-  paintHeader();
-  let calculatedFbTotal = 0;
-  fbItems.forEach((item, i) => {
-    const r = sheet.getRow(currRow);
-    [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note].forEach((v, idx) => {
-      const c = r.getCell(idx + 1);
-      c.value = v; c.fill = i % 2 === 0 ? rowLight : rowDark; c.border = border;
-      c.alignment = { vertical: 'middle' };
-    });
-    if (typeof item.netPrice === 'number') calculatedFbTotal += item.netPrice;
-    currRow++;
-  });
-
-  const fbTotalRow = sheet.getRow(currRow);
-  fbTotalRow.getCell(1).value = 'TOTAL F&B';
-  fbTotalRow.getCell(7).value = calculatedFbTotal;
-  fbTotalRow.getCell(7).numFmt = '#,##0.00 "THB"';
-  fbTotalRow.eachCell((cell, colNumber) => {
-    if (colNumber === 1 || colNumber === 7) {
-      cell.font = { bold: true }; cell.fill = headerFill; cell.border = border; cell.alignment = { vertical: 'middle' };
-    }
-  });
   currRow += 2;
 
-  paintSection("Daily Summary Dashboard");
-  const fbTotal = Number(rawData.fb_total || 0);
+  // F&B Section
+  paintSection("Food & Drinks");
+  paintHeader(["Item Name", "Qty", "Unit Price", "Total Price", "Payment", "", "", "", ""]);
+  let calculatedFbTotal = 0;
+  fbItems.forEach((item, i) => {
+    const rowValues = [item.name, item.qty === "-" ? 1 : item.qty, item.unitPrice, item.netPrice, item.payment];
+    rowValues.forEach((v, idx) => {
+      const c = sheet.getCell(currRow, idx + 1);
+      c.value = v; c.fill = i % 2 === 0 ? rowLight : rowDark; c.border = border;
+      if (idx === 2 || idx === 3) c.numFmt = '#,##0.00';
+    });
+    calculatedFbTotal += item.netPrice;
+    currRow++;
+  });
+  sheet.getCell(`A${currRow}`).value = "TOTAL F&B";
+  sheet.getCell(`A${currRow}`).font = { bold: true };
+  sheet.getCell(`D${currRow}`).value = calculatedFbTotal;
+  sheet.getCell(`D${currRow}`).font = { bold: true };
+  sheet.getCell(`D${currRow}`).numFmt = '#,##0.00';
+  ["A", "D"].forEach(col => { sheet.getCell(`${col}${currRow}`).fill = headerFill; sheet.getCell(`${col}${currRow}`).border = border; });
+  currRow += 2;
+
+  // Dashboard Section
+  paintSection("Dashboard (Daily Summary)");
+  const fbTotal = Number(rawData.fb_total || calculatedFbTotal || 0);
   const cashTotal = Number(rawData.cash_total || 0);
   const cardTotal = Number(rawData.card_total || 0);
   const transferTotal = Number(rawData.transfer_total || 0);
   const netSale = Number(rawData.net_sale || 0);
   
   const summaryData = [
-    ["Total Grams Sold", `${Number(rawData.total_grams || totalFlowerGrams || 0).toFixed(3)} G`],
-    ["Cash In", `${cashTotal.toLocaleString()} THB`],
-    ["Card In", `${cardTotal.toLocaleString()} THB`],
-    ["Transfer In", `${transferTotal.toLocaleString()} THB`],
-    ["F&B Total", `${(fbTotal || calculatedFbTotal || 0).toLocaleString()} THB`],
-    ["Total Expenses", `${totalExp.toLocaleString()} THB`],
-    ["Net Sales (Total)", `${netSale.toLocaleString()} THB`],
-    ["Net Profit (After Expenses)", `${(netSale - totalExp).toLocaleString()} THB`]
+    ["Flower Sales (grams)", Number(rawData.total_grams || totalFlowerGrams || 0)],
+    ["Cash In", cashTotal],
+    ["Card In", cardTotal],
+    ["Transfer In", transferTotal],
+    ["F&B Total", fbTotal],
+    ["Total Expenses", totalExp],
+    ["Net Sales", netSale]
   ];
   
-  summaryData.forEach((row) => {
-    sheet.mergeCells(`A${currRow}:C${currRow}`);
-    const labelCell = sheet.getCell(`A${currRow}`);
-    labelCell.value = row[0]; labelCell.border = border; labelCell.font = { bold: true }; labelCell.alignment = { vertical: 'middle' };
-
-    sheet.mergeCells(`D${currRow}:F${currRow}`);
-    const valueCell = sheet.getCell(`D${currRow}`);
-    valueCell.value = row[1]; valueCell.border = border; valueCell.alignment = { vertical: 'middle', horizontal: 'right' };
+  paintHeader(["Metric", "Value", "", "", "", "", "", "", ""]);
+  summaryData.forEach((row, i) => {
+    sheet.getCell(`A${currRow}`).value = row[0];
+    sheet.getCell(`B${currRow}`).value = row[1];
+    sheet.getCell(`B${currRow}`).numFmt = (i === 0) ? '#,##0.000 "G"' : '#,##0.00';
+    ["A", "B"].forEach(col => { sheet.getCell(`${col}${currRow}`).border = border; sheet.getCell(`${col}${currRow}`).fill = i % 2 === 0 ? rowLight : rowDark; });
     currRow++;
   });
 }
 
 /**
- * Export Daily Report to Excel
- */
-window.exportReportToExcel = async function() {
-  const dateInput = document.getElementById("reportDate");
-  const staffInput = document.getElementById("closingStaff");
-  const date = dateInput?.value;
-  const typedStaffName = String(staffInput?.value || "").trim();
-
-  if (!date) {
-    window.showMessage("Please select a date first", "warning");
-    return;
-  }
-
-  const staffName = getClosingStaff(date) || typedStaffName || "N/A";
-
-  try {
-    window.showMessage("Generating Excel file...", "info");
-    let rawData = window.lastSyncedData;
-    if (rawData && rawData.date !== date) rawData = null;
-
-    if (!rawData || (!rawData.orders && !rawData.receipts && !rawData.items && !rawData.net_sale)) {
-      if (typeof window.syncFromLoyverse === 'function') {
-        await window.syncFromLoyverse();
-        return exportReportToExcel(); 
-      } else {
-        window.showMessage("No synced data available. Please click 'Sync From Loyverse' first.", "danger");
-        return;
-      }
-    }
-
-    const expenses = getLocalExpenses(date);
-    let receipts = rawData?.orders || rawData?.receipts || rawData?.items || [];
-    const { flowerItems, fbItems, totalFlowerGrams } = processItemsForExcel(receipts);
-
-    if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS library not loaded.');
-
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Daily Report");
-    paintDailySheet(sheet, date, staffName, rawData, expenses, flowerItems, fbItems, totalFlowerGrams);
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `BestBuds_Report_${date}.xlsx`; a.click();
-    window.showMessage("Exported successfully", "success");
-  } catch (error) {
-    console.error('Export error:', error);
-    window.showMessage(`Export Error: ${error.message}`, "danger");
-  }
-};
-
-/**
- * Export Monthly Report to Excel
- * Aggregates all reports for the selected month, each in its own sheet
+ * Export Monthly Detailed Report
  */
 window.exportMonthlyToExcel = async function() {
   const monthInput = document.getElementById("reportMonth");
@@ -457,7 +377,7 @@ window.exportMonthlyToExcel = async function() {
   }
 
   try {
-    window.showMessage("Generating detailed monthly Excel file... This may take a moment.", "info");
+    window.showMessage("Generating monthly report... Please wait.", "info");
 
     const response = await fetch(`/api/reports`);
     if (!response.ok) throw new Error("Failed to fetch reports list");
@@ -466,62 +386,57 @@ window.exportMonthlyToExcel = async function() {
 
     const monthReports = reportsArray
       .filter(report => {
-        if (!report.date) return false;
-        const reportDate = typeof report.date === 'string' ? report.date : new Date(report.date).toISOString().split('T')[0];
-        return reportDate.startsWith(month);
+        const rDate = typeof report.date === 'string' ? report.date : new Date(report.date).toISOString();
+        return rDate.startsWith(month);
       })
       .sort((a, b) => {
-        const dateA = typeof a.date === 'string' ? a.date : new Date(a.date).toISOString().split('T')[0];
-        const dateB = typeof b.date === 'string' ? b.date : new Date(b.date).toISOString().split('T')[0];
-        return dateA.localeCompare(dateB);
+        const da = typeof a.date === 'string' ? a.date : new Date(a.date).toISOString();
+        const db = typeof b.date === 'string' ? b.date : new Date(b.date).toISOString();
+        return da.localeCompare(db);
       });
 
     if (monthReports.length === 0) {
-      window.showMessage("No reports found for the selected month", "warning");
+      window.showMessage("No reports found for this month", "warning");
       return;
     }
 
-    if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS library not loaded.');
     const workbook = new ExcelJS.Workbook();
     
     // Summary Sheet
     const summarySheet = workbook.addWorksheet("Monthly Summary");
-    summarySheet.properties.defaultRowHeight = 22;
+    summarySheet.columns = [{ width: 15 }, { width: 20 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
     const border = { top: { style: "thin", color: { argb: "FFD5B68A" } }, left: { style: "thin", color: { argb: "FFD5B68A" } }, bottom: { style: "thin", color: { argb: "FFD5B68A" } }, right: { style: "thin", color: { argb: "FFD5B68A" } } };
     const titleFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2A2010" } };
     const headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1D8AC" } };
-    const rowLight = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFBF4" } };
-    const rowDark = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF4E0" } };
 
     summarySheet.mergeCells("A1:G1");
-    summarySheet.getCell("A1").value = `BestBuds Monthly Summary - ${month}`;
-    summarySheet.getCell("A1").fill = titleFill;
-    summarySheet.getCell("A1").font = { size: 14, bold: true, color: { argb: "FFF8EBCF" } };
-    summarySheet.getCell("A1").alignment = { horizontal: "center" };
+    const sTitle = summarySheet.getCell("A1");
+    sTitle.value = `BestBuds Monthly Summary - ${month}`;
+    sTitle.fill = titleFill; sTitle.font = { size: 14, bold: true, color: { argb: "FFF8EBCF" } };
+    sTitle.alignment = { horizontal: "center" };
 
-    let currRow = 3;
-    const headers = ["Date", "Flower Sales (grams)", "Cash In", "Card In", "Transfer In", "F&B Total", "Net Sales"];
+    const headers = ["Date", "Flower (grams)", "Cash In", "Card In", "Transfer In", "F&B Total", "Net Sales"];
     headers.forEach((h, i) => {
-      const c = summarySheet.getCell(currRow, i + 1);
-      c.value = h; c.fill = headerFill; c.font = { bold: true }; c.border = border; c.alignment = { horizontal: 'center' };
+      const c = summarySheet.getCell(3, i + 1);
+      c.value = h; c.fill = headerFill; c.font = { bold: true }; c.border = border; c.alignment = { horizontal: "center" };
     });
-    currRow++;
 
     let totalGrams = 0, totalCash = 0, totalCard = 0, totalTransfer = 0, totalFb = 0, totalNet = 0;
+    let sRow = 4;
 
     for (const report of monthReports) {
-      const date = typeof report.date === 'string' ? report.date : new Date(report.date).toISOString().split('T')[0];
+      const dateStr = typeof report.date === 'string' ? report.date.split('T')[0] : new Date(report.date).toISOString().split('T')[0];
       
-      // Fetch detailed data for each day to build full sheets
+      // Fetch details for daily sheet
       let detailedData = null;
       try {
-        const syncRes = await fetch(`/api/loyverse/sync?date=${date}`);
-        if (syncRes.ok) detailedData = await syncRes.ok ? await syncRes.json() : null;
-      } catch (e) { console.warn(`Failed to sync details for ${date}`); }
+        const syncRes = await fetch(`/api/loyverse/sync?date=${dateStr}`);
+        if (syncRes.ok) detailedData = await syncRes.json();
+      } catch (e) {}
 
-      const expensesRes = await fetch(`/api/expenses/${date}`);
-      const expenses = expensesRes.ok ? (await expensesRes.json()).expenses : [];
-      const staff = getClosingStaff(date) || "N/A";
+      const expRes = await fetch(`/api/expenses/${dateStr}`);
+      const expenses = expRes.ok ? (await expRes.json()).expenses : [];
+      const staff = getClosingStaff(dateStr) || "N/A";
 
       const grams = Number(report.total_grams || 0);
       const cash = Number(report.cash_total || 0);
@@ -532,231 +447,145 @@ window.exportMonthlyToExcel = async function() {
 
       totalGrams += grams; totalCash += cash; totalCard += card; totalTransfer += transfer; totalFb += fb; totalNet += net;
 
-      // Add to summary row
-      const rowData = [date, grams, cash, card, transfer, fb, net];
-      rowData.forEach((value, colIndex) => {
-        const cell = summarySheet.getCell(currRow, colIndex + 1);
-        cell.value = value; cell.fill = (currRow % 2 === 0) ? rowLight : rowDark; cell.border = border;
-        if (colIndex > 0) {
-          cell.numFmt = colIndex === 1 ? '#,##0.000 "g"' : '#,##0.00';
-          cell.alignment = { horizontal: 'right' };
-        }
+      const rowValues = [dateStr, grams, cash, card, transfer, fb, net];
+      rowValues.forEach((v, i) => {
+        const c = summarySheet.getCell(sRow, i + 1);
+        c.value = v; c.border = border;
+        if (i > 0) c.numFmt = (i === 1) ? '#,##0.000' : '#,##0.00';
       });
-      currRow++;
+      sRow++;
 
-      // Add Individual Daily Sheet
-      // Ensure date is in YYYY-MM-DD format before splitting
-      const cleanDate = typeof date === 'string' ? date.split('T')[0] : new Date(date).toISOString().split('T')[0];
-      const sheetName = cleanDate.split('-').reverse().join('.');
+      // Create Daily Sheet
+      const sheetName = dateStr.split('-').reverse().join('.');
       const daySheet = workbook.addWorksheet(sheetName);
-      let flowerItems = [], fbItems = [], calcFlowerGrams = 0;
-      if (detailedData) {
-        const processed = processItemsForExcel(detailedData.orders || detailedData.receipts || detailedData.items || []);
-        flowerItems = processed.flowerItems; fbItems = processed.fbItems; calcFlowerGrams = processed.totalFlowerGrams;
-      }
-      paintDailySheet(daySheet, date, staff, detailedData || report, expenses, flowerItems, fbItems, calcFlowerGrams);
+      const { flowerItems, fbItems, totalFlowerGrams } = processItemsForExcel(detailedData?.orders || detailedData?.receipts || []);
+      paintDailySheet(daySheet, dateStr, staff, detailedData || report, expenses, flowerItems, fbItems, totalFlowerGrams);
     }
 
-    // Final Total Row in Summary
-    currRow++;
-    const totalRow = ["MONTHLY TOTAL", totalGrams, totalCash, totalCard, totalTransfer, totalFb, totalNet];
-    totalRow.forEach((value, colIndex) => {
-      const cell = summarySheet.getCell(currRow, colIndex + 1);
-      cell.value = value; cell.fill = headerFill; cell.font = { bold: true }; cell.border = border;
-      if (colIndex > 0) {
-        cell.numFmt = colIndex === 1 ? '#,##0.000 "g"' : '#,##0.00';
-        cell.alignment = { horizontal: 'right' };
-      }
+    // Monthly Total Row
+    const totals = ["TOTAL", totalGrams, totalCash, totalCard, totalTransfer, totalFb, totalNet];
+    totals.forEach((v, i) => {
+      const c = summarySheet.getCell(sRow, i + 1);
+      c.value = v; c.fill = headerFill; c.font = { bold: true }; c.border = border;
+      if (i > 0) c.numFmt = (i === 1) ? '#,##0.000' : '#,##0.00';
     });
-    summarySheet.columns = [{ width: 15 }, { width: 20 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = `BestBuds_Monthly_Detailed_${month}.xlsx`; a.click();
-    window.showMessage("Detailed monthly report exported successfully", "success");
+    window.showMessage("Monthly report exported successfully", "success");
   } catch (error) {
     console.error('Monthly export error:', error);
-    window.showMessage(`Export Error: ${error.message}`, "danger");
+    window.showMessage(`Error: ${error.message}`, "danger");
   }
 };
 
 /**
- * Render expenses list
+ * Standard Daily Export
  */
+window.exportReportToExcel = async function() {
+  const dateInput = document.getElementById("reportDate");
+  const date = dateInput?.value;
+  if (!date) { window.showMessage("Please select a date", "warning"); return; }
+
+  try {
+    window.showMessage("Generating daily report...", "info");
+    let rawData = window.lastSyncedData;
+    if (!rawData || rawData.date !== date) {
+      const syncRes = await fetch(`/api/loyverse/sync?date=${date}`);
+      if (syncRes.ok) rawData = await syncRes.json();
+    }
+    if (!rawData) { window.showMessage("No data found for this date", "danger"); return; }
+
+    const expenses = await fetchExpenses(date);
+    const staff = getClosingStaff(date) || "N/A";
+    const { flowerItems, fbItems, totalFlowerGrams } = processItemsForExcel(rawData.orders || rawData.receipts || []);
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Daily Report");
+    paintDailySheet(sheet, date, staff, rawData, expenses, flowerItems, fbItems, totalFlowerGrams);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `BestBuds_Daily_Report_${date}.xlsx`; a.click();
+    window.showMessage("Daily report exported successfully", "success");
+  } catch (error) {
+    console.error('Daily export error:', error);
+    window.showMessage(`Error: ${error.message}`, "danger");
+  }
+};
+
+// UI Rendering Helpers
 function renderExpensesList(expenses, date) {
   const container = document.getElementById('expensesList');
   if (!container) return;
-
-  container.innerHTML = '';
-  if (!expenses || expenses.length === 0) {
-    container.innerHTML = '<p class="text-muted">No expenses added</p>';
-    return;
-  }
-
+  container.innerHTML = expenses.length ? '' : '<p class="text-muted">No expenses added</p>';
   const list = document.createElement('ul');
   list.className = 'list-group';
-  expenses.forEach((exp) => {
+  expenses.forEach(exp => {
     const li = document.createElement('li');
     li.className = 'list-group-item d-flex justify-content-between align-items-center';
-    li.innerHTML = `
-      <div>
-        <strong>${exp.category}</strong>
-        ${exp.description ? `<br><small class="text-muted">${exp.description}</small>` : ''}
-      </div>
-      <div class="text-end">
-        <span class="badge bg-primary">THB ${Number(exp.amount || 0).toFixed(2)}</span>
-        <button class="btn btn-sm btn-danger ms-2" onclick="removeExpense(${exp.id}, '${date}')">Remove</button>
-      </div>
-    `;
+    li.innerHTML = `<div><strong>${exp.category}</strong><br><small>${exp.description || ''}</small></div>
+      <div><span class="badge bg-primary">THB ${Number(exp.amount).toFixed(2)}</span>
+      <button class="btn btn-sm btn-danger ms-2" onclick="removeExpense(${exp.id}, '${date}')">Remove</button></div>`;
     list.appendChild(li);
   });
-  container.appendChild(list);
+  if (expenses.length) container.appendChild(list);
 }
 
-/**
- * Remove expense
- */
-async function removeExpense(id, date) {
-  try {
-    const response = await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-      window.showMessage('Expense removed', 'success');
-      await fetchExpenses(date);
-    }
-  } catch (error) {
-    console.error('Error removing expense:', error);
-    window.showMessage('Error removing expense', 'danger');
-  }
-}
-
-/**
- * Add expense to report
- */
 window.addExpenseToReport = async function() {
-  const dateInput = document.getElementById('reportDate');
-  const categorySelect = document.getElementById('expenseCategory');
-  const descriptionInput = document.getElementById('expenseDescription');
-  const amountInput = document.getElementById('expenseAmount');
-
-  const date = dateInput?.value;
-  const category = categorySelect?.value;
-  const description = descriptionInput?.value || '';
-  const amount = amountInput?.value;
-
-  if (!date || !category || !amount) {
-    window.showMessage('Please fill in all required fields', 'warning');
-    return;
-  }
-
+  const date = document.getElementById('reportDate')?.value;
+  const cat = document.getElementById('expenseCategory')?.value;
+  const desc = document.getElementById('expenseDescription')?.value;
+  const amt = document.getElementById('expenseAmount')?.value;
+  if (!date || !cat || !amt) return window.showMessage('Fill all fields', 'warning');
   try {
-    const response = await fetch('/api/expenses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date, category, description, amount: Number(amount) })
+    const res = await fetch('/api/expenses', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date, category: cat, description: desc, amount: Number(amt) })
     });
-
-    if (response.ok) {
-      window.showMessage('Expense added', 'success');
-      amountInput.value = '';
-      descriptionInput.value = '';
-      categorySelect.value = '';
-      await fetchExpenses(date);
-    } else {
-      const error = await response.json();
-      window.showMessage(error.message || 'Error adding expense', 'danger');
-    }
-  } catch (error) {
-    console.error('Error adding expense:', error);
-    window.showMessage('Error adding expense', 'danger');
-  }
+    if (res.ok) { window.showMessage('Added', 'success'); fetchExpenses(date); }
+  } catch (e) {}
 };
 
-/**
- * Render closing staff list
- */
+async function removeExpense(id, date) {
+  if (await fetch(`/api/expenses/${id}`, { method: 'DELETE' })) fetchExpenses(date);
+}
+
 function renderClosingStaffList(staff, date) {
   const container = document.getElementById('closingStaffList');
   if (!container) return;
-
-  container.innerHTML = '';
-  if (!staff || staff.length === 0) {
-    container.innerHTML = '<p class="text-muted">No staff added</p>';
-    return;
-  }
-
+  container.innerHTML = staff.length ? '' : '<p class="text-muted">No staff added</p>';
   const list = document.createElement('ul');
   list.className = 'list-group';
-  staff.forEach((s) => {
+  staff.forEach(s => {
     const li = document.createElement('li');
     li.className = 'list-group-item d-flex justify-content-between align-items-center';
-    li.innerHTML = `
-      <span>${s.name}</span>
-      <button class="btn btn-sm btn-danger" onclick="removeClosingStaff(${s.id}, '${date}')">Remove</button>
-    `;
+    li.innerHTML = `<span>${s.name}</span><button class="btn btn-sm btn-danger" onclick="removeClosingStaff(${s.id}, '${date}')">Remove</button>`;
     list.appendChild(li);
   });
-  container.appendChild(list);
+  if (staff.length) container.appendChild(list);
 }
 
-/**
- * Remove closing staff
- */
-async function removeClosingStaff(id, date) {
-  try {
-    const response = await fetch(`/api/staff/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-      window.showMessage('Staff removed', 'success');
-      await fetchStaff(date);
-    }
-  } catch (error) {
-    console.error('Error removing staff:', error);
-    window.showMessage('Error removing staff', 'danger');
-  }
-}
-
-/**
- * Add closing staff to report
- */
 window.addClosingStaffToReport = async function() {
-  const dateInput = document.getElementById('reportDate');
-  const staffInput = document.getElementById('closingStaff');
-
-  const date = dateInput?.value;
-  const name = staffInput?.value?.trim();
-
-  if (!date || !name) {
-    window.showMessage('Please enter staff name', 'warning');
-    return;
-  }
-
+  const date = document.getElementById('reportDate')?.value;
+  const name = document.getElementById('closingStaff')?.value;
+  if (!date || !name) return;
   try {
-    const response = await fetch('/api/staff', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch('/api/staff', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date, name })
     });
-
-    if (response.ok) {
-      window.showMessage('Staff added', 'success');
-      staffInput.value = '';
-      await fetchStaff(date);
-    } else {
-      const error = await response.json();
-      window.showMessage(error.message || 'Error adding staff', 'danger');
-    }
-  } catch (error) {
-    console.error('Error adding staff:', error);
-    window.showMessage('Error adding staff', 'danger');
-  }
+    if (res.ok) { document.getElementById('closingStaff').value = ''; fetchStaff(date); }
+  } catch (e) {}
 };
 
-// Initialize on page load
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    setupRealtimeListener();
-  });
-} else {
-  setupRealtimeListener();
+async function removeClosingStaff(id, date) {
+  if (await fetch(`/api/staff/${id}`, { method: 'DELETE' })) fetchStaff(date);
 }
+
+setupRealtimeListener();
