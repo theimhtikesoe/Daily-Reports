@@ -486,8 +486,8 @@ window.exportReportToExcel = async function() {
           itemNetPrice = Math.max(0, itemNetPrice - allocatedOrderDiscount);
         }
 
-        // Only skip if both price and qty are zero
-        if (itemNetPrice <= 0 && qty <= 0) return;
+        // Keep daily export grams aligned with on-screen total: exclude zero-net lines
+        if (itemNetPrice <= 0.01) return;
 
         const totalItemDiscount = Math.max(0, grossPrice - itemNetPrice);
         const discountPercent = grossPrice > 0 ? Math.round(totalItemDiscount / grossPrice * 100) : 0;
