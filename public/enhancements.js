@@ -507,6 +507,7 @@ window.exportReportToExcel = async function() {
         let isFlowerStrain = flowerStrains.some(s => itemName.includes(s));
         let isThcGummy = itemName.includes("thc gummy");
         let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
+        let isLobbyShirt = itemName.includes("the lobby shirt");
         let isFB = !isFlowerStrain && !isThcGummy && (fbKeywords.some(k => itemName.includes(k) || category.includes(k)) ||
                    (['tea'].some(k => itemName.includes(k) || category.includes(k)) && !itemName.includes('tea time')));
 

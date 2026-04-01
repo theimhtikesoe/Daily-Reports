@@ -155,6 +155,7 @@ async function generateExcelReport(date, reportData, receipts, expenses) {
       let isFlowerStrain = flowerStrains.some(strain => itemName.includes(strain));
       let isThcGummy = itemName.includes('thc gummy');
       let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
+      let isLobbyShirt = itemName.includes('the lobby shirt');
 
       let isFB = !isFlowerStrain && !isThcGummy && (
         fbKeywords.some(k => itemName.includes(k) || category.includes(k)) ||
@@ -169,7 +170,8 @@ async function generateExcelReport(date, reportData, receipts, expenses) {
       const exportItem = {
         type: exportType,
         name: item.name || item.item_name,
-        qty: qty,
+        qty: ((isFlowerStrain || isThcGummy) && !isThcGummy && !isLobbyShirt && !isAccessory) ? '-' : qty,
+        gram: ((isFlowerStrain || isThcGummy) && !isThcGummy && !isLobbyShirt && !isAccessory) ? `${qty.toFixed(3)} G` : '-',
         unitPrice: grossPrice / (qty || 1),
         discount: discountStr,
         netPrice: itemNetPrice,
@@ -181,7 +183,8 @@ async function generateExcelReport(date, reportData, receipts, expenses) {
         fbItems.push(exportItem);
       } else {
         flowerItems.push(exportItem);
-        if (!isThcGummy && !isLobbyShirt && !isAccessory) {
+        const isMainFlower = isFlowerStrain && !isThcGummy && !isLobbyShirt && !isAccessory;
+        if (isMainFlower) {
           totalFlowerGrams += qty;
         }
       }
@@ -192,7 +195,7 @@ async function generateExcelReport(date, reportData, receipts, expenses) {
   sheet.getCell('A3').value = 'Flower / Main / Accessories';
   sheet.getCell('A3').font = boldFont;
 
-  const headers = ['Item Type', 'Item Name', 'Qty', 'Unit Price', 'Discount', 'Net Price', 'Payment', 'Note'];
+  const headers = ['Item Type', 'Item Name', 'Qty', 'Gram', 'Unit Price', 'Discount', 'Net Price', 'Payment', 'Note'];
   headers.forEach((h, i) => {
     const cell = sheet.getCell(4, i + 1);
     cell.value = h;
@@ -204,7 +207,7 @@ async function generateExcelReport(date, reportData, receipts, expenses) {
   let currRow = 5;
   flowerItems.forEach(item => {
     const row = sheet.getRow(currRow);
-    row.values = [item.type, item.name, item.qty, item.unitPrice, item.discount, item.netPrice, item.payment, item.note];
+    row.values = [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note];
     row.eachCell(cell => cell.border = border);
     currRow++;
   });
@@ -245,7 +248,7 @@ async function generateExcelReport(date, reportData, receipts, expenses) {
   currRow++;
   fbItems.forEach(item => {
     const row = sheet.getRow(currRow);
-    row.values = [item.type, item.name, item.qty, item.unitPrice, item.discount, item.netPrice, item.payment, item.note];
+    row.values = [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note];
     row.eachCell(cell => cell.border = border);
     currRow++;
   });
