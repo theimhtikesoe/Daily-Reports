@@ -545,7 +545,9 @@ window.exportMonthlyToExcel = async function() {
       currRow++;
 
       // Add Individual Daily Sheet
-      const sheetName = date.split('-').reverse().join('.');
+      // Ensure date is in YYYY-MM-DD format before splitting
+      const cleanDate = typeof date === 'string' ? date.split('T')[0] : new Date(date).toISOString().split('T')[0];
+      const sheetName = cleanDate.split('-').reverse().join('.');
       const daySheet = workbook.addWorksheet(sheetName);
       let flowerItems = [], fbItems = [], calcFlowerGrams = 0;
       if (detailedData) {
