@@ -533,7 +533,7 @@ async function removeExpense(id, date) {
     const response = await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
     if (response.ok) {
       window.showMessage('Expense removed', 'success');
-      fetchExpenses(date);
+      await fetchExpenses(date);
     }
   } catch (error) {
     console.error('Error removing expense:', error);
@@ -572,7 +572,7 @@ window.addExpenseToReport = async function() {
       amountInput.value = '';
       descriptionInput.value = '';
       categorySelect.value = '';
-      fetchExpenses(date);
+      await fetchExpenses(date);
     } else {
       const error = await response.json();
       window.showMessage(error.message || 'Error adding expense', 'danger');
@@ -618,7 +618,7 @@ async function removeClosingStaff(id, date) {
     const response = await fetch(`/api/staff/${id}`, { method: 'DELETE' });
     if (response.ok) {
       window.showMessage('Staff removed', 'success');
-      fetchStaff(date);
+      await fetchStaff(date);
     }
   } catch (error) {
     console.error('Error removing staff:', error);
@@ -651,7 +651,7 @@ window.addClosingStaffToReport = async function() {
     if (response.ok) {
       window.showMessage('Staff added', 'success');
       staffInput.value = '';
-      fetchStaff(date);
+      await fetchStaff(date);
     } else {
       const error = await response.json();
       window.showMessage(error.message || 'Error adding staff', 'danger');
