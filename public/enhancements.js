@@ -223,7 +223,7 @@ window.exportReportToExcel = async function() {
           return;
         }
 
-        let itemName = String(item.name || "").toLowerCase();
+        let itemName = String(item.name || item.item_name || "").toLowerCase();
         let category = String(item.category_name || "").toLowerCase();
         let qty = Number(item.quantity || 0);
         let grossPrice = getMoney(item.gross_total_money, item.subtotal_money) || (getMoney(item.price) * qty);
@@ -284,7 +284,7 @@ window.exportReportToExcel = async function() {
 
         const exportItem = {
           type: displayType,
-          name: item.name || "",
+          name: item.name || item.item_name || "",
           qty: displayQty,
           gram: displayGram,
           unitPrice: unitPrice > 0.01 ? unitPrice : "-",
@@ -397,13 +397,13 @@ window.exportReportToExcel = async function() {
     // Calculate F&B Total from all F&B items
     const fbTotal = fbItems.reduce((a, b) => {
       const val = Number(b.netPrice);
-      return a + (isNaN(val) ? 0 : val);
+      return a + (isNaN(val) || val <= 0.01 ? 0 : val);
     }, 0);
     
     // Calculate Main/Accessories Total from flower items
     const mainAccTotal = flowerItems.reduce((a, b) => {
       const val = Number(b.netPrice);
-      return a + (isNaN(val) ? 0 : val);
+      return a + (isNaN(val) || val <= 0.01 ? 0 : val);
     }, 0);
     
     const summaryData = [
