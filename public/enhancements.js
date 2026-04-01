@@ -189,12 +189,15 @@ window.exportReportToExcel = async function() {
 
     function getMoney(...candidates) {
       for (const candidate of candidates) {
+        if (candidate === undefined || candidate === null) continue;
         let val = candidate;
-        if (typeof val === 'object' && val !== null) val = val.amount || val.value;
+        if (typeof val === 'object') {
+          val = (val.amount !== undefined) ? val.amount : val.value;
+        }
         const num = Number(val);
-        if (Number.isFinite(num)) return num;
+        if (!isNaN(num)) return num;
       }
-      return 0;
+      return null;
     }
 
     const flowerItems = [];
@@ -226,14 +229,18 @@ window.exportReportToExcel = async function() {
         let itemName = String(item.name || item.item_name || "").toLowerCase();
         let category = String(item.category_name || "").toLowerCase();
         let qty = Number(item.quantity || 0);
-        let grossPrice = getMoney(item.gross_total_money, item.subtotal_money) || (getMoney(item.price) * qty);
+        let grossPrice = getMoney(item.gross_total_money, item.subtotal_money);
+        if (grossPrice === null) grossPrice = (getMoney(item.price) || 0) * qty;
+        
         let lineItemDiscount = getMoney(item.total_discount_money, item.discount_money) || 0;
-        let itemNetPrice = getMoney(item.total_money) || Math.max(0, grossPrice - lineItemDiscount);
+        
+        let itemNetPrice = getMoney(item.total_money);
+        if (itemNetPrice === null) itemNetPrice = Math.max(0, grossPrice - lineItemDiscount);
 
         const totalItemDiscount = Math.max(0, grossPrice - itemNetPrice);
         const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
 
-        if (itemNetPrice <= 0.01 || discountPercent >= 99.99) return;
+        if (itemNetPrice <= 0.01 || discountPercent >= 99.9) return;
         const discountStr = totalItemDiscount > 0.01 ? `${discountPercent}% (${totalItemDiscount.toFixed(2)} THB)` : "-";
 
         const flowerStrains = [
