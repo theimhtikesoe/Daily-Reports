@@ -268,25 +268,34 @@ window.exportReportToExcel = async function() {
           if (grossPrice / (qty || 1) <= 50) isFB = true; else isFlowerStrain = true;
         }
 
-        const isMain = (isFlowerStrain && !isAccessory) || isThcGummy;
-        const exportType = isFB ? "F&B" : (isAccessory ? "Accessories" : "Flower/Main");
+        // Determine display values based on item type (matching UI logic)
+        let displayQty = qty;
+        let displayGram = "-";
+        let displayType = isFB ? "F&B" : (isAccessory ? "Accessories" : "Flower/Main");
+
+        // For flower strains (not gummy, not accessories), show gram instead of qty
+        if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) {
+          displayQty = "-";
+          displayGram = `${qty.toFixed(3)} G`;
+          totalFlowerGrams += qty;
+        }
+
+        const unitPrice = grossPrice / (qty || 1);
 
         const exportItem = {
-          type: exportType,
+          type: displayType,
           name: item.name || "",
-          qty: (isMain && !isThcGummy && !isLobbyShirt) ? "-" : qty,
-          gram: (isMain && !isThcGummy && !isLobbyShirt) ? `${qty.toFixed(3)} G` : "-",
-          unitPrice: grossPrice / (qty || 1),
+          qty: displayQty,
+          gram: displayGram,
+          unitPrice: unitPrice > 0.01 ? unitPrice : "-",
           discount: discountStr,
-          netPrice: itemNetPrice,
+          netPrice: itemNetPrice > 0.01 ? itemNetPrice : "-",
           payment: paymentMethod,
           note: receiptNumber
         };
 
         if (isFB) fbItems.push(exportItem); else {
           flowerItems.push(exportItem);
-          // Only count actual flower strains (not accessories or gummy)
-          if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) totalFlowerGrams += qty;
         }
       });
     });
@@ -326,7 +335,7 @@ window.exportReportToExcel = async function() {
     };
 
     const paintHeader = () => {
-      ["Type", "Name", "Qty", "Gram", "Price", "Discount", "Net", "Payment", "Note"].forEach((h, i) => {
+      ["Item Type", "Item Name", "Qty", "Gram", "Unit Price", "Discount", "Net Price", "Payment", "Note"].forEach((h, i) => {
         const c = sheet.getCell(currRow, i + 1);
         c.value = h; c.fill = headerFill; c.font = { bold: true }; c.border = border;
       });
@@ -352,15 +361,23 @@ window.exportReportToExcel = async function() {
     });
     currRow++;
     let totalExp = 0;
-    expenses.forEach((exp, i) => {
-      const amt = Number(exp.amount || 0);
-      totalExp += amt;
-      sheet.getCell(`A${currRow}`).value = exp.category;
-      sheet.getCell(`B${currRow}`).value = exp.description;
-      sheet.getCell(`C${currRow}`).value = amt;
-      ["A", "B", "C"].forEach(col => { sheet.getCell(`${col}${currRow}`).fill = i % 2 === 0 ? rowLight : rowDark; sheet.getCell(`${col}${currRow}`).border = border; });
+    if (expenses.length === 0) {
+      sheet.getCell(`A${currRow}`).value = "-";
+      sheet.getCell(`B${currRow}`).value = "No expenses";
+      sheet.getCell(`C${currRow}`).value = 0;
+      ["A", "B", "C"].forEach(col => { sheet.getCell(`${col}${currRow}`).border = border; });
       currRow++;
-    });
+    } else {
+      expenses.forEach((exp, i) => {
+        const amt = Number(exp.amount || 0);
+        totalExp += amt;
+        sheet.getCell(`A${currRow}`).value = exp.category;
+        sheet.getCell(`B${currRow}`).value = exp.description;
+        sheet.getCell(`C${currRow}`).value = amt;
+        ["A", "B", "C"].forEach(col => { sheet.getCell(`${col}${currRow}`).fill = i % 2 === 0 ? rowLight : rowDark; sheet.getCell(`${col}${currRow}`).border = border; });
+        currRow++;
+      });
+    }
 
     currRow++;
     paintSection("Food & Drinks");
@@ -375,14 +392,28 @@ window.exportReportToExcel = async function() {
     });
 
     currRow++;
-    paintSection("Summary");
-    const fbTotal = fbItems.reduce((a, b) => a + b.netPrice, 0);
-    const summary = [["Total Grams", totalFlowerGrams], ["Cash", cashTotal], ["Card", cardTotal], ["Transfer", transferTotal], ["F&B Total", fbTotal], ["Total Expenses", totalExp], ["Net Sales", netSale], ["Net Profit", netSale - totalExp]];
-    summary.forEach(s => {
-      sheet.getCell(`A${currRow}`).value = s[0];
-      sheet.getCell(`B${currRow}`).value = s[1];
+    paintSection("Daily Summary Dashboard");
+    const fbTotal = fbItems.reduce((a, b) => {
+      const val = typeof b.netPrice === 'number' ? b.netPrice : 0;
+      return a + val;
+    }, 0);
+    
+    const summaryData = [
+      ["Total Grams Sold", "", "", `${totalFlowerGrams.toFixed(0)} G`],
+      ["Cash In", "", "", `${cashTotal.toFixed(0)} THB`],
+      ["Card In", "", "", `${cardTotal.toFixed(0)} THB`],
+      ["Transfer In", "", "", `${transferTotal.toFixed(0)} THB`],
+      ["F&B Total", "", "", `${fbTotal.toFixed(0)} THB`],
+      ["Total Expenses", "", "", `${totalExp.toFixed(0)} THB`],
+      ["Net Sales (Total)", "", "", `${netSale.toFixed(0)} THB`],
+      ["Net Profit (After Expenses)", "", "", `${(netSale - totalExp).toFixed(0)} THB`]
+    ];
+    
+    summaryData.forEach((row, idx) => {
+      sheet.getCell(`A${currRow}`).value = row[0];
+      sheet.getCell(`D${currRow}`).value = row[3];
       sheet.getCell(`A${currRow}`).border = border;
-      sheet.getCell(`B${currRow}`).border = border;
+      sheet.getCell(`D${currRow}`).border = border;
       currRow++;
     });
 
