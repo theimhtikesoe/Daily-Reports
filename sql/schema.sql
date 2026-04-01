@@ -28,8 +28,7 @@ CREATE TABLE IF NOT EXISTS daily_expenses (
   amount DECIMAL(12,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_daily_expenses_date (date),
-  FOREIGN KEY (date) REFERENCES daily_reports(date) ON DELETE CASCADE
+  INDEX idx_daily_expenses_date (date)
 );
 
 CREATE TABLE IF NOT EXISTS item_classifications (
@@ -47,6 +46,5 @@ CREATE TABLE IF NOT EXISTS daily_staff (
   name VARCHAR(100) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_daily_staff_date (date),
-  FOREIGN KEY (date) REFERENCES daily_reports(date) ON DELETE CASCADE
+  INDEX idx_daily_staff_date (date)
 );

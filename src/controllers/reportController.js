@@ -437,17 +437,6 @@ async function addExpense(req, res, next) {
       ? `INSERT INTO daily_expenses (date, category, description, amount, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *`
       : `INSERT INTO daily_expenses (date, category, description, amount, created_at) VALUES (?, ?, ?, ?, NOW())`;
 
-    // Ensure daily_report exists for this date due to foreign key constraint
-    const existingReport = await query(`SELECT date FROM daily_reports WHERE date = ${placeholder(1)}`, [date]);
-    const existingReportList = Array.isArray(existingReport) ? existingReport : [];
-    if (existingReportList.length === 0) {
-      // Create a skeleton report if it doesn't exist
-      const insertSql = isPostgres 
-        ? `INSERT INTO daily_reports (date) VALUES ($1) ON CONFLICT (date) DO NOTHING`
-        : `INSERT IGNORE INTO daily_reports (date) VALUES (?)`;
-      await query(insertSql, [date]);
-    }
-
     const result = await query(sql, [date, category, description || '', expenseAmount]);
 
     // Broadcast update
@@ -525,16 +514,6 @@ async function addStaff(req, res, next) {
       const error = new Error('Name is required');
       error.status = 400;
       throw error;
-    }
-
-    // Ensure daily_report exists
-    const existingReport = await query(`SELECT date FROM daily_reports WHERE date = ${placeholder(1)}`, [date]);
-    const existingReportList = Array.isArray(existingReport) ? existingReport : [];
-    if (existingReportList.length === 0) {
-      const insertSql = isPostgres 
-        ? `INSERT INTO daily_reports (date) VALUES ($1) ON CONFLICT (date) DO NOTHING`
-        : `INSERT IGNORE INTO daily_reports (date) VALUES (?)`;
-      await query(insertSql, [date]);
     }
 
     const sql = isPostgres
