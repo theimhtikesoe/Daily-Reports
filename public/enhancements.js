@@ -514,16 +514,11 @@ window.exportMonthlyToExcel = async function() {
     }
 
     const allReports = await response.json();
-    
-    // Ensure allReports is an array
     const reportsArray = Array.isArray(allReports) ? allReports : [];
 
-    // Filter reports for the selected month
-    // Month is in YYYY-MM format, report.date is YYYY-MM-DD
     const monthReports = reportsArray
       .filter(report => {
         if (!report.date) return false;
-        // Handle potential Date object or ISO string from API
         const reportDate = typeof report.date === 'string' ? report.date : new Date(report.date).toISOString().split('T')[0];
         return reportDate.startsWith(month);
       })
@@ -538,14 +533,13 @@ window.exportMonthlyToExcel = async function() {
       return;
     }
 
-    // Ensure ExcelJS is available
     if (typeof ExcelJS === 'undefined') {
       throw new Error('ExcelJS library not loaded. Please refresh the page and try again.');
     }
 
     const workbook = new ExcelJS.Workbook();
     
-    // Create Summary Sheet
+    // Create Summary Sheet (The Dashboard)
     const summarySheet = workbook.addWorksheet("Monthly Summary");
     summarySheet.properties.defaultRowHeight = 22;
 
@@ -555,96 +549,119 @@ window.exportMonthlyToExcel = async function() {
     const rowDark = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF4E0" } };
     const border = { top: { style: "thin", color: { argb: "FFD5B68A" } }, left: { style: "thin", color: { argb: "FFD5B68A" } }, bottom: { style: "thin", color: { argb: "FFD5B68A" } }, right: { style: "thin", color: { argb: "FFD5B68A" } } };
 
-    // Add title
-    summarySheet.mergeCells("A1:F1");
-    summarySheet.getCell("A1").value = `BestBuds Monthly Report - ${month}`;
+    summarySheet.mergeCells("A1:G1");
+    summarySheet.getCell("A1").value = `BestBuds Monthly Summary - ${month}`;
     summarySheet.getCell("A1").fill = titleFill;
     summarySheet.getCell("A1").font = { size: 14, bold: true, color: { argb: "FFF8EBCF" } };
     summarySheet.getCell("A1").alignment = { horizontal: "center" };
 
-    // Add headers
     let currRow = 3;
-    const headers = ["Date", "Net Sales", "Cash In", "Card In", "Transfer In", "Total Grams"];
+    const headers = ["Date", "Flower Sales (grams)", "Cash In", "Card In", "Transfer In", "F&B Total", "Net Sales"];
     headers.forEach((h, i) => {
       const c = summarySheet.getCell(currRow, i + 1);
       c.value = h;
       c.fill = headerFill;
       c.font = { bold: true };
       c.border = border;
+      c.alignment = { horizontal: 'center' };
     });
     currRow++;
 
-    // Add daily data
-    let totalNetSales = 0;
-    let totalCash = 0;
-    let totalCard = 0;
-    let totalTransfer = 0;
-    let totalGrams = 0;
+    let totalGrams = 0, totalCash = 0, totalCard = 0, totalTransfer = 0, totalFb = 0, totalNet = 0;
 
     monthReports.forEach((report, index) => {
-      const netSale = Number(report.net_sale || 0);
-      const cashIn = Number(report.cash_total || 0);
-      const cardIn = Number(report.card_total || 0);
-      const transferIn = Number(report.transfer_total || 0);
       const grams = Number(report.total_grams || 0);
+      const cash = Number(report.cash_total || 0);
+      const card = Number(report.card_total || 0);
+      const transfer = Number(report.transfer_total || 0);
+      const fb = Number(report.fb_total || 0);
+      const net = Number(report.net_sale || 0);
 
-      totalNetSales += netSale;
-      totalCash += cashIn;
-      totalCard += cardIn;
-      totalTransfer += transferIn;
       totalGrams += grams;
+      totalCash += cash;
+      totalCard += card;
+      totalTransfer += transfer;
+      totalFb += fb;
+      totalNet += net;
 
       const reportDate = typeof report.date === 'string' ? report.date : new Date(report.date).toISOString().split('T')[0];
-      const rowData = [
-        reportDate,
-        netSale.toFixed(2),
-        cashIn.toFixed(2),
-        cardIn.toFixed(2),
-        transferIn.toFixed(2),
-        grams.toFixed(3)
-      ];
+      const rowData = [reportDate, grams, cash, card, transfer, fb, net];
 
       rowData.forEach((value, colIndex) => {
         const cell = summarySheet.getCell(currRow, colIndex + 1);
         cell.value = value;
         cell.fill = index % 2 === 0 ? rowLight : rowDark;
         cell.border = border;
-        cell.alignment = { vertical: 'middle', horizontal: colIndex === 0 ? 'left' : 'right' };
+        if (colIndex > 0) {
+          cell.numFmt = colIndex === 1 ? '#,##0.000 "g"' : '#,##0.00';
+          cell.alignment = { horizontal: 'right' };
+        } else {
+          cell.alignment = { horizontal: 'left' };
+        }
       });
       currRow++;
     });
 
-    // Add totals row
     currRow++;
-    const totalRow = [
-      "MONTHLY TOTAL",
-      totalNetSales.toFixed(2),
-      totalCash.toFixed(2),
-      totalCard.toFixed(2),
-      totalTransfer.toFixed(2),
-      totalGrams.toFixed(3)
-    ];
-
+    const totalRow = ["MONTHLY TOTAL", totalGrams, totalCash, totalCard, totalTransfer, totalFb, totalNet];
     totalRow.forEach((value, colIndex) => {
       const cell = summarySheet.getCell(currRow, colIndex + 1);
       cell.value = value;
       cell.fill = headerFill;
       cell.font = { bold: true };
       cell.border = border;
-      cell.alignment = { vertical: 'middle', horizontal: colIndex === 0 ? 'left' : 'right' };
+      if (colIndex > 0) {
+        cell.numFmt = colIndex === 1 ? '#,##0.000 "g"' : '#,##0.00';
+        cell.alignment = { horizontal: 'right' };
+      }
     });
 
-    // Set column widths
-    summarySheet.columns = [
-      { width: 15 },
-      { width: 15 },
-      { width: 15 },
-      { width: 15 },
-      { width: 15 },
-      { width: 15 }
-    ];
+    summarySheet.columns = [{ width: 15 }, { width: 20 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
 
-    // Generate the Excel file
+    // Create Individual Daily Sheets
+    for (const report of monthReports) {
+      const reportDate = typeof report.date === 'string' ? report.date : new Date(report.date).toISOString().split('T')[0];
+      const sheetName = reportDate.split('-').reverse().join('.'); // DD.MM.YYYY
+      const daySheet = workbook.addWorksheet(sheetName);
+      daySheet.properties.defaultRowHeight = 22;
+
+      // Header
+      daySheet.mergeCells("A1:I1");
+      daySheet.getCell("A1").value = `BestBuds Daily Report - ${reportDate}`;
+      daySheet.getCell("A1").fill = titleFill;
+      daySheet.getCell("A1").font = { size: 14, bold: true, color: { argb: "FFF8EBCF" } };
+      daySheet.getCell("A1").alignment = { horizontal: "center" };
+
+      // We don't have detailed items for all days in the monthly list, 
+      // but we can show the summary dashboard for each day
+      let dRow = 3;
+      daySheet.getCell(`A${dRow}`).value = "Dashboard (Daily Summary)";
+      daySheet.getCell(`A${dRow}`).font = { bold: true };
+      dRow++;
+
+      const dHeaders = ["Flower Sales(grams)", "Cash In", "Card In", "Transfer In", "Net Sales"];
+      dHeaders.forEach((h, i) => {
+        const c = daySheet.getCell(dRow, i + 1);
+        c.value = h; c.fill = headerFill; c.font = { bold: true }; c.border = border;
+      });
+      dRow++;
+
+      const dData = [
+        `${Number(report.total_grams || 0).toFixed(3)}g`,
+        Number(report.cash_total || 0),
+        Number(report.card_total || 0),
+        Number(report.transfer_total || 0),
+        Number(report.net_sale || 0)
+      ];
+      dData.forEach((v, i) => {
+        const c = daySheet.getCell(dRow, i + 1);
+        c.value = v; c.border = border;
+        if (i > 0) c.numFmt = '#,##0.00';
+      });
+
+      daySheet.columns = [{ width: 20 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
+    }
+
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = window.URL.createObjectURL(blob);
