@@ -149,6 +149,248 @@ function getClosingStaff(date) {
 }
 
 /**
+ * Helper to get money value from Loyverse data
+ */
+function getMoney(...candidates) {
+  for (const candidate of candidates) {
+    if (candidate === undefined || candidate === null) continue;
+    let val = candidate;
+    if (typeof val === 'object') {
+      val = (val.amount !== undefined) ? val.amount : val.value;
+    }
+    const num = Number(val);
+    if (!isNaN(num)) return num;
+  }
+  return null;
+}
+
+/**
+ * Helper to classify and format items for Excel
+ */
+function processItemsForExcel(receipts) {
+  const flowerItems = [];
+  const fbItems = [];
+  let totalFlowerGrams = 0;
+
+  receipts.forEach(receipt => {
+    if (!receipt || typeof receipt !== 'object') return;
+
+    const items = receipt.line_items || receipt.items || [];
+    const paymentMethod = (receipt.payments && receipt.payments[0]?.payment_type?.name) || 
+                           (receipt.payments && receipt.payments[0]?.name) || "N/A";
+    const receiptNumber = receipt.receipt_number || receipt.number || "N/A";
+
+    items.forEach(item => {
+      if (!item || typeof item !== 'object') return;
+
+      let itemName = String(item.name || item.item_name || "").toLowerCase();
+      let category = String(item.category_name || "").toLowerCase();
+      let qty = Number(item.quantity || 0);
+      let grossPrice = getMoney(item.gross_total_money, item.subtotal_money);
+      if (grossPrice === null) grossPrice = (getMoney(item.price) || 0) * qty;
+      
+      let lineItemDiscount = getMoney(item.total_discount_money, item.discount_money) || 0;
+      let itemNetPrice = getMoney(item.total_money);
+      if (itemNetPrice === null) itemNetPrice = Math.max(0, grossPrice - lineItemDiscount);
+
+      const totalItemDiscount = Math.max(0, grossPrice - itemNetPrice);
+      const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
+
+      if (itemNetPrice <= 0.01 || discountPercent >= 99.9) return;
+      const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` : "-";
+
+      const flowerStrains = ['grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 'moonbow', 'emergen c', 'tea time', 'silver shadow', 'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez', 'big foot', 'honey bee', 'jealousy mintz', 'crystal candy', 'alien mint', 'rocket fuel', 'gold dust', 'darth vader', 'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz', 'free pina colada', 'thc gummy', 'flower', 'bud', 'pre-roll', 'joint'];
+      const fbKeywords = ['water', 'soda', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'milk', 'coffee', 'tea', 'juice', 'cookie', 'brownie', 'cake', 'soju', 'gummy', 'snack', 'food', 'bakery'];
+      const accessoryKeywords = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray', 'pipe', 'small pipe', 'best buds grinder', 'best buds shirt', 'nf best buds shirt', 'sw best buds shirt'];
+
+      let isFlowerStrain = flowerStrains.some(s => itemName.includes(s));
+      let isThcGummy = itemName.includes("thc gummy");
+      let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
+      let isLobbyShirt = itemName.includes("the lobby shirt");
+      let isFB = !isFlowerStrain && !isThcGummy && (fbKeywords.some(k => itemName.includes(k) || category.includes(k)) || (['tea'].some(k => itemName.includes(k) || category.includes(k)) && !itemName.includes('tea time')));
+
+      if (!isFlowerStrain && !isFB && !isThcGummy && !isAccessory) {
+        if (grossPrice / (qty || 1) <= 50) isFB = true; else isFlowerStrain = true;
+      }
+
+      let displayQty = qty;
+      let displayGram = "-";
+      let displayType = isFB ? "F&B" : (isAccessory ? "Accessories" : "Flower/Main");
+
+      if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) {
+        displayQty = "-";
+        displayGram = `${qty.toFixed(3)} G`;
+        totalFlowerGrams += qty;
+      }
+
+      const exportItem = {
+        type: displayType,
+        name: item.name || item.item_name,
+        qty: displayQty,
+        gram: displayGram,
+        unitPrice: (itemNetPrice / (qty || 1)).toFixed(2),
+        discount: discountStr,
+        netPrice: Number(itemNetPrice.toFixed(2)),
+        payment: paymentMethod,
+        note: receiptNumber
+      };
+
+      if (isFB) fbItems.push(exportItem); else flowerItems.push(exportItem);
+    });
+  });
+
+  return { flowerItems, fbItems, totalFlowerGrams };
+}
+
+/**
+ * Helper to paint a daily sheet in the workbook
+ */
+function paintDailySheet(sheet, date, staffName, rawData, expenses, flowerItems, fbItems, totalFlowerGrams) {
+  sheet.properties.defaultRowHeight = 22;
+  sheet.columns = [
+    { header: 'Item Type', key: 'type', width: 15 },
+    { header: 'Item Name', key: 'name', width: 35 },
+    { header: 'Qty', key: 'qty', width: 10 },
+    { header: 'Gram', key: 'gram', width: 12 },
+    { header: 'Unit Price', key: 'unitPrice', width: 15 },
+    { header: 'Discount', key: 'discount', width: 20 },
+    { header: 'Net Price', key: 'netPrice', width: 15 },
+    { header: 'Payment', key: 'payment', width: 15 },
+    { header: 'Note', key: 'note', width: 25 }
+  ];
+
+  const border = { top: { style: "thin", color: { argb: "FFD5B68A" } }, left: { style: "thin", color: { argb: "FFD5B68A" } }, bottom: { style: "thin", color: { argb: "FFD5B68A" } }, right: { style: "thin", color: { argb: "FFD5B68A" } } };
+  const titleFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2A2010" } };
+  const sectionFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF3D2A14" } };
+  const headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1D8AC" } };
+  const rowLight = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFBF4" } };
+  const rowDark = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF4E0" } };
+
+  sheet.mergeCells("A1:I1");
+  sheet.getCell("A1").value = `BestBuds Daily Report - ${date}`;
+  sheet.getCell("A1").fill = titleFill;
+  sheet.getCell("A1").font = { size: 14, bold: true, color: { argb: "FFF8EBCF" } };
+  sheet.getCell("A1").alignment = { horizontal: "center" };
+
+  sheet.mergeCells("A2:I2");
+  sheet.getCell("A2").value = `Closing Staff: ${staffName}`;
+  sheet.getCell("A2").font = { bold: true };
+
+  let currRow = 4;
+  const paintSection = (label) => {
+    sheet.mergeCells(`A${currRow}:I${currRow}`);
+    const c = sheet.getCell(`A${currRow}`);
+    c.value = label; c.fill = sectionFill; c.font = { bold: true, color: { argb: "FFF6E5C4" } };
+    currRow++;
+  };
+
+  const paintHeader = () => {
+    ["Item Type", "Item Name", "Qty", "Gram", "Unit Price", "Discount", "Net Price", "Payment", "Note"].forEach((h, i) => {
+      const c = sheet.getCell(currRow, i + 1);
+      c.value = h; c.fill = headerFill; c.font = { bold: true }; c.border = border;
+    });
+    currRow++;
+  };
+
+  paintSection("Flower / Main / Accessories");
+  paintHeader();
+  flowerItems.forEach((item, i) => {
+    const r = sheet.getRow(currRow);
+    [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note].forEach((v, idx) => {
+      const c = r.getCell(idx + 1);
+      c.value = v; c.fill = i % 2 === 0 ? rowLight : rowDark; c.border = border;
+      c.alignment = { vertical: 'middle' };
+    });
+    currRow++;
+  });
+
+  const flowerTotalRow = sheet.getRow(currRow);
+  flowerTotalRow.getCell(1).value = 'TOTAL FLOWERS';
+  flowerTotalRow.getCell(4).value = `${totalFlowerGrams.toFixed(3)} G`;
+  flowerTotalRow.eachCell((cell, colNumber) => {
+    if (colNumber === 1 || colNumber === 4) {
+      cell.font = { bold: true }; cell.fill = headerFill; cell.border = border; cell.alignment = { vertical: 'middle' };
+    }
+  });
+  currRow += 2;
+
+  paintSection("Expenses");
+  ["Category", "Description", "Amount"].forEach((h, i) => {
+    const c = sheet.getCell(currRow, i + 1);
+    c.value = h; c.fill = headerFill; c.border = border;
+  });
+  currRow++;
+  let totalExp = 0;
+  if (expenses.length === 0) {
+    sheet.getCell(`A${currRow}`).value = "-"; sheet.getCell(`B${currRow}`).value = "No expenses"; sheet.getCell(`C${currRow}`).value = 0;
+    ["A", "B", "C"].forEach(col => { sheet.getCell(`${col}${currRow}`).border = border; });
+    currRow++;
+  } else {
+    expenses.forEach((exp, i) => {
+      const amt = Number(exp.amount || 0); totalExp += amt;
+      sheet.getCell(`A${currRow}`).value = exp.category; sheet.getCell(`B${currRow}`).value = exp.description; sheet.getCell(`C${currRow}`).value = amt;
+      ["A", "B", "C"].forEach(col => { sheet.getCell(`${col}${currRow}`).fill = i % 2 === 0 ? rowLight : rowDark; sheet.getCell(`${col}${currRow}`).border = border; });
+      currRow++;
+    });
+  }
+  currRow++;
+
+  paintSection("Food & Drinks");
+  paintHeader();
+  let calculatedFbTotal = 0;
+  fbItems.forEach((item, i) => {
+    const r = sheet.getRow(currRow);
+    [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note].forEach((v, idx) => {
+      const c = r.getCell(idx + 1);
+      c.value = v; c.fill = i % 2 === 0 ? rowLight : rowDark; c.border = border;
+      c.alignment = { vertical: 'middle' };
+    });
+    if (typeof item.netPrice === 'number') calculatedFbTotal += item.netPrice;
+    currRow++;
+  });
+
+  const fbTotalRow = sheet.getRow(currRow);
+  fbTotalRow.getCell(1).value = 'TOTAL F&B';
+  fbTotalRow.getCell(7).value = calculatedFbTotal;
+  fbTotalRow.getCell(7).numFmt = '#,##0.00 "THB"';
+  fbTotalRow.eachCell((cell, colNumber) => {
+    if (colNumber === 1 || colNumber === 7) {
+      cell.font = { bold: true }; cell.fill = headerFill; cell.border = border; cell.alignment = { vertical: 'middle' };
+    }
+  });
+  currRow += 2;
+
+  paintSection("Daily Summary Dashboard");
+  const fbTotal = Number(rawData.fb_total || 0);
+  const cashTotal = Number(rawData.cash_total || 0);
+  const cardTotal = Number(rawData.card_total || 0);
+  const transferTotal = Number(rawData.transfer_total || 0);
+  const netSale = Number(rawData.net_sale || 0);
+  
+  const summaryData = [
+    ["Total Grams Sold", `${Number(rawData.total_grams || totalFlowerGrams || 0).toFixed(3)} G`],
+    ["Cash In", `${cashTotal.toLocaleString()} THB`],
+    ["Card In", `${cardTotal.toLocaleString()} THB`],
+    ["Transfer In", `${transferTotal.toLocaleString()} THB`],
+    ["F&B Total", `${(fbTotal || calculatedFbTotal || 0).toLocaleString()} THB`],
+    ["Total Expenses", `${totalExp.toLocaleString()} THB`],
+    ["Net Sales (Total)", `${netSale.toLocaleString()} THB`],
+    ["Net Profit (After Expenses)", `${(netSale - totalExp).toLocaleString()} THB`]
+  ];
+  
+  summaryData.forEach((row) => {
+    sheet.mergeCells(`A${currRow}:C${currRow}`);
+    const labelCell = sheet.getCell(`A${currRow}`);
+    labelCell.value = row[0]; labelCell.border = border; labelCell.font = { bold: true }; labelCell.alignment = { vertical: 'middle' };
+
+    sheet.mergeCells(`D${currRow}:F${currRow}`);
+    const valueCell = sheet.getCell(`D${currRow}`);
+    valueCell.value = row[1]; valueCell.border = border; valueCell.alignment = { vertical: 'middle', horizontal: 'right' };
+    currRow++;
+  });
+}
+
+/**
  * Export Daily Report to Excel
  */
 window.exportReportToExcel = async function() {
@@ -169,10 +411,7 @@ window.exportReportToExcel = async function() {
     let rawData = window.lastSyncedData;
     if (rawData && rawData.date !== date) rawData = null;
 
-    const expenses = getLocalExpenses(date);
-    let receipts = rawData?.orders || rawData?.receipts || rawData?.items || [];
-
-    if (!rawData || (receipts.length === 0 && !rawData.net_sale)) {
+    if (!rawData || (!rawData.orders && !rawData.receipts && !rawData.items && !rawData.net_sale)) {
       if (typeof window.syncFromLoyverse === 'function') {
         await window.syncFromLoyverse();
         return exportReportToExcel(); 
@@ -182,301 +421,15 @@ window.exportReportToExcel = async function() {
       }
     }
 
-    const cashTotal = Number(rawData.cash_total || 0);
-    const cardTotal = Number(rawData.card_total || 0);
-    const transferTotal = Number(rawData.transfer_total || 0);
-    const netSale = Number(rawData.net_sale || 0);
+    const expenses = getLocalExpenses(date);
+    let receipts = rawData?.orders || rawData?.receipts || rawData?.items || [];
+    const { flowerItems, fbItems, totalFlowerGrams } = processItemsForExcel(receipts);
 
-    function getMoney(...candidates) {
-      for (const candidate of candidates) {
-        if (candidate === undefined || candidate === null) continue;
-        let val = candidate;
-        if (typeof val === 'object') {
-          val = (val.amount !== undefined) ? val.amount : val.value;
-        }
-        const num = Number(val);
-        if (!isNaN(num)) return num;
-      }
-      return null;
-    }
-
-    const flowerItems = [];
-    const fbItems = [];
-    let totalFlowerGrams = 0;
-
-    receipts.forEach(receipt => {
-      // Ensure receipt is a valid object
-      if (!receipt || typeof receipt !== 'object') {
-        console.warn('Invalid receipt object:', receipt);
-        return;
-      }
-
-      const items = receipt.line_items || receipt.items || [];
-      const paymentMethod = (receipt.payments && receipt.payments[0]?.payment_type?.name) || 
-                             (receipt.payments && receipt.payments[0]?.name) || "N/A";
-      const receiptNumber = receipt.receipt_number || receipt.number || "N/A";
-      
-      const orderDiscount = getMoney(receipt.total_discount_money, receipt.discount_money) || 0;
-      const orderTotal = getMoney(receipt.total_money, receipt.amount) || 0;
-
-      items.forEach(item => {
-        // Ensure item is a valid object
-        if (!item || typeof item !== 'object') {
-          console.warn('Invalid item object:', item);
-          return;
-        }
-
-        let itemName = String(item.name || item.item_name || "").toLowerCase();
-        let category = String(item.category_name || "").toLowerCase();
-        let qty = Number(item.quantity || 0);
-        let grossPrice = getMoney(item.gross_total_money, item.subtotal_money);
-        if (grossPrice === null) grossPrice = (getMoney(item.price) || 0) * qty;
-        
-        let lineItemDiscount = getMoney(item.total_discount_money, item.discount_money) || 0;
-        
-        let itemNetPrice = getMoney(item.total_money);
-        if (itemNetPrice === null) itemNetPrice = Math.max(0, grossPrice - lineItemDiscount);
-
-        const totalItemDiscount = Math.max(0, grossPrice - itemNetPrice);
-        const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
-
-        if (itemNetPrice <= 0.01 || discountPercent >= 99.9) return;
-        const discountStr = totalItemDiscount > 0.01 ? `${discountPercent}% (${totalItemDiscount.toFixed(2)} THB)` : "-";
-
-        const flowerStrains = [
-          'grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 
-          'moonbow', 'emergen c', 'tea time', 'silver shadow', 
-          'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
-          'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
-          'alien mint', 'rocket fuel', 'gold dust', 'darth vader',
-          'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
-          'free pina colada', 'thc gummy', 'flower', 'bud', 'pre-roll', 'joint'
-        ];
-        const fbKeywords = [
-          'water', 'soda', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 
-          'cider', 'spirit', 'cocktail', 'milk', 'coffee', 'tea', 'juice',
-          'cookie', 'brownie', 'cake', 'soju', 'gummy', 'snack', 'food', 'bakery'
-        ];
-        const accessoryKeywords = [
-          'accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder',
-          'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray',
-          'pipe', 'small pipe', 'best buds grinder', 'best buds shirt',
-          'nf best buds shirt', 'sw best buds shirt'
-        ];
-
-        let isFlowerStrain = flowerStrains.some(s => itemName.includes(s));
-        let isThcGummy = itemName.includes("thc gummy");
-        let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
-        let isLobbyShirt = itemName.includes("the lobby shirt");
-        let isFB = !isFlowerStrain && !isThcGummy && (fbKeywords.some(k => itemName.includes(k) || category.includes(k)) ||
-                   (['tea'].some(k => itemName.includes(k) || category.includes(k)) && !itemName.includes('tea time')));
-
-        if (!isFlowerStrain && !isFB && !isThcGummy && !isAccessory) {
-          if (grossPrice / (qty || 1) <= 50) isFB = true; else isFlowerStrain = true;
-        }
-
-        // Determine display values based on item type (matching UI logic)
-        let displayQty = qty;
-        let displayGram = "-";
-        let displayType = isFB ? "F&B" : (isAccessory ? "Accessories" : "Flower/Main");
-
-        // For flower strains (not gummy, not accessories), show gram instead of qty
-        if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) {
-          displayQty = "-";
-          displayGram = `${qty.toFixed(3)} G`;
-          totalFlowerGrams += qty;
-        }
-
-        const exportItem = {
-          type: displayType,
-          name: item.name || item.item_name,
-          qty: displayQty,
-          gram: displayGram,
-          unitPrice: (itemNetPrice / (qty || 1)).toFixed(2),
-          discount: discountStr,
-          netPrice: itemNetPrice.toFixed(2),
-          payment: paymentMethod,
-          note: receiptNumber
-        };
-
-        if (isFB) fbItems.push(exportItem); else {
-          flowerItems.push(exportItem);
-        }
-      });
-    });
-
-    // Ensure ExcelJS is available
-    if (typeof ExcelJS === 'undefined') {
-      throw new Error('ExcelJS library not loaded. Please refresh the page and try again.');
-    }
+    if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS library not loaded.');
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Daily Report");
-    sheet.properties.defaultRowHeight = 22;
-
-    // Set column widths for better visibility
-    sheet.columns = [
-      { header: 'Item Type', key: 'type', width: 15 },
-      { header: 'Item Name', key: 'name', width: 35 },
-      { header: 'Qty', key: 'qty', width: 10 },
-      { header: 'Gram', key: 'gram', width: 12 },
-      { header: 'Unit Price', key: 'unitPrice', width: 15 },
-      { header: 'Discount', key: 'discount', width: 20 },
-      { header: 'Net Price', key: 'netPrice', width: 15 },
-      { header: 'Payment', key: 'payment', width: 15 },
-      { header: 'Note', key: 'note', width: 25 }
-    ];
-
-    const border = { top: { style: "thin", color: { argb: "FFD5B68A" } }, left: { style: "thin", color: { argb: "FFD5B68A" } }, bottom: { style: "thin", color: { argb: "FFD5B68A" } }, right: { style: "thin", color: { argb: "FFD5B68A" } } };
-    const titleFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2A2010" } };
-    const sectionFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF3D2A14" } };
-    const headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1D8AC" } };
-    const rowLight = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFBF4" } };
-    const rowDark = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF4E0" } };
-
-    sheet.mergeCells("A1:I1");
-    sheet.getCell("A1").value = `BestBuds Daily Report - ${date}`;
-    sheet.getCell("A1").fill = titleFill;
-    sheet.getCell("A1").font = { size: 14, bold: true, color: { argb: "FFF8EBCF" } };
-    sheet.getCell("A1").alignment = { horizontal: "center" };
-
-    sheet.mergeCells("A2:I2");
-    sheet.getCell("A2").value = `Closing Staff: ${staffName}`;
-    sheet.getCell("A2").font = { bold: true };
-
-    let currRow = 4;
-    const paintSection = (label) => {
-      sheet.mergeCells(`A${currRow}:I${currRow}`);
-      const c = sheet.getCell(`A${currRow}`);
-      c.value = label; c.fill = sectionFill; c.font = { bold: true, color: { argb: "FFF6E5C4" } };
-      currRow++;
-    };
-
-    const paintHeader = () => {
-      ["Item Type", "Item Name", "Qty", "Gram", "Unit Price", "Discount", "Net Price", "Payment", "Note"].forEach((h, i) => {
-        const c = sheet.getCell(currRow, i + 1);
-        c.value = h; c.fill = headerFill; c.font = { bold: true }; c.border = border;
-      });
-      currRow++;
-    };
-
-    paintSection("Flower / Main / Accessories");
-    paintHeader();
-    flowerItems.forEach((item, i) => {
-      const r = sheet.getRow(currRow);
-      [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note].forEach((v, idx) => {
-        const c = r.getCell(idx + 1);
-        c.value = v; c.fill = i % 2 === 0 ? rowLight : rowDark; c.border = border;
-        c.alignment = { vertical: 'middle' };
-      });
-      currRow++;
-    });
-
-    // Add Flower Total Row
-    const flowerTotalRow = sheet.getRow(currRow);
-    flowerTotalRow.getCell(1).value = 'TOTAL FLOWERS';
-    flowerTotalRow.getCell(4).value = `${totalFlowerGrams.toFixed(3)} G`;
-    flowerTotalRow.eachCell((cell, colNumber) => {
-      if (colNumber === 1 || colNumber === 4) {
-        cell.font = { bold: true };
-        cell.fill = headerFill;
-        cell.border = border;
-        cell.alignment = { vertical: 'middle' };
-      }
-    });
-    currRow += 2;
-    paintSection("Expenses");
-    ["Category", "Description", "Amount"].forEach((h, i) => {
-      const c = sheet.getCell(currRow, i + 1);
-      c.value = h; c.fill = headerFill; c.border = border;
-    });
-    currRow++;
-    let totalExp = 0;
-    if (expenses.length === 0) {
-      sheet.getCell(`A${currRow}`).value = "-";
-      sheet.getCell(`B${currRow}`).value = "No expenses";
-      sheet.getCell(`C${currRow}`).value = 0;
-      ["A", "B", "C"].forEach(col => { sheet.getCell(`${col}${currRow}`).border = border; });
-      currRow++;
-    } else {
-      expenses.forEach((exp, i) => {
-        const amt = Number(exp.amount || 0);
-        totalExp += amt;
-        sheet.getCell(`A${currRow}`).value = exp.category;
-        sheet.getCell(`B${currRow}`).value = exp.description;
-        sheet.getCell(`C${currRow}`).value = amt;
-        ["A", "B", "C"].forEach(col => { sheet.getCell(`${col}${currRow}`).fill = i % 2 === 0 ? rowLight : rowDark; sheet.getCell(`${col}${currRow}`).border = border; });
-        currRow++;
-      });
-    }
-
-    currRow++;
-    paintSection("Food & Drinks");
-    paintHeader();
-    let calculatedFbTotal = 0;
-    fbItems.forEach((item, i) => {
-      const r = sheet.getRow(currRow);
-      [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note].forEach((v, idx) => {
-        const c = r.getCell(idx + 1);
-        c.value = v; c.fill = i % 2 === 0 ? rowLight : rowDark; c.border = border;
-        c.alignment = { vertical: 'middle' };
-      });
-      if (typeof item.netPrice === 'number') calculatedFbTotal += item.netPrice;
-      currRow++;
-    });
-
-    // Add F&B Total Row
-    const fbTotalRow = sheet.getRow(currRow);
-    fbTotalRow.getCell(1).value = 'TOTAL F&B';
-    fbTotalRow.getCell(7).value = calculatedFbTotal;
-    fbTotalRow.getCell(7).numFmt = '#,##0.00 "THB"';
-    fbTotalRow.eachCell((cell, colNumber) => {
-      if (colNumber === 1 || colNumber === 7) {
-        cell.font = { bold: true };
-        cell.fill = headerFill;
-        cell.border = border;
-        cell.alignment = { vertical: 'middle' };
-      }
-    });
-    currRow += 2;
-    paintSection("Daily Summary Dashboard");
-    
-    // Use F&B Total directly from synced data to match UI
-    const fbTotal = Number(rawData.fb_total || 0);
-    
-    // Calculate Main/Accessories Total from flower items
-    const mainAccTotal = flowerItems.reduce((a, b) => {
-      const val = Number(b.netPrice);
-      return a + (isNaN(val) || val <= 0.01 ? 0 : val);
-    }, 0);
-    
-    const summaryData = [
-      ["Total Grams Sold", `${Number(rawData.total_grams || totalFlowerGrams || 0).toFixed(3)} G`],
-      ["Cash In", `${cashTotal.toLocaleString()} THB`],
-      ["Card In", `${cardTotal.toLocaleString()} THB`],
-      ["Transfer In", `${transferTotal.toLocaleString()} THB`],
-      ["F&B Total", `${(fbTotal || calculatedFbTotal || 0).toLocaleString()} THB`],
-      ["Total Expenses", `${totalExp.toLocaleString()} THB`],
-      ["Net Sales (Total)", `${netSale.toLocaleString()} THB`],
-      ["Net Profit (After Expenses)", `${(netSale - totalExp).toLocaleString()} THB`]
-    ];
-    
-    summaryData.forEach((row) => {
-      sheet.mergeCells(`A${currRow}:C${currRow}`);
-      const labelCell = sheet.getCell(`A${currRow}`);
-      labelCell.value = row[0];
-      labelCell.border = border;
-      labelCell.font = { bold: true };
-      labelCell.alignment = { vertical: 'middle' };
-
-      sheet.mergeCells(`D${currRow}:F${currRow}`);
-      const valueCell = sheet.getCell(`D${currRow}`);
-      valueCell.value = row[1];
-      valueCell.border = border;
-      valueCell.alignment = { vertical: 'middle', horizontal: 'right' };
-      
-      currRow++;
-    });
+    paintDailySheet(sheet, date, staffName, rawData, expenses, flowerItems, fbItems, totalFlowerGrams);
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -492,7 +445,7 @@ window.exportReportToExcel = async function() {
 
 /**
  * Export Monthly Report to Excel
- * Aggregates all reports for the selected month
+ * Aggregates all reports for the selected month, each in its own sheet
  */
 window.exportMonthlyToExcel = async function() {
   const monthInput = document.getElementById("reportMonth");
@@ -504,15 +457,10 @@ window.exportMonthlyToExcel = async function() {
   }
 
   try {
-    window.showMessage("Generating monthly Excel file...", "info");
+    window.showMessage("Generating detailed monthly Excel file... This may take a moment.", "info");
 
-    // Fetch all reports for the selected month
     const response = await fetch(`/api/reports`);
-    if (!response.ok) {
-      window.showMessage("Failed to fetch reports", "danger");
-      return;
-    }
-
+    if (!response.ok) throw new Error("Failed to fetch reports list");
     const allReports = await response.json();
     const reportsArray = Array.isArray(allReports) ? allReports : [];
 
@@ -533,21 +481,17 @@ window.exportMonthlyToExcel = async function() {
       return;
     }
 
-    if (typeof ExcelJS === 'undefined') {
-      throw new Error('ExcelJS library not loaded. Please refresh the page and try again.');
-    }
-
+    if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS library not loaded.');
     const workbook = new ExcelJS.Workbook();
     
-    // Create Summary Sheet (The Dashboard)
+    // Summary Sheet
     const summarySheet = workbook.addWorksheet("Monthly Summary");
     summarySheet.properties.defaultRowHeight = 22;
-
+    const border = { top: { style: "thin", color: { argb: "FFD5B68A" } }, left: { style: "thin", color: { argb: "FFD5B68A" } }, bottom: { style: "thin", color: { argb: "FFD5B68A" } }, right: { style: "thin", color: { argb: "FFD5B68A" } } };
     const titleFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2A2010" } };
     const headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1D8AC" } };
     const rowLight = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFBF4" } };
     const rowDark = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF4E0" } };
-    const border = { top: { style: "thin", color: { argb: "FFD5B68A" } }, left: { style: "thin", color: { argb: "FFD5B68A" } }, bottom: { style: "thin", color: { argb: "FFD5B68A" } }, right: { style: "thin", color: { argb: "FFD5B68A" } } };
 
     summarySheet.mergeCells("A1:G1");
     summarySheet.getCell("A1").value = `BestBuds Monthly Summary - ${month}`;
@@ -559,17 +503,26 @@ window.exportMonthlyToExcel = async function() {
     const headers = ["Date", "Flower Sales (grams)", "Cash In", "Card In", "Transfer In", "F&B Total", "Net Sales"];
     headers.forEach((h, i) => {
       const c = summarySheet.getCell(currRow, i + 1);
-      c.value = h;
-      c.fill = headerFill;
-      c.font = { bold: true };
-      c.border = border;
-      c.alignment = { horizontal: 'center' };
+      c.value = h; c.fill = headerFill; c.font = { bold: true }; c.border = border; c.alignment = { horizontal: 'center' };
     });
     currRow++;
 
     let totalGrams = 0, totalCash = 0, totalCard = 0, totalTransfer = 0, totalFb = 0, totalNet = 0;
 
-    monthReports.forEach((report, index) => {
+    for (const report of monthReports) {
+      const date = typeof report.date === 'string' ? report.date : new Date(report.date).toISOString().split('T')[0];
+      
+      // Fetch detailed data for each day to build full sheets
+      let detailedData = null;
+      try {
+        const syncRes = await fetch(`/api/loyverse/sync?date=${date}`);
+        if (syncRes.ok) detailedData = await syncRes.ok ? await syncRes.json() : null;
+      } catch (e) { console.warn(`Failed to sync details for ${date}`); }
+
+      const expensesRes = await fetch(`/api/expenses/${date}`);
+      const expenses = expensesRes.ok ? (await expensesRes.json()).expenses : [];
+      const staff = getClosingStaff(date) || "N/A";
+
       const grams = Number(report.total_grams || 0);
       const cash = Number(report.cash_total || 0);
       const card = Number(report.card_total || 0);
@@ -577,99 +530,50 @@ window.exportMonthlyToExcel = async function() {
       const fb = Number(report.fb_total || 0);
       const net = Number(report.net_sale || 0);
 
-      totalGrams += grams;
-      totalCash += cash;
-      totalCard += card;
-      totalTransfer += transfer;
-      totalFb += fb;
-      totalNet += net;
+      totalGrams += grams; totalCash += cash; totalCard += card; totalTransfer += transfer; totalFb += fb; totalNet += net;
 
-      const reportDate = typeof report.date === 'string' ? report.date : new Date(report.date).toISOString().split('T')[0];
-      const rowData = [reportDate, grams, cash, card, transfer, fb, net];
-
+      // Add to summary row
+      const rowData = [date, grams, cash, card, transfer, fb, net];
       rowData.forEach((value, colIndex) => {
         const cell = summarySheet.getCell(currRow, colIndex + 1);
-        cell.value = value;
-        cell.fill = index % 2 === 0 ? rowLight : rowDark;
-        cell.border = border;
+        cell.value = value; cell.fill = (currRow % 2 === 0) ? rowLight : rowDark; cell.border = border;
         if (colIndex > 0) {
           cell.numFmt = colIndex === 1 ? '#,##0.000 "g"' : '#,##0.00';
           cell.alignment = { horizontal: 'right' };
-        } else {
-          cell.alignment = { horizontal: 'left' };
         }
       });
       currRow++;
-    });
 
+      // Add Individual Daily Sheet
+      const sheetName = date.split('-').reverse().join('.');
+      const daySheet = workbook.addWorksheet(sheetName);
+      let flowerItems = [], fbItems = [], calcFlowerGrams = 0;
+      if (detailedData) {
+        const processed = processItemsForExcel(detailedData.orders || detailedData.receipts || detailedData.items || []);
+        flowerItems = processed.flowerItems; fbItems = processed.fbItems; calcFlowerGrams = processed.totalFlowerGrams;
+      }
+      paintDailySheet(daySheet, date, staff, detailedData || report, expenses, flowerItems, fbItems, calcFlowerGrams);
+    }
+
+    // Final Total Row in Summary
     currRow++;
     const totalRow = ["MONTHLY TOTAL", totalGrams, totalCash, totalCard, totalTransfer, totalFb, totalNet];
     totalRow.forEach((value, colIndex) => {
       const cell = summarySheet.getCell(currRow, colIndex + 1);
-      cell.value = value;
-      cell.fill = headerFill;
-      cell.font = { bold: true };
-      cell.border = border;
+      cell.value = value; cell.fill = headerFill; cell.font = { bold: true }; cell.border = border;
       if (colIndex > 0) {
         cell.numFmt = colIndex === 1 ? '#,##0.000 "g"' : '#,##0.00';
         cell.alignment = { horizontal: 'right' };
       }
     });
-
     summarySheet.columns = [{ width: 15 }, { width: 20 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
-
-    // Create Individual Daily Sheets
-    for (const report of monthReports) {
-      const reportDate = typeof report.date === 'string' ? report.date : new Date(report.date).toISOString().split('T')[0];
-      const sheetName = reportDate.split('-').reverse().join('.'); // DD.MM.YYYY
-      const daySheet = workbook.addWorksheet(sheetName);
-      daySheet.properties.defaultRowHeight = 22;
-
-      // Header
-      daySheet.mergeCells("A1:I1");
-      daySheet.getCell("A1").value = `BestBuds Daily Report - ${reportDate}`;
-      daySheet.getCell("A1").fill = titleFill;
-      daySheet.getCell("A1").font = { size: 14, bold: true, color: { argb: "FFF8EBCF" } };
-      daySheet.getCell("A1").alignment = { horizontal: "center" };
-
-      // We don't have detailed items for all days in the monthly list, 
-      // but we can show the summary dashboard for each day
-      let dRow = 3;
-      daySheet.getCell(`A${dRow}`).value = "Dashboard (Daily Summary)";
-      daySheet.getCell(`A${dRow}`).font = { bold: true };
-      dRow++;
-
-      const dHeaders = ["Flower Sales(grams)", "Cash In", "Card In", "Transfer In", "Net Sales"];
-      dHeaders.forEach((h, i) => {
-        const c = daySheet.getCell(dRow, i + 1);
-        c.value = h; c.fill = headerFill; c.font = { bold: true }; c.border = border;
-      });
-      dRow++;
-
-      const dData = [
-        `${Number(report.total_grams || 0).toFixed(3)}g`,
-        Number(report.cash_total || 0),
-        Number(report.card_total || 0),
-        Number(report.transfer_total || 0),
-        Number(report.net_sale || 0)
-      ];
-      dData.forEach((v, i) => {
-        const c = daySheet.getCell(dRow, i + 1);
-        c.value = v; c.border = border;
-        if (i > 0) c.numFmt = '#,##0.00';
-      });
-
-      daySheet.columns = [{ width: 20 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
-    }
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `BestBuds_Monthly_Report_${month}.xlsx`;
-    a.click();
-    window.showMessage("Monthly report exported successfully", "success");
+    a.href = url; a.download = `BestBuds_Monthly_Detailed_${month}.xlsx`; a.click();
+    window.showMessage("Detailed monthly report exported successfully", "success");
   } catch (error) {
     console.error('Monthly export error:', error);
     window.showMessage(`Export Error: ${error.message}`, "danger");
