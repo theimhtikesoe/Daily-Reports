@@ -287,16 +287,14 @@ window.exportReportToExcel = async function() {
           totalFlowerGrams += qty;
         }
 
-        const unitPrice = grossPrice / (qty || 1);
-
         const exportItem = {
           type: displayType,
-          name: item.name || item.item_name || "",
+          name: item.name || item.item_name,
           qty: displayQty,
           gram: displayGram,
-          unitPrice: unitPrice > 0.01 ? unitPrice : "-",
+          unitPrice: (itemNetPrice / (qty || 1)).toFixed(2),
           discount: discountStr,
-          netPrice: itemNetPrice > 0.01 ? itemNetPrice : "-",
+          netPrice: itemNetPrice.toFixed(2),
           payment: paymentMethod,
           note: receiptNumber
         };
@@ -488,6 +486,163 @@ window.exportReportToExcel = async function() {
     window.showMessage("Exported successfully", "success");
   } catch (error) {
     console.error('Export error:', error);
+    window.showMessage(`Export Error: ${error.message}`, "danger");
+  }
+};
+
+/**
+ * Export Monthly Report to Excel
+ * Aggregates all reports for the selected month
+ */
+window.exportMonthlyToExcel = async function() {
+  const monthInput = document.getElementById("reportMonth");
+  const month = monthInput?.value;
+
+  if (!month) {
+    window.showMessage("Please select a month first", "warning");
+    return;
+  }
+
+  try {
+    window.showMessage("Generating monthly Excel file...", "info");
+
+    // Fetch all reports for the selected month
+    const response = await fetch(`/api/reports`);
+    if (!response.ok) {
+      window.showMessage("Failed to fetch reports", "danger");
+      return;
+    }
+
+    const data = await response.json();
+    const allReports = data.reports || [];
+
+    // Filter reports for the selected month
+    const monthReports = allReports.filter(report => {
+      if (!report.date) return false;
+      return report.date.startsWith(month);
+    });
+
+    if (monthReports.length === 0) {
+      window.showMessage("No reports found for the selected month", "warning");
+      return;
+    }
+
+    // Ensure ExcelJS is available
+    if (typeof ExcelJS === 'undefined') {
+      throw new Error('ExcelJS library not loaded. Please refresh the page and try again.');
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    
+    // Create Summary Sheet
+    const summarySheet = workbook.addWorksheet("Monthly Summary");
+    summarySheet.properties.defaultRowHeight = 22;
+
+    const titleFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2A2010" } };
+    const headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1D8AC" } };
+    const rowLight = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFBF4" } };
+    const rowDark = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF4E0" } };
+    const border = { top: { style: "thin", color: { argb: "FFD5B68A" } }, left: { style: "thin", color: { argb: "FFD5B68A" } }, bottom: { style: "thin", color: { argb: "FFD5B68A" } }, right: { style: "thin", color: { argb: "FFD5B68A" } } };
+
+    // Add title
+    summarySheet.mergeCells("A1:F1");
+    summarySheet.getCell("A1").value = `BestBuds Monthly Report - ${month}`;
+    summarySheet.getCell("A1").fill = titleFill;
+    summarySheet.getCell("A1").font = { size: 14, bold: true, color: { argb: "FFF8EBCF" } };
+    summarySheet.getCell("A1").alignment = { horizontal: "center" };
+
+    // Add headers
+    let currRow = 3;
+    const headers = ["Date", "Net Sales", "Cash In", "Card In", "Transfer In", "Total Grams"];
+    headers.forEach((h, i) => {
+      const c = summarySheet.getCell(currRow, i + 1);
+      c.value = h;
+      c.fill = headerFill;
+      c.font = { bold: true };
+      c.border = border;
+    });
+    currRow++;
+
+    // Add daily data
+    let totalNetSales = 0;
+    let totalCash = 0;
+    let totalCard = 0;
+    let totalTransfer = 0;
+    let totalGrams = 0;
+
+    monthReports.forEach((report, index) => {
+      const netSale = Number(report.net_sale || 0);
+      const cashIn = Number(report.cash_total || 0);
+      const cardIn = Number(report.card_total || 0);
+      const transferIn = Number(report.transfer_total || 0);
+      const grams = Number(report.total_grams || 0);
+
+      totalNetSales += netSale;
+      totalCash += cashIn;
+      totalCard += cardIn;
+      totalTransfer += transferIn;
+      totalGrams += grams;
+
+      const rowData = [
+        report.date,
+        netSale.toFixed(2),
+        cashIn.toFixed(2),
+        cardIn.toFixed(2),
+        transferIn.toFixed(2),
+        grams.toFixed(3)
+      ];
+
+      rowData.forEach((value, colIndex) => {
+        const cell = summarySheet.getCell(currRow, colIndex + 1);
+        cell.value = value;
+        cell.fill = index % 2 === 0 ? rowLight : rowDark;
+        cell.border = border;
+        cell.alignment = { vertical: 'middle', horizontal: colIndex === 0 ? 'left' : 'right' };
+      });
+      currRow++;
+    });
+
+    // Add totals row
+    currRow++;
+    const totalRow = [
+      "MONTHLY TOTAL",
+      totalNetSales.toFixed(2),
+      totalCash.toFixed(2),
+      totalCard.toFixed(2),
+      totalTransfer.toFixed(2),
+      totalGrams.toFixed(3)
+    ];
+
+    totalRow.forEach((value, colIndex) => {
+      const cell = summarySheet.getCell(currRow, colIndex + 1);
+      cell.value = value;
+      cell.fill = headerFill;
+      cell.font = { bold: true };
+      cell.border = border;
+      cell.alignment = { vertical: 'middle', horizontal: colIndex === 0 ? 'left' : 'right' };
+    });
+
+    // Set column widths
+    summarySheet.columns = [
+      { width: 15 },
+      { width: 15 },
+      { width: 15 },
+      { width: 15 },
+      { width: 15 },
+      { width: 15 }
+    ];
+
+    // Generate the Excel file
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `BestBuds_Monthly_Report_${month}.xlsx`;
+    a.click();
+    window.showMessage("Monthly report exported successfully", "success");
+  } catch (error) {
+    console.error('Monthly export error:', error);
     window.showMessage(`Export Error: ${error.message}`, "danger");
   }
 };
