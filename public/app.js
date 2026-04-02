@@ -808,6 +808,51 @@ function setButtonLoading(button, text, isLoading) {
   }
 }
 
+window.loadReportData = async function(date) {
+  if (!date) return;
+  
+  // Clear lists to prevent "frozen" UI while loading
+  const staffContainer = document.getElementById('closingStaffList');
+  if (staffContainer) staffContainer.innerHTML = '<p class="text-muted">Loading...</p>';
+  const expenseContainer = document.getElementById('expensesList');
+  if (expenseContainer) expenseContainer.innerHTML = '<p class="text-muted">Loading...</p>';
+
+  try {
+    const res = await fetch(`/api/reports/${date}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data) {
+        if (els.cashTotal) els.cashTotal.value = round2(data.cash_total || 0).toFixed(2);
+        if (els.cardTotal) els.cardTotal.value = round2(data.card_total || 0).toFixed(2);
+        if (els.transferTotal) els.transferTotal.value = round2(data.transfer_total || 0).toFixed(2);
+        if (els.netSale) els.netSale.value = round2(data.net_sale || 0).toFixed(2);
+        if (els.totalOrders) els.totalOrders.value = data.total_orders || 0;
+        if (els.totalGramsSold) els.totalGramsSold.innerText = (data.total_grams || 0).toFixed(3) + ' G';
+        if (els.orderEntriesFbTotal) els.orderEntriesFbTotal.textContent = formatCurrency(data.fb_total || 0);
+        
+        // Load staff and expenses explicitly
+        if (typeof fetchStaff === 'function') fetchStaff(date);
+        if (typeof fetchExpenses === 'function') fetchExpenses(date);
+      }
+    } else {
+      // Reset UI if no report found
+      if (els.cashTotal) els.cashTotal.value = '0.00';
+      if (els.cardTotal) els.cardTotal.value = '0.00';
+      if (els.transferTotal) els.transferTotal.value = '0.00';
+      if (els.netSale) els.netSale.value = '0.00';
+      if (els.totalOrders) els.totalOrders.value = '0';
+      if (els.totalGramsSold) els.totalGramsSold.innerText = '0.000 G';
+      if (els.orderEntriesFbTotal) els.orderEntriesFbTotal.textContent = 'THB 0.00';
+      
+      // Clear staff/expenses lists if no report
+      if (staffContainer) staffContainer.innerHTML = '<p class="text-muted">No staff added</p>';
+      if (expenseContainer) expenseContainer.innerHTML = '<p class="text-muted">No expenses added</p>';
+    }
+  } catch (err) {
+    console.error("Load error:", err);
+  }
+};
+
 function sortOrderEntriesByTimeAsc(entries) {
   return [...entries].sort((a, b) => {
     const aTime = a?.time ? new Date(a.time).getTime() : Number.POSITIVE_INFINITY;
@@ -896,13 +941,10 @@ function bindEvents() {
         monthInput.value = date.slice(0, 7);
       }
       
+      // loadReportData now handles staff/expenses loading internally
       if (typeof window.loadReportData === 'function') {
         window.loadReportData(date);
       }
-      
-      // Auto-load expenses and staff when date changes
-      if (typeof fetchExpenses === 'function') fetchExpenses(date);
-      if (typeof fetchStaff === 'function') fetchStaff(date);
       
       syncFromLoyverse();
     });
@@ -980,9 +1022,6 @@ function init() {
     if (typeof window.loadReportData === 'function') {
       window.loadReportData(date);
     }
-    // Auto-load expenses and staff
-    if (typeof fetchExpenses === 'function') fetchExpenses(date);
-    if (typeof fetchStaff === 'function') fetchStaff(date);
   }
   
   syncFromLoyverse();
