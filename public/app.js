@@ -771,8 +771,11 @@ async function syncFromLoyverse() {
       console.error("Auto-save failed:", saveError);
     }
 
-    // Refresh Expense display
+    // Refresh Expense and Staff display
     renderExpenses();
+    if (typeof fetchStaff === 'function' && date) {
+      fetchStaff(date);
+    }
     
   } catch (e) { 
     if (requestId !== activeSyncRequestId) {
@@ -885,13 +888,22 @@ function bindEvents() {
   const reportDateInput = document.getElementById('reportDate');
   if (reportDateInput) {
     reportDateInput.addEventListener('change', () => {
+      const date = reportDateInput.value;
+      if (!date) return;
+
       const monthInput = document.getElementById('reportMonth');
-      if (monthInput && reportDateInput.value) {
-        monthInput.value = reportDateInput.value.slice(0, 7);
+      if (monthInput) {
+        monthInput.value = date.slice(0, 7);
       }
-      if (typeof window.loadReportData === 'function' && reportDateInput.value) {
-        window.loadReportData(reportDateInput.value);
+      
+      if (typeof window.loadReportData === 'function') {
+        window.loadReportData(date);
       }
+      
+      // Auto-load expenses and staff when date changes
+      if (typeof fetchExpenses === 'function') fetchExpenses(date);
+      if (typeof fetchStaff === 'function') fetchStaff(date);
+      
       syncFromLoyverse();
     });
   }
@@ -903,10 +915,7 @@ function bindEvents() {
   if (exportCsvBtn) {
     exportCsvBtn.addEventListener('click', exportReportToExcel);
   }
-  const addExpenseBtn = document.querySelector('#expenseSection button.btn-success');
-  if (addExpenseBtn) {
-    addExpenseBtn.addEventListener('click', addExpenseToReport);
-  }
+  // Removed redundant addExpenseBtn listener because it's already in HTML onclick
 }
 
 // Expense logic moved to enhancements.js
@@ -965,9 +974,17 @@ function init() {
   els.discountEntriesList = document.getElementById('discountEntriesList');
 
   bindEvents();
-  if (typeof window.loadReportData === 'function' && reportDateInput?.value) {
-    window.loadReportData(reportDateInput.value);
+  
+  const date = reportDateInput?.value;
+  if (date) {
+    if (typeof window.loadReportData === 'function') {
+      window.loadReportData(date);
+    }
+    // Auto-load expenses and staff
+    if (typeof fetchExpenses === 'function') fetchExpenses(date);
+    if (typeof fetchStaff === 'function') fetchStaff(date);
   }
+  
   syncFromLoyverse();
   const mainContent = document.querySelector('.app-main-content');
   if (mainContent) {
