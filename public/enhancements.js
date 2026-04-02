@@ -146,6 +146,7 @@ function processItemsForExcel(receipts) {
   const fbItems = [];
   let totalFlowerGrams = 0;
 
+  let totalFbAmount = 0;
   receipts.forEach(receipt => {
     if (!receipt || typeof receipt !== 'object') return;
 
@@ -208,11 +209,16 @@ function processItemsForExcel(receipts) {
         note: receiptNumber
       };
 
-      if (isFB) fbItems.push(exportItem); else flowerItems.push(exportItem);
+      if (isFB) {
+        fbItems.push(exportItem);
+        totalFbAmount += itemNetPrice;
+      } else {
+        flowerItems.push(exportItem);
+      }
     });
   });
 
-  return { flowerItems, fbItems, totalFlowerGrams };
+  return { flowerItems, fbItems, totalFlowerGrams, totalFbAmount };
 }
 
 /**
@@ -519,9 +525,23 @@ function paintDailySheet(sheet, date, staffName, rawData, expenses, flowerItems,
       // Create Daily Sheet
       const sheetName = dateStr.split('-').reverse().join('.');
       const daySheet = workbook.addWorksheet(sheetName);
-      const { flowerItems, fbItems, totalFlowerGrams } = processItemsForExcel(detailedData?.orders || detailedData?.receipts || []);
-      paintDailySheet(daySheet, dateStr, staff, detailedData || report || { date: dateStr }, expenses, flowerItems, fbItems, totalFlowerGrams);
+      const { flowerItems, fbItems, totalFlowerGrams: dailyFlowerGrams, totalFbAmount: dailyFbTotal } = processItemsForExcel(detailedData?.orders || detailedData?.receipts || []);
+      paintDailySheet(daySheet, dateStr, staff, detailedData || report || { date: dateStr }, expenses, flowerItems, fbItems, dailyFlowerGrams);
       
+      // Update summary values with live calculated data if available
+      if (detailedData) {
+        if (dailyFlowerGrams > 0) {
+          const diff = dailyFlowerGrams - grams;
+          totalGrams += diff;
+          summarySheet.getCell(sRow - 1, 2).value = dailyFlowerGrams;
+        }
+        if (dailyFbTotal > 0) {
+          const diff = dailyFbTotal - fb;
+          totalFb += diff;
+          summarySheet.getCell(sRow - 1, 6).value = dailyFbTotal;
+        }
+      }
+
       // Small delay to keep UI responsive
       await new Promise(r => setTimeout(r, 10));
     }
