@@ -732,27 +732,47 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #c8882e;
 }
 
+#message {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  min-width: 300px;
+  max-width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 700;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { transform: translate(-50%, -100%); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
 .alert-success {
   background-color: #0d2a1a;
-  border-color: #1a5a30;
+  border: 2px solid #2ecc8a;
   color: #2ecc8a;
 }
 
 .alert-danger {
   background-color: #2a0d0d;
-  border-color: #5a1a1a;
+  border: 2px solid #e05a4a;
   color: #e05a4a;
 }
 
 .alert-warning {
   background-color: #2a1a00;
-  border-color: #5a3a00;
+  border: 2px solid #e0a040;
   color: #e0a040;
 }
 
 .alert-info {
   background-color: #0d1a2a;
-  border-color: #1a3a5a;
+  border: 2px solid #4ab0e0;
   color: #4ab0e0;
 }
 
