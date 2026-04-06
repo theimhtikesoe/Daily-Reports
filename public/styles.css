@@ -945,7 +945,52 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   #orderEntriesTable {
-    min-width: 940px;
+    min-width: 100%;
+    table-layout: fixed;
+  }
+
+  #orderEntriesTable thead th,
+  #orderEntriesTable tbody td {
+    padding: 0.4rem 0.3rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  #orderEntriesTable th:nth-child(1),
+  #orderEntriesTable td:nth-child(1) {
+    width: 40px;
+  }
+
+  #orderEntriesTable th:nth-child(2),
+  #orderEntriesTable td:nth-child(2) {
+    width: 75px;
+  }
+
+  #orderEntriesTable th:nth-child(3),
+  #orderEntriesTable td:nth-child(3) {
+    width: 60px;
+    text-align: right;
+  }
+
+  #orderEntriesTable th:nth-child(4),
+  #orderEntriesTable td:nth-child(4) {
+    display: none; /* Hide Item Name column on mobile to save space */
+  }
+
+  #orderEntriesTable th:nth-child(5),
+  #orderEntriesTable td:nth-child(5) {
+    width: 70px;
+    text-align: right;
+  }
+
+  #orderEntriesTable th:nth-child(6),
+  #orderEntriesTable td:nth-child(6) {
+    width: 65px;
+    text-align: right;
+  }
+
+  #orderEntriesTable .receipt-summary-label {
+    padding: 0.1rem 0.4rem;
+    font-size: 0.65rem;
   }
 
   #orderEntriesTable .mobile-item-inline {
