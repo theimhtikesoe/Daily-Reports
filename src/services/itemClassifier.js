@@ -16,7 +16,7 @@ const MAIN_KEYWORDS = [
 
 const FB_KEYWORDS = [
   'water', 'soda', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 
-  'cider', 'spirit', 'cocktail', 'milk', 'coffee', 'tea', 'juice',
+  'cider', 'spirit', 'cocktail', 'milk', 'coffee', 'tea', 'juice', 'corona', 'sato',
   'cookie', 'brownie', 'cake', 'soju', 'gummy', 'snack', 'food', 'bakery'
 ];
 
@@ -54,6 +54,7 @@ function classifyItem(itemName, categoryName = '', unitPrice = 0) {
   // 3. Check for F&B keywords
   if (FB_KEYWORDS.some(keyword => name.includes(keyword)) || 
       cat.includes('soft drink') || 
+      cat.includes('alcohol') ||
       cat.includes('snacks') || 
       cat.includes('beverage') ||
       cat.includes('drink') ||

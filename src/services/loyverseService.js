@@ -1322,5 +1322,6 @@ module.exports = {
   extractPaymentEntries,
   classifyPaymentType,
   isCompletedReceipt,
-  buildAutomatedReportRows
+  buildAutomatedReportRows,
+  fetchItemCategoryMap
 };
