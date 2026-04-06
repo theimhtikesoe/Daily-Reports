@@ -369,10 +369,19 @@ function attachDiscountPercentage(entries, discountEntries) {
       }
     }
 
-    return {
+    const finalEntry = {
       ...entry,
       discountPercentage: discountPercentage > 0 ? round2(discountPercentage) : null
     };
+
+    // If a discount was found from lookup (not already in entry), apply it to mainAccTotal and fbTotal
+    if (discountPercentage > 0 && !entry.percentage) {
+      finalEntry.mainAccTotal = round2(entry.mainAccTotal * (1 - discountPercentage / 100));
+      finalEntry.fbTotal = round2(entry.fbTotal * (1 - discountPercentage / 100));
+      finalEntry.amount = round2(entry.amount * (1 - discountPercentage / 100));
+    }
+
+    return finalEntry;
   });
 }
 
@@ -434,7 +443,6 @@ function applyPaymentDetails(data, receiptGramMap = new Map()) {
 
   const formatPriceSplit = (main, fb) => {
     if (main <= 0 && fb <= 0) return '-';
-    if (fb <= 0) return formatCompactNumber(main);
     return `${formatCompactNumber(main)} / ${formatCompactNumber(fb)}`;
   };
 
