@@ -15,6 +15,20 @@ let eventSource = null;
 function setupRealtimeListener() {
   if (eventSource) return;
 
+  // Handle "Other" category custom input
+  const expenseCategorySelect = document.getElementById('expenseCategory');
+  const customCategoryInput = document.getElementById('customExpenseCategory');
+  if (expenseCategorySelect && customCategoryInput) {
+    expenseCategorySelect.addEventListener('change', () => {
+      if (expenseCategorySelect.value === 'Other') {
+        customCategoryInput.classList.remove('d-none');
+      } else {
+        customCategoryInput.classList.add('d-none');
+        customCategoryInput.value = '';
+      }
+    });
+  }
+
   eventSource = new EventSource('/api/events');
 
   eventSource.onmessage = (event) => {
@@ -651,7 +665,11 @@ window.addExpenseToReport = async function() {
   if (btn && btn.disabled) return;
   
   const date = document.getElementById('reportDate')?.value;
-  const cat = document.getElementById('expenseCategory')?.value;
+  let cat = document.getElementById('expenseCategory')?.value;
+  const customCat = document.getElementById('customExpenseCategory')?.value;
+  if (cat === 'Other' && customCat) {
+    cat = customCat;
+  }
   const desc = document.getElementById('expenseDescription')?.value;
   const amtInput = document.getElementById('expenseAmount');
   const amt = amtInput?.value;
@@ -668,6 +686,13 @@ window.addExpenseToReport = async function() {
       window.showMessage('Added', 'success'); 
       if (amtInput) amtInput.value = '';
       if (document.getElementById('expenseDescription')) document.getElementById('expenseDescription').value = '';
+      if (document.getElementById('customExpenseCategory')) {
+        document.getElementById('customExpenseCategory').value = '';
+        document.getElementById('customExpenseCategory').classList.add('d-none');
+      }
+      if (document.getElementById('expenseCategory')) {
+        document.getElementById('expenseCategory').value = '';
+      }
       fetchExpenses(date); 
     }
   } catch (e) {
