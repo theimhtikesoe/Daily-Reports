@@ -420,8 +420,15 @@ body {
 }
 
 .nav-mascot {
+  display: inline-block;
   font-size: 1.5rem;
   animation: float 3s ease-in-out infinite;
+}
+
+.moving-emoji {
+  display: inline-block;
+  animation: float 3s ease-in-out infinite;
+  margin-left: 4px;
 }
 
 h2 {
@@ -442,9 +449,4 @@ h5 {
   margin: 1.5rem 0 1rem 0 !important;
   border-left: 4px solid var(--accent-strong);
   padding-left: 12px;
-}
-
-h2 span {
-  display: inline-block;
-  animation: float 3s ease-in-out infinite;
 }
