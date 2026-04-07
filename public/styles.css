@@ -142,14 +142,14 @@ body {
 }
 
 .metric-box .form-control {
-  background: transparent !important;
-  border: none !important;
+  background: #000000 !important; /* Black background for input */
+  border: 1px solid #444444 !important;
   font-size: 1.4rem !important;
-  padding: 0 !important;
+  padding: 5px !important;
   height: auto !important;
-  box-shadow: none !important;
   color: #ffffff !important;
-  pointer-events: none; /* Make it look like a label but keep input functionality */
+  text-align: center;
+  border-radius: 8px;
 }
 
 .metric-box:hover {
@@ -158,12 +158,13 @@ body {
 }
 
 .metric-label {
-  color: #cccccc; /* Brighter metric labels */
-  font-size: 0.8rem;
-  font-weight: 800;
+  color: #ffffff; /* Pure white labels */
+  font-size: 0.9rem;
+  font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 0.75rem;
+  text-shadow: 0 0 10px rgba(0,0,0,1);
 }
 
 .metric-value {
@@ -174,17 +175,17 @@ body {
 
 /* Stat Cards (Grams & F&B) */
 .gram-stat-card {
-  background: linear-gradient(135deg, #1a1408 0%, #0f0a04 100%);
-  border: 1px solid #3a3020;
+  background: #000000; /* Solid black for cards */
+  border: 2px solid #ffffff; /* White border for extreme contrast */
   border-radius: 1rem;
   padding: 1.5rem;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8);
 }
 
 .gram-stat-label {
-  color: var(--accent);
-  font-size: 0.85rem;
-  font-weight: 700;
+  color: #ffffff; /* Pure white */
+  font-size: 1rem;
+  font-weight: 900;
   text-transform: uppercase;
   margin-bottom: 0.5rem;
 }
@@ -258,8 +259,8 @@ body {
 /* Tables */
 .order-entries-table-wrap {
   border-radius: 1rem;
-  border: 1px solid var(--glass-border);
-  background: #151515;
+  border: 2px solid #ffffff; /* White border */
+  background: #000000; /* Pure black */
   overflow: hidden;
   margin-bottom: 2rem;
 }
@@ -270,22 +271,23 @@ body {
 }
 
 .table thead th {
-  background: #0d0d0d;
-  color: #c8882e;
-  font-weight: 800;
+  background: #ffffff; /* White background for header */
+  color: #000000 !important; /* Black text for header */
+  font-weight: 900;
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   padding: 1.25rem 1rem;
-  border-bottom: 2px solid #3a3020;
+  border-bottom: 3px solid #000000;
   text-align: left;
   letter-spacing: 0.05em;
 }
 
 .table tbody td {
   padding: 1.25rem 1rem;
-  color: #ffffff; /* Pure white for maximum visibility */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  font-weight: 600;
+  color: #ffffff !important; /* Pure white */
+  border-bottom: 1px solid #444444;
+  font-weight: 700;
+  background: #000000; /* Black background for rows */
 }
 
 .table tbody tr:hover {
@@ -330,10 +332,11 @@ body {
 }
 
 #orderEntriesTable .detail-row td {
-  color: #ffffff !important; /* Pure white for detail rows */
-  background: rgba(0, 0, 0, 0.2);
+  color: #ffffff !important; /* Pure white */
+  background: #111111 !important; /* Darker background for contrast */
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
+  border-bottom: 1px solid #333333;
 }
 
 /* Ensure all table text is bright */
@@ -342,8 +345,9 @@ body {
 }
 
 .table thead th {
-  color: #c8882e !important;
-  font-size: 0.8rem !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  font-size: 0.9rem !important;
   font-weight: 900 !important;
 }
 
