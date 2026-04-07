@@ -839,7 +839,8 @@ async function syncFromLoyverse() {
     }
 
     // Apply payment details after gram map is built from order entries
-    applyPaymentDetails(data, receiptGramMap);
+    const paymentResults = applyPaymentDetails(data, receiptGramMap);
+    const { cashEntries, cardEntries, transferEntries } = paymentResults;
     
     // Update summary totals
     // We re-calculate totals from the filtered entries to ensure refunds are excluded
