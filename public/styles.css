@@ -197,7 +197,7 @@ body {
 
 /* Form Controls */
 .form-label {
-  color: #e0e0e0; /* Brighter labels */
+  color: #ffffff !important; /* Pure white for maximum visibility */
   font-weight: 800;
   font-size: 0.85rem;
   margin-bottom: 0.6rem;
@@ -283,9 +283,9 @@ body {
 
 .table tbody td {
   padding: 1.25rem 1rem;
-  color: #e0e0e0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  font-weight: 500;
+  color: #ffffff; /* Pure white for maximum visibility */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-weight: 600;
 }
 
 .table tbody tr:hover {
@@ -293,30 +293,33 @@ body {
 }
 
 .table tfoot {
-  background: #1a1a1a;
+  background: #0d0d0d;
   font-weight: 800;
 }
 
 .table tfoot td {
   padding: 1.25rem 1rem;
-  color: var(--ink);
-  border-top: 2px solid var(--glass-border);
+  color: #ffffff; /* Pure white for footer totals */
+  border-top: 2px solid #3a3020;
 }
 
 /* Price Color Coding */
 .price-main {
-  color: var(--positive);
-  font-weight: 800;
+  color: #4edd9f; /* Bright Emerald Green */
+  font-weight: 900;
+  font-size: 1.05em;
 }
 
 .price-separator {
-  color: var(--ink-soft);
+  color: #888888;
   margin: 0 0.3rem;
+  font-weight: 700;
 }
 
 .price-fb {
-  color: var(--amber);
-  font-weight: 800;
+  color: #ffa500; /* Bright Amber Orange */
+  font-weight: 900;
+  font-size: 1.05em;
 }
 
 /* Detailed Sales Record Table Visibility Fix */
@@ -327,20 +330,21 @@ body {
 }
 
 #orderEntriesTable .detail-row td {
-  color: #cccccc !important;
-  background: rgba(0, 0, 0, 0.3);
-  font-size: 0.88rem;
-  font-weight: 400;
+  color: #ffffff !important; /* Pure white for detail rows */
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 /* Ensure all table text is bright */
 .table tbody td {
-  color: #f0f0f0 !important;
+  color: #ffffff !important;
 }
 
 .table thead th {
-  color: var(--accent-strong) !important;
-  font-size: 0.85rem !important;
+  color: #c8882e !important;
+  font-size: 0.8rem !important;
+  font-weight: 900 !important;
 }
 
 /* Responsive Adjustments */
