@@ -475,8 +475,8 @@ function applyPaymentDetails(data, receiptGramMap = new Map()) {
     const mainStr = formatCompactNumber(main);
     const fbStr = formatCompactNumber(fb);
     // Return HTML with color-coded spans: 
-    // .price-main (Flower/Main) is now the first part
-    // .price-fb (F&B) is now the second part (will be styled as soft green)
+    // .price-main (Flower/Main) is the first part (Green)
+    // .price-fb (F&B) is the second part (Orange/Amber)
     return `<span class="price-main">${mainStr}</span> <span class="price-separator">/</span> <span class="price-fb">${fbStr}</span>`;
   };
 

@@ -547,7 +547,7 @@ body {
 
 .table tbody td {
   padding: 12px 12px !important;
-  color: #c8c0b4;
+  color: #e8dcd0;
   font-weight: 500;
   border: none;
   vertical-align: middle;
@@ -562,12 +562,12 @@ body {
 .table tfoot td {
   padding: 14px 12px !important;
   font-weight: 700;
-  color: #d4a574;
+  color: #e8d5c4;
   border: none;
 }
 
 .receipt-summary-label {
-  color: #8b7355;
+  color: #b0a090;
   font-size: 0.85rem;
   font-weight: 600;
   opacity: 0.8;
@@ -579,7 +579,7 @@ body {
 }
 
 .detail-row td {
-  color: #a89a8a;
+  color: #d4c4b4;
   padding: 8px 12px !important;
   font-weight: 400;
 }
@@ -1001,7 +1001,7 @@ body {
    ============================================ */
 
 .price-main {
-  color: #d4a574;
+  color: #4edd9f;
   font-weight: 700;
   letter-spacing: 0.3px;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -1009,14 +1009,14 @@ body {
 }
 
 .price-separator {
-  color: #8b7355;
+  color: #a89a8a;
   margin: 0 0.25em;
   font-weight: 600;
   opacity: 0.7;
 }
 
 .price-fb {
-  color: #7ec97e;
+  color: #ffa500;
   font-weight: 700;
   letter-spacing: 0.3px;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -1025,25 +1025,25 @@ body {
 
 /* Smooth hover effects with gentle glow */
 #unifiedPaymentBody tr:hover .price-main {
-  color: #e8c8a0;
-  text-shadow: 0 0 12px rgba(212, 165, 116, 0.35);
+  color: #5ff5b0;
+  text-shadow: 0 0 12px rgba(78, 221, 159, 0.4);
   transform: scale(1.05);
 }
 
 #unifiedPaymentBody tr:hover .price-fb {
-  color: #9dd99d;
-  text-shadow: 0 0 12px rgba(126, 201, 126, 0.35);
+  color: #ffb84d;
+  text-shadow: 0 0 12px rgba(255, 165, 0, 0.4);
   transform: scale(1.05);
 }
 
 /* Footer totals styling */
 #unifiedPaymentFooter .price-main {
-  color: #d4a574;
+  color: #4edd9f;
   font-weight: 800;
 }
 
 #unifiedPaymentFooter .price-fb {
-  color: #7ec97e;
+  color: #ffa500;
   font-weight: 800;
 }
 
