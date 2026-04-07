@@ -157,12 +157,12 @@ body {
 }
 
 .metric-label {
-  color: var(--ink-soft);
-  font-size: 0.8rem;
-  font-weight: 700;
+  color: #888888;
+  font-size: 0.75rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.75rem;
 }
 
 .metric-value {
@@ -173,11 +173,11 @@ body {
 
 /* Stat Cards (Grams & F&B) */
 .gram-stat-card {
-  background: linear-gradient(135deg, #2a2010 0%, #1a1408 100%);
-  border: 1px solid var(--glass-border);
+  background: linear-gradient(135deg, #1a1408 0%, #0f0a04 100%);
+  border: 1px solid #3a3020;
   border-radius: 1rem;
   padding: 1.5rem;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
 .gram-stat-label {
@@ -196,16 +196,18 @@ body {
 
 /* Form Controls */
 .form-label {
-  color: var(--ink-soft);
+  color: #a8a090;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   margin-bottom: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .form-control, .form-select {
-  background: #121212 !important;
-  border: 1px solid #333 !important;
-  color: var(--ink) !important;
+  background: #0d0d0d !important;
+  border: 1px solid #2a2a2a !important;
+  color: #ffffff !important;
   border-radius: 0.75rem !important;
   padding: 0.75rem 1rem !important;
   font-weight: 600 !important;
@@ -213,9 +215,9 @@ body {
 }
 
 .form-control:focus, .form-select:focus {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 4px rgba(200, 136, 46, 0.15) !important;
-  background: #181818 !important;
+  border-color: var(--accent-strong) !important;
+  box-shadow: 0 0 0 4px rgba(224, 160, 64, 0.2) !important;
+  background: #141414 !important;
 }
 
 /* Buttons */
@@ -229,14 +231,16 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
   border: none;
-  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3);
+  color: #ffffff !important;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+  box-shadow: 0 8px 25px rgba(0, 102, 204, 0.4);
+  background: linear-gradient(135deg, #0077dd 0%, #0055bb 100%);
 }
 
 .btn-success {
@@ -265,14 +269,15 @@ body {
 }
 
 .table thead th {
-  background: #1a1a1a;
-  color: var(--accent);
+  background: #0d0d0d;
+  color: #c8882e;
   font-weight: 800;
   text-transform: uppercase;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   padding: 1.25rem 1rem;
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 2px solid #3a3020;
   text-align: left;
+  letter-spacing: 0.05em;
 }
 
 .table tbody td {
@@ -423,6 +428,26 @@ body {
 .nav-mascot {
   font-size: 1.5rem;
   animation: float 3s ease-in-out infinite;
+}
+
+h2 {
+  color: var(--accent-strong) !important;
+  font-weight: 800 !important;
+  font-size: 1.3rem !important;
+  margin: 1.5rem 0 1rem 0 !important;
+  border-left: 4px solid var(--accent-strong);
+  padding-left: 12px;
+  letter-spacing: -0.02em;
+}
+
+h5 {
+  color: var(--accent-strong) !important;
+  font-weight: 800 !important;
+  font-size: 1.2rem !important;
+  margin: 1.5rem 0 1rem 0 !important;
+  border-left: 4px solid var(--accent-strong);
+  padding-left: 12px;
+  letter-spacing: -0.02em;
 }
 
 h2 span {
