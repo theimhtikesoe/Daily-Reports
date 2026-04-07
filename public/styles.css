@@ -295,14 +295,15 @@ body {
 }
 
 .table tfoot {
-  background: #0d0d0d;
+  background: #000000; /* Black background for footer */
   font-weight: 800;
 }
 
 .table tfoot td {
   padding: 1.25rem 1rem;
-  color: #ffffff; /* Pure white for footer totals */
-  border-top: 2px solid #3a3020;
+  color: #ffffff !important; /* Pure white text on black */
+  border-top: 2px solid #ffffff; /* White border for contrast */
+  background: #000000 !important; /* Ensure black background */
 }
 
 /* Price Color Coding - Removed as requested for unified look */
