@@ -288,6 +288,28 @@ function isCompletedReceipt(receipt) {
   return completedStatuses.has(status);
 }
 
+/**
+ * Filter receipts to exclude refund-related receipts
+ * @param {Array} receipts - Raw receipts from Loyverse
+ * @returns {Array} Filtered receipts excluding refunds
+ */
+function filterOutRefundReceipts(receipts) {
+  if (!Array.isArray(receipts)) return [];
+  return receipts.filter(receipt => {
+    // Reject if receipt type is REFUND
+    const receiptType = String(receipt.receipt_type || receipt.type || '').toUpperCase();
+    if (receiptType === 'REFUND') return false;
+    
+    // Reject if receipt has refund data
+    if (hasRefundData(receipt)) return false;
+    
+    // Reject if receipt is voided
+    if (isVoidedReceipt(receipt)) return false;
+    
+    return true;
+  });
+}
+
 function normalizeCategoryValue(rawCategory) {
   return String(rawCategory || '').trim().toLowerCase();
 }
@@ -1300,5 +1322,6 @@ module.exports = {
   classifyPaymentType,
   isCompletedReceipt,
   buildAutomatedReportRows,
-  fetchItemCategoryMap
+  fetchItemCategoryMap,
+  filterOutRefundReceipts
 };

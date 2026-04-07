@@ -443,7 +443,7 @@ async function exportToExcel(req, res, next) {
 
     const { generateExcelReport } = require('../services/excelExportService');
     const { classifyItems } = require('../services/itemClassifier');
-    const { fetchClosedReceiptsByDate } = require('../services/loyverseService');
+    const { fetchClosedReceiptsByDate, filterOutRefundReceipts } = require('../services/loyverseService');
 
     // Get report data
     const reportRows = await query(
@@ -459,8 +459,9 @@ async function exportToExcel(req, res, next) {
       throw error;
     }
 
-    // Get receipts from Loyverse
-    const receipts = await fetchClosedReceiptsByDate(date);
+    // Get receipts from Loyverse and filter out refunds
+    const allReceipts = await fetchClosedReceiptsByDate(date);
+    const receipts = filterOutRefundReceipts(allReceipts);
     const classifiedReceipts = classifyItems(receipts);
 
     //     // Get expenses from query param (if provided by frontend LocalStorage)

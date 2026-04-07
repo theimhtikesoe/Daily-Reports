@@ -1,6 +1,28 @@
 const ExcelJS = require('exceljs');
 
 /**
+ * Check if a receipt is a refund receipt
+ */
+function isRefundReceipt(receipt) {
+  if (!receipt || typeof receipt !== 'object') return false;
+  
+  // Check receipt type
+  const receiptType = String(receipt.receipt_type || receipt.type || '').toUpperCase();
+  if (receiptType === 'REFUND') return true;
+  
+  // Check for refund flags
+  if (receipt.is_refunded === true || receipt.refunded === true || receipt.is_returned === true) return true;
+  if (receipt.refunded_at || receipt.returned_at) return true;
+  
+  // Check for refund collections
+  const hasRefunds = Array.isArray(receipt.refunds) && receipt.refunds.length > 0;
+  const hasRefundItems = Array.isArray(receipt.refund_items) && receipt.refund_items.length > 0;
+  const hasReturns = Array.isArray(receipt.returns) && receipt.returns.length > 0;
+  
+  return hasRefunds || hasRefundItems || hasReturns;
+}
+
+/**
  * Generate Excel report matching the frontend export template
  * @param {string} date - Report date
  * @param {Object} reportData - Sales summary data
@@ -92,10 +114,14 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
 
   const flowerItems = [];
   const fbItems = [];
+  const refundItems = [];
   let totalFlowerGrams = 0;
   let calculatedFbTotal = 0;
+  let totalRefundAmount = 0;
 
   receipts.forEach(receipt => {
+    // Skip refund receipts - they will be processed separately
+    if (isRefundReceipt(receipt)) return;
     const items = receipt.line_items || receipt.items || [];
     const paymentMethod = (receipt.payments && receipt.payments[0]?.payment_type?.name) || 
                            (receipt.payments && receipt.payments[0]?.name) || 'N/A';
@@ -380,7 +406,89 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
   });
   currRow += 2;
 
-  // --- SECTION 4: DASHBOARD ---
+  // --- SECTION 4: REFUNDS (if any) ---
+  // Process refund receipts separately
+  const refundReceipts = receipts.filter(receipt => isRefundReceipt(receipt));
+  if (refundReceipts.length > 0) {
+    refundReceipts.forEach(receipt => {
+      const items = receipt.line_items || receipt.items || [];
+      const paymentMethod = (receipt.payments && receipt.payments[0]?.payment_type?.name) || 'N/A';
+      const receiptNumber = receipt.receipt_number || receipt.number || 'N/A';
+      
+      items.forEach(item => {
+        let itemName = String(item.name || item.item_name || "").toLowerCase();
+        let qty = Number(item.quantity || item.qty || 0);
+        let grossPrice = getMoney(
+          item.gross_total_money,
+          item.subtotal_money,
+          item.total_before_discount_money
+        );
+        if (grossPrice === null) {
+          const unitPrice = getMoney(item.price_money, item.unit_price_money, item.price, item.unit_price);
+          if (unitPrice !== null && qty > 0) {
+            grossPrice = unitPrice * qty;
+          }
+        }
+        if (grossPrice === null) grossPrice = 0;
+        
+        const lineItemDiscount = getMoney(
+          item.total_discount_money,
+          item.discount_money
+        ) || 0;
+        const itemNetPrice = Math.max(0, grossPrice - lineItemDiscount);
+        
+        if (itemNetPrice > 0.01) {
+          const unitPrice = grossPrice / (qty || 1);
+          const discountStr = lineItemDiscount > 0.01 ? `${((lineItemDiscount / grossPrice) * 100).toFixed(0)}%` : '-';
+          
+          refundItems.push({
+            type: 'Refund',
+            name: item.name || item.item_name,
+            qty: qty,
+            gram: '-',
+            unitPrice: unitPrice,
+            discount: discountStr,
+            netPrice: itemNetPrice,
+            payment: paymentMethod,
+            note: receiptNumber
+          });
+          totalRefundAmount += itemNetPrice;
+        }
+      });
+    });
+  }
+  
+  if (refundItems.length > 0) {
+    paintSection('Refunds');
+    paintHeader();
+    refundItems.forEach((item, i) => {
+      const row = sheet.getRow(currRow);
+      row.values = [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note];
+      row.eachCell((cell) => {
+        cell.fill = i % 2 === 0 ? rowLight : rowDark;
+        cell.border = border;
+        cell.alignment = { vertical: 'middle' };
+      });
+      currRow++;
+    });
+    
+    // Add Refund Total Row
+    const refundTotalRow = sheet.getRow(currRow);
+    refundTotalRow.getCell(1).value = 'TOTAL REFUNDS';
+    refundTotalRow.getCell(7).value = totalRefundAmount;
+    refundTotalRow.getCell(7).numFmt = '#,##0.00 "THB"';
+    refundTotalRow.eachCell((cell, colNumber) => {
+      if (colNumber === 1 || colNumber === 7) {
+        cell.font = { bold: true };
+        cell.fill = headerFill;
+        cell.border = border;
+        cell.alignment = { vertical: 'middle' };
+      }
+    });
+    currRow += 2;
+  }
+
+  // --- SECTION 5: DASHBOARD ---
   paintSection('Daily Summary Dashboard');
 
   // Calculate totals from reportData

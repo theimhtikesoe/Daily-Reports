@@ -480,6 +480,28 @@ function applyPaymentDetails(data, receiptGramMap = new Map()) {
 }
 
 /**
+ * Check if an order is a refund receipt
+ */
+function isRefundOrder(order) {
+  if (!order || typeof order !== 'object') return false;
+  
+  // Check receipt type
+  const receiptType = String(order.receipt_type || order.type || '').toUpperCase();
+  if (receiptType === 'REFUND') return true;
+  
+  // Check for refund flags
+  if (order.is_refunded === true || order.refunded === true || order.is_returned === true) return true;
+  if (order.refunded_at || order.returned_at) return true;
+  
+  // Check for refund collections
+  const hasRefunds = Array.isArray(order.refunds) && order.refunds.length > 0;
+  const hasRefundItems = Array.isArray(order.refund_items) && order.refund_items.length > 0;
+  const hasReturns = Array.isArray(order.returns) && order.returns.length > 0;
+  
+  return hasRefunds || hasRefundItems || hasReturns;
+}
+
+/**
  * Process orders and build both Order Entries table rows and Detailed Sales Record items
  */
 function processOrdersData(data) {
@@ -489,6 +511,8 @@ function processOrdersData(data) {
   let totalGrams = 0;
 
   orders.forEach(order => {
+    // Skip refund orders
+    if (isRefundOrder(order)) return;
     let orderLineGram = 0;
     let mainAndAccPrice = 0;
     let fbPriceTotal = 0;

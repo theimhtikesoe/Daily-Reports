@@ -163,6 +163,28 @@ function getMoney(...candidates) {
 }
 
 /**
+ * Filter out refund receipts
+ */
+function isRefundReceipt(receipt) {
+  if (!receipt || typeof receipt !== 'object') return false;
+  
+  // Check receipt type
+  const receiptType = String(receipt.receipt_type || receipt.type || '').toUpperCase();
+  if (receiptType === 'REFUND') return true;
+  
+  // Check for refund flags
+  if (receipt.is_refunded === true || receipt.refunded === true || receipt.is_returned === true) return true;
+  if (receipt.refunded_at || receipt.returned_at) return true;
+  
+  // Check for refund collections
+  const hasRefunds = Array.isArray(receipt.refunds) && receipt.refunds.length > 0;
+  const hasRefundItems = Array.isArray(receipt.refund_items) && receipt.refund_items.length > 0;
+  const hasReturns = Array.isArray(receipt.returns) && receipt.returns.length > 0;
+  
+  return hasRefunds || hasRefundItems || hasReturns;
+}
+
+/**
  * Item Classification Logic
  */
 function processItemsForExcel(receipts) {
@@ -173,6 +195,9 @@ function processItemsForExcel(receipts) {
   let totalFbAmount = 0;
   receipts.forEach(receipt => {
     if (!receipt || typeof receipt !== 'object') return;
+    
+    // Skip refund receipts
+    if (isRefundReceipt(receipt)) return;
 
     const items = receipt.line_items || receipt.items || [];
     const paymentMethod = (receipt.payments && receipt.payments[0]?.payment_type?.name) || 
