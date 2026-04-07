@@ -181,7 +181,17 @@ function isRefundReceipt(receipt) {
   const hasRefundItems = Array.isArray(receipt.refund_items) && receipt.refund_items.length > 0;
   const hasReturns = Array.isArray(receipt.returns) && receipt.returns.length > 0;
   
-  return hasRefunds || hasRefundItems || hasReturns;
+  if (hasRefunds || hasRefundItems || hasReturns) return true;
+
+  // Check for negative total
+  const total = getMoney(receipt.total_money, receipt.total_price_money, receipt.amount_money, receipt.amount) || 0;
+  if (total < 0) return true;
+
+  // Check for voided status
+  const status = String(receipt.status || '').toUpperCase();
+  if (['VOIDED', 'VOID', 'CANCELLED', 'CANCELED', 'DELETED'].includes(status)) return true;
+
+  return false;
 }
 
 /**

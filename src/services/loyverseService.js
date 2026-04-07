@@ -282,6 +282,17 @@ function isCompletedReceipt(receipt) {
     return false;
   }
 
+  // Reject if the receipt has a negative total (indicative of a refund)
+  const total = normalizeMoney(pickMoneyValue(
+    receipt?.total_money,
+    receipt?.total_price_money,
+    receipt?.amount_money,
+    receipt?.amount
+  ) ?? 0);
+  if (total < 0) {
+    return false;
+  }
+
   // Only accept valid closed/paid statuses
   const status = String(receipt.status || '').toUpperCase();
   const completedStatuses = new Set(['', 'CLOSED', 'COMPLETED', 'PAID']);
@@ -295,19 +306,7 @@ function isCompletedReceipt(receipt) {
  */
 function filterOutRefundReceipts(receipts) {
   if (!Array.isArray(receipts)) return [];
-  return receipts.filter(receipt => {
-    // Reject if receipt type is REFUND
-    const receiptType = String(receipt.receipt_type || receipt.type || '').toUpperCase();
-    if (receiptType === 'REFUND') return false;
-    
-    // Reject if receipt has refund data
-    if (hasRefundData(receipt)) return false;
-    
-    // Reject if receipt is voided
-    if (isVoidedReceipt(receipt)) return false;
-    
-    return true;
-  });
+  return receipts.filter(isCompletedReceipt);
 }
 
 function normalizeCategoryValue(rawCategory) {

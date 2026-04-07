@@ -379,16 +379,31 @@ function attachDiscountPercentage(entries, discountEntries) {
 function applyPaymentDetails(data, receiptGramMap = new Map()) {
   const discountEntries = normalizeEntries(Array.isArray(data?.discount_entry_details) && data.discount_entry_details.length ? data.discount_entry_details : data?.discount_entries || []);
   
+  // Create a set of refund receipt numbers for quick lookup
+  const refundReceiptNumbers = new Set(
+    (Array.isArray(data?.orders) ? data.orders : [])
+      .filter(isRefundOrder)
+      .map(o => String(o.receipt_number || o.number || '').trim())
+      .filter(Boolean)
+  );
+
+  const filterRefundEntries = (entries) => {
+    return entries.filter(e => {
+      const receiptKey = String(e.receiptNumber || '').trim();
+      return !refundReceiptNumbers.has(receiptKey);
+    });
+  };
+
   const cashEntries = attachDiscountPercentage(
-    attachGramShare(sortEntriesByTimeAsc(normalizeEntries(data?.cash_entries || [])), receiptGramMap),
+    attachGramShare(sortEntriesByTimeAsc(filterRefundEntries(normalizeEntries(data?.cash_entries || []))), receiptGramMap),
     discountEntries
   );
   const cardEntries = attachDiscountPercentage(
-    attachGramShare(sortEntriesByTimeAsc(normalizeEntries(data?.card_entries || [])), receiptGramMap),
+    attachGramShare(sortEntriesByTimeAsc(filterRefundEntries(normalizeEntries(data?.card_entries || []))), receiptGramMap),
     discountEntries
   );
   const transferEntries = attachDiscountPercentage(
-    attachGramShare(sortEntriesByTimeAsc(normalizeEntries(data?.transfer_entries || [])), receiptGramMap),
+    attachGramShare(sortEntriesByTimeAsc(filterRefundEntries(normalizeEntries(data?.transfer_entries || []))), receiptGramMap),
     discountEntries
   );
 
@@ -498,7 +513,17 @@ function isRefundOrder(order) {
   const hasRefundItems = Array.isArray(order.refund_items) && order.refund_items.length > 0;
   const hasReturns = Array.isArray(order.returns) && order.returns.length > 0;
   
-  return hasRefunds || hasRefundItems || hasReturns;
+  if (hasRefunds || hasRefundItems || hasReturns) return true;
+
+  // Check for negative total
+  const total = Number(order.total_money?.amount ?? order.total_money ?? order.amount ?? 0);
+  if (total < 0) return true;
+
+  // Check for voided status
+  const status = String(order.status || '').toUpperCase();
+  if (['VOIDED', 'VOID', 'CANCELLED', 'CANCELED', 'DELETED'].includes(status)) return true;
+
+  return false;
 }
 
 /**
@@ -817,39 +842,42 @@ async function syncFromLoyverse() {
     applyPaymentDetails(data, receiptGramMap);
     
     // Update summary totals
-    if (els.cashTotal) els.cashTotal.value = round2(data?.cash_total || 0).toFixed(2);
-    if (els.cardTotal) els.cardTotal.value = round2(data?.card_total || 0).toFixed(2);
-    if (els.transferTotal) els.transferTotal.value = round2(data?.transfer_total || 0).toFixed(2);
-    if (els.netSale) els.netSale.value = currentNetSale.toFixed(2);
-    if (els.totalOrders) els.totalOrders.value = data?.total_orders || 0;
+    // We re-calculate totals from the filtered entries to ensure refunds are excluded
+    const totalCash = cashEntries.reduce((sum, e) => sum + e.amount, 0);
+    const totalCard = cardEntries.reduce((sum, e) => sum + e.amount, 0);
+    const totalTransfer = transferEntries.reduce((sum, e) => sum + e.amount, 0);
+    const totalNetSale = totalCash + totalCard + totalTransfer;
+    const totalOrdersCount = (Array.isArray(data?.orders) ? data.orders : []).filter(o => !isRefundOrder(o)).length;
+    const totalFbFromPayments = [
+      ...cashEntries,
+      ...cardEntries,
+      ...transferEntries
+    ].reduce((sum, entry) => sum + parseNumber(entry?.fbTotal || entry?.fb_total), 0);
+
+    if (els.cashTotal) els.cashTotal.value = round2(totalCash).toFixed(2);
+    if (els.cardTotal) els.cardTotal.value = round2(totalCard).toFixed(2);
+    if (els.transferTotal) els.transferTotal.value = round2(totalTransfer).toFixed(2);
+    if (els.netSale) els.netSale.value = round2(totalNetSale).toFixed(2);
+    if (els.totalOrders) els.totalOrders.value = totalOrdersCount;
     if (els.orderEntriesFbTotal) {
-      const fbTotalFromPayments = [
-        ...(data?.cash_entries || []),
-        ...(data?.card_entries || []),
-        ...(data?.transfer_entries || [])
-      ].reduce((sum, entry) => sum + parseNumber(entry?.fb_total), 0);
-      els.orderEntriesFbTotal.textContent = formatCurrency(fbTotalFromPayments);
+      els.orderEntriesFbTotal.textContent = formatCurrency(totalFbFromPayments);
     }
+    
+    currentNetSale = totalNetSale;
     
     // Use the totalGrams calculated during processing
     if (els.totalGramsSold) els.totalGramsSold.innerText = totalGramsCalculated.toFixed(3) + ' G';
 
     // Auto-save the report data to the database
-    const fbTotalFromPayments = [
-      ...(data?.cash_entries || []),
-      ...(data?.card_entries || []),
-      ...(data?.transfer_entries || [])
-    ].reduce((sum, entry) => sum + parseNumber(entry?.fb_total), 0);
-
     const reportPayload = {
       date: date,
-      net_sale: data.net_sale,
-      cash_total: data.cash_total,
-      card_total: data.card_total,
-      transfer_total: data.transfer_total,
-      total_orders: data.total_orders,
+      net_sale: totalNetSale,
+      cash_total: totalCash,
+      card_total: totalCard,
+      transfer_total: totalTransfer,
+      total_orders: totalOrdersCount,
       total_grams: totalGramsCalculated,
-      fb_total: fbTotalFromPayments,
+      fb_total: totalFbFromPayments,
       // Include current UI values for other fields if they exist
       tip: document.getElementById('tip')?.value || 0,
       '1k_qty': document.getElementById('1k_qty')?.value || 0,
