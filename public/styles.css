@@ -15,7 +15,7 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 140px; /* Further increased to ensure section headers are fully visible below the sticky nav */
+  scroll-padding-top: 180px; /* Increased to ensure section headers are fully visible below the sticky nav */
 }
 
 * {
@@ -112,9 +112,9 @@ body {
   display: flex;
   align-items: center;
   position: relative;
-  margin-left: 10px; /* Reduced margin */
+  margin-top: 5px; /* Space between subtitle and bee area */
   height: 30px;
-  width: 40px;
+  width: 100%;
   overflow: visible;
 }
 
@@ -415,13 +415,13 @@ body {
 }
 
 @keyframes bee-journey {
-  0% { left: 100vw; transform: scaleX(-1); }
-  25% { left: 50%; transform: scaleX(-1); }
+  0% { left: 100%; transform: scaleX(-1); }
+  25% { left: 75%; transform: scaleX(-1); }
   40% { left: 50%; transform: scaleX(-1) translateY(-5px); }
-  50% { left: 30%; transform: scaleX(-1) translateY(-15px) rotate(-10deg); } /* Reduced loop height */
-  65% { left: 10%; transform: scaleX(-1) translateY(15px) rotate(10deg); }
-  80% { left: -10%; transform: scaleX(-1) translateY(0) rotate(0deg); }
-  100% { left: -100vw; transform: scaleX(-1); }
+  50% { left: 30%; transform: scaleX(-1) translateY(-10px) rotate(-10deg); }
+  65% { left: 10%; transform: scaleX(-1) translateY(10px) rotate(10deg); }
+  80% { left: 0%; transform: scaleX(-1) translateY(0) rotate(0deg); }
+  100% { left: -20%; transform: scaleX(-1); }
 }
 
 .nav-mascot {
@@ -429,8 +429,8 @@ body {
   font-size: 1.2rem;
   animation: bee-journey 15s linear infinite;
   z-index: 5;
-  position: fixed;
-  top: 25px; /* Adjusted for even more compact header */
+  position: absolute;
+  top: 0;
   pointer-events: none;
 }
 
