@@ -113,9 +113,10 @@ body {
   display: flex;
   align-items: center;
   position: relative;
-  margin-top: 5px; /* Space between subtitle and bee area */
+  margin-bottom: 5px; /* Space between bee area and made-by-tag */
   height: 30px;
   width: 100%;
+  min-width: 200px; /* Ensure enough space for animation */
   overflow: visible;
 }
 
