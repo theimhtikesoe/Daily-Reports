@@ -56,13 +56,12 @@ body {
 
 .bee-container {
   display: flex;
-  align-items: flex-end; /* Align to bottom row */
+  align-items: center;
   position: relative;
   margin-left: 40px;
-  height: 60px; /* Taller to match subtext line */
+  height: 40px;
   width: 120px;
   overflow: visible;
-  padding-bottom: 5px; /* Fine-tune alignment with text baseline */
 }
 
 .brand-logo {
@@ -93,33 +92,11 @@ body {
   text-shadow: 0 2px 15px rgba(224, 160, 64, 0.4);
 }
 
-.brand-subtext {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-.subtext-en {
-  color: #e0a040;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.subtext-separator {
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 0.8rem;
-}
-
-.subtext-my {
-  color: #ffffff;
-  font-size: 1.1rem;
-  font-weight: 500;
-  font-family: 'Pyidaungsu', 'Inter', sans-serif;
-  letter-spacing: 0.02em;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+.brand-text p {
+  color: #cccccc !important;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .made-by-tag {
@@ -386,30 +363,33 @@ body {
 }
 
 @keyframes bee-journey {
-  0% { left: 110vw; transform: scaleX(-1); } /* Start from right, facing left */
-  35% { left: 50vw; transform: scaleX(-1); } /* Reach flower (approx center) */
-  50% { left: 50vw; transform: scaleX(-1) translateY(-5px); } /* Hover at flower */
-  100% { left: -10vw; transform: scaleX(-1); } /* Exit left */
+  0% { left: 100vw; transform: scaleX(-1); } /* Start from right edge */
+  25% { left: 50%; transform: scaleX(-1); } /* Reach flower */
+  40% { left: 50%; transform: scaleX(-1) translateY(-5px); } /* Hover at flower */
+  50% { left: 40%; transform: scaleX(-1) translateY(-20px) rotate(-15deg); } /* Start loop up */
+  60% { left: 30%; transform: scaleX(-1) translateY(20px) rotate(15deg); } /* Loop down */
+  75% { left: 20%; transform: scaleX(-1) translateY(0) rotate(0deg); } /* Straighten out */
+  100% { left: -100vw; transform: scaleX(-1); } /* Exit left */
 }
 
 @keyframes speech-bubble {
-  0%, 34%, 51%, 100% { opacity: 0; left: 110vw; }
-  35%, 50% { opacity: 1; left: 50vw; transform: translateY(-50px); }
+  0%, 24%, 41%, 100% { opacity: 0; left: 100vw; }
+  25%, 40% { opacity: 1; left: 50%; transform: translateX(-50%) translateY(-10px); }
 }
 
 .nav-mascot {
   display: inline-block;
   font-size: 1.5rem;
-  animation: bee-journey 12s linear infinite;
+  animation: bee-journey 15s linear infinite; /* Slower for more complex movement */
   z-index: 5;
-  position: fixed;
-  top: 75px; /* Adjusted to align with the bottom row of the header */
+  position: absolute; /* Relative to bee-container for easier alignment */
+  top: 0;
   pointer-events: none;
 }
 
 .bee-speech {
-  position: fixed;
-  top: -20px;
+  position: absolute;
+  top: -45px;
   background: white;
   color: #333;
   padding: 6px 12px;
@@ -419,7 +399,7 @@ body {
   white-space: nowrap;
   box-shadow: 0 6px 15px rgba(0,0,0,0.4);
   opacity: 0;
-  animation: speech-bubble 12s linear infinite;
+  animation: speech-bubble 15s linear infinite;
   z-index: 10;
   pointer-events: none;
 }
@@ -440,7 +420,6 @@ body {
   font-size: 1.5rem;
   position: absolute;
   left: 50%;
-  bottom: 0; /* Align to bottom */
   transform: translateX(-50%);
   pointer-events: none;
   filter: drop-shadow(0 0 5px rgba(255, 255, 0, 0.2));
