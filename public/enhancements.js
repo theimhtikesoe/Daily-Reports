@@ -890,10 +890,19 @@ function renderDailySalesTrendChart(orders) {
   // Generate all hours of the day
   const hours = [];
   const salesData = [];
+  let hasData = false;
   for (let i = 0; i < 24; i++) {
     const hourKey = `${i.toString().padStart(2, '0')}:00`;
     hours.push(hourKey);
-    salesData.push(hourlyData[hourKey] || 0);
+    const val = hourlyData[hourKey] || 0;
+    salesData.push(val);
+    if (val > 0) hasData = true;
+  }
+  
+  // If all values are zero, fallback to historical trend
+  if (!hasData) {
+    renderHistoricalSalesTrendChart();
+    return;
   }
   
   // Destroy existing chart if it exists
@@ -1081,6 +1090,9 @@ window.updateChartsAfterSync = function() {
     renderDailySalesTrendChart(data.orders);
   } else if (Array.isArray(data.automated_report_rows) && data.automated_report_rows.length > 0) {
     renderDailySalesTrendChart(data.automated_report_rows);
+  } else {
+    // Fallback to historical trend if no detailed data in sync
+    renderHistoricalSalesTrendChart();
   }
   
   // Update Payment Method Chart
