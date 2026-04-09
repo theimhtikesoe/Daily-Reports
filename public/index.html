@@ -33,6 +33,13 @@
     crossorigin="anonymous"
   />
   <link rel="stylesheet" href="styles.css?v=20260409" />
+  <script>
+    // Force scroll to top on refresh
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  </script>
 </head>
 <body>
   <header class="app-header py-4 mb-4">
