@@ -218,8 +218,9 @@ body {
 
 .form-control:focus, .form-select:focus {
   border-color: var(--accent-strong) !important;
-  box-shadow: 0 0 0 4px rgba(224, 160, 64, 0.2) !important;
+  box-shadow: 0 0 15px rgba(200, 136, 46, 0.3) !important;
   background: #141414 !important;
+  outline: none;
 }
 
 /* Buttons */
@@ -240,9 +241,13 @@ body {
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 102, 204, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 102, 204, 0.5);
   background: linear-gradient(135deg, #0077dd 0%, #0055bb 100%);
+}
+
+.btn:active {
+  transform: translateY(-1px);
 }
 
 .btn-success {
@@ -291,7 +296,8 @@ body {
 }
 
 .table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(200, 136, 46, 0.08) !important;
+  transition: background 0.2s ease;
 }
 
 .table tfoot,
@@ -421,28 +427,41 @@ body {
 
 @keyframes buzz {
   0%, 100% { transform: translateX(0) translateY(0); }
-  20% { transform: translateX(-5px) translateY(-2px); }
-  40% { transform: translateX(-80px) translateY(0); } /* Buzz towards the flower on the left */
-  60% { transform: translateX(-80px) translateY(0); } /* Stay at flower */
-  80% { transform: translateX(-5px) translateY(2px); }
+  20% { transform: translateX(-10px) translateY(-2px); }
+  40% { transform: translateX(-125px) translateY(0); } /* Buzz exactly to the flower on the left */
+  60% { transform: translateX(-125px) translateY(0); } /* Stay at flower */
+  80% { transform: translateX(-10px) translateY(2px); }
 }
 
 /* Specific buzz for mobile where the flower is further away */
 @media (max-width: 767px) {
   @keyframes buzz {
     0%, 100% { transform: translateX(0) translateY(0); }
-    20% { transform: translateX(-10px) translateY(-4px); }
-    40% { transform: translateX(-150px) translateY(0); } /* Larger movement on mobile towards flower */
-    60% { transform: translateX(-150px) translateY(0); } /* Stay at flower */
-    80% { transform: translateX(-10px) translateY(4px); }
+    20% { transform: translateX(-15px) translateY(-4px); }
+    40% { transform: translateX(-195px) translateY(0); } /* Larger movement on mobile towards flower */
+    60% { transform: translateX(-195px) translateY(0); } /* Stay at flower */
+    80% { transform: translateX(-15px) translateY(4px); }
   }
+}
+
+.bee-container {
+  display: flex;
+  align-items: center;
+  position: relative;
 }
 
 .flower-emoji {
   display: inline-block;
   font-size: 1.5rem;
-  margin-right: 12px;
+  position: absolute;
+  left: -135px; /* Positioned exactly where the bee stops */
   pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .flower-emoji {
+    left: -205px; /* Mobile adjustment */
+  }
 }
 
 .nav-mascot {
@@ -450,7 +469,7 @@ body {
   font-size: 1.5rem;
   margin-right: 8px;
   animation: buzz 8s ease-in-out infinite;
-  pointer-events: none; /* Don't block clicks on the link */
+  pointer-events: none;
 }
 
 .moving-emoji {
