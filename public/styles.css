@@ -56,38 +56,70 @@ body {
 
 .bee-container {
   display: flex;
-  align-items: center;
+  align-items: flex-end; /* Align to bottom row */
   position: relative;
   margin-left: 40px;
-  height: 40px;
-  width: 120px; /* Compact area for the flower */
+  height: 60px; /* Taller to match subtext line */
+  width: 120px;
   overflow: visible;
+  padding-bottom: 5px; /* Fine-tune alignment with text baseline */
 }
 
 .brand-logo {
   max-height: 110px;
   width: auto;
-  border-radius: 16px;
-  background: #000;
-  border: 2px solid var(--glass-border);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.8);
-  padding: 10px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #1a1a1a, #000000);
+  border: 2px solid rgba(200, 136, 46, 0.3);
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.8),
+    inset 0 0 15px rgba(200, 136, 46, 0.1);
+  padding: 12px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.brand-logo:hover {
+  transform: scale(1.05) translateY(-5px);
+  border-color: var(--accent-strong);
+  box-shadow: 0 20px 45px rgba(200, 136, 46, 0.2);
 }
 
 .brand-text h1 {
   color: #ffffff;
   font-weight: 800;
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.75rem;
   letter-spacing: -0.02em;
-  text-shadow: 0 2px 10px rgba(224, 160, 64, 0.3);
+  text-shadow: 0 2px 15px rgba(224, 160, 64, 0.4);
 }
 
-.brand-text p {
-  color: #cccccc !important;
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
+.brand-subtext {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.subtext-en {
+  color: #e0a040;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.subtext-separator {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.8rem;
+}
+
+.subtext-my {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 500;
+  font-family: 'Pyidaungsu', 'Inter', sans-serif;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 .made-by-tag {
@@ -362,16 +394,16 @@ body {
 
 @keyframes speech-bubble {
   0%, 34%, 51%, 100% { opacity: 0; left: 110vw; }
-  35%, 50% { opacity: 1; left: 50vw; transform: translateY(-40px); }
+  35%, 50% { opacity: 1; left: 50vw; transform: translateY(-50px); }
 }
 
 .nav-mascot {
   display: inline-block;
   font-size: 1.5rem;
-  animation: bee-journey 12s linear infinite; /* Slower, linear for smooth crossing */
+  animation: bee-journey 12s linear infinite;
   z-index: 5;
-  position: fixed; /* Fixed to screen to allow crossing from right to left */
-  top: 40px;
+  position: fixed;
+  top: 75px; /* Adjusted to align with the bottom row of the header */
   pointer-events: none;
 }
 
@@ -408,6 +440,7 @@ body {
   font-size: 1.5rem;
   position: absolute;
   left: 50%;
+  bottom: 0; /* Align to bottom */
   transform: translateX(-50%);
   pointer-events: none;
   filter: drop-shadow(0 0 5px rgba(255, 255, 0, 0.2));
