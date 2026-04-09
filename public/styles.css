@@ -50,17 +50,17 @@ body {
 .brand-wrap {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 24px; /* Increased gap for better spacing with larger logo */
 }
 
 .brand-logo {
-  max-height: 55px;
+  max-height: 110px; /* Further increased for better visibility */
   width: auto;
-  border-radius: 12px;
+  border-radius: 16px;
   background: #000;
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-  padding: 6px;
+  border: 2px solid var(--glass-border);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.8);
+  padding: 10px;
 }
 
 .brand-text h1 {
@@ -405,6 +405,11 @@ body {
   .brand-text h1 {
     font-size: 1.3rem;
   }
+  
+  .brand-logo {
+    max-height: 80px; /* Slightly smaller on mobile but still larger than before */
+    padding: 6px;
+  }
 
   .summary-metrics-row {
     grid-template-columns: 1fr 1fr;
@@ -468,7 +473,7 @@ body {
 
 @keyframes speech-bubble {
   0%, 35%, 65%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
-  40%, 60% { opacity: 1; transform: translateY(-45px) scale(1); }
+  40%, 60% { opacity: 1; transform: translateY(-55px) scale(1); } /* Increased float height to avoid overlap */
 }
 
 /* Specific buzz for mobile where the flower is further away */
@@ -482,7 +487,7 @@ body {
   }
   @keyframes speech-bubble {
     0%, 35%, 65%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
-    40%, 60% { opacity: 1; transform: translateY(-55px) scale(1); }
+    40%, 60% { opacity: 1; transform: translateY(-65px) scale(1); } /* Increased float height for mobile */
   }
 }
 
