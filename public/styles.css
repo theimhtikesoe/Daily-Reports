@@ -421,26 +421,35 @@ body {
 
 @keyframes buzz {
   0%, 100% { transform: translateX(0) translateY(0); }
-  25% { transform: translateX(-15px) translateY(-2px); }
-  50% { transform: translateX(-100px) translateY(0); } /* Buzz towards the left title */
-  75% { transform: translateX(-15px) translateY(2px); }
+  20% { transform: translateX(-5px) translateY(-2px); }
+  40% { transform: translateX(-80px) translateY(0); } /* Buzz towards the flower on the left */
+  60% { transform: translateX(-80px) translateY(0); } /* Stay at flower */
+  80% { transform: translateX(-5px) translateY(2px); }
 }
 
-/* Specific buzz for mobile where the title is further away */
+/* Specific buzz for mobile where the flower is further away */
 @media (max-width: 767px) {
   @keyframes buzz {
     0%, 100% { transform: translateX(0) translateY(0); }
-    25% { transform: translateX(-30px) translateY(-4px); }
-    50% { transform: translateX(-180px) translateY(0); } /* Larger movement on mobile */
-    75% { transform: translateX(-30px) translateY(4px); }
+    20% { transform: translateX(-10px) translateY(-4px); }
+    40% { transform: translateX(-150px) translateY(0); } /* Larger movement on mobile towards flower */
+    60% { transform: translateX(-150px) translateY(0); } /* Stay at flower */
+    80% { transform: translateX(-10px) translateY(4px); }
   }
+}
+
+.flower-emoji {
+  display: inline-block;
+  font-size: 1.5rem;
+  margin-right: 12px;
+  pointer-events: none;
 }
 
 .nav-mascot {
   display: inline-block;
   font-size: 1.5rem;
   margin-right: 8px;
-  animation: buzz 6s ease-in-out infinite;
+  animation: buzz 8s ease-in-out infinite;
   pointer-events: none; /* Don't block clicks on the link */
 }
 
