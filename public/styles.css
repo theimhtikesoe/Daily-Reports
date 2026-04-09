@@ -416,13 +416,13 @@ body {
 }
 
 @keyframes bee-journey {
-  0% { left: -20%; transform: scaleX(1); }
-  20% { left: 0%; transform: scaleX(1) translateY(0) rotate(0deg); }
-  35% { left: 10%; transform: scaleX(1) translateY(10px) rotate(10deg); }
-  50% { left: 30%; transform: scaleX(1) translateY(-10px) rotate(-10deg); }
-  60% { left: 50%; transform: scaleX(1) translateY(-5px); }
-  75% { left: 75%; transform: scaleX(1); }
-  100% { left: 100%; transform: scaleX(1); }
+  0% { left: -20%; transform: scaleX(-1); }
+  20% { left: 0%; transform: scaleX(-1) translateY(0) rotate(0deg); }
+  35% { left: 10%; transform: scaleX(-1) translateY(10px) rotate(10deg); }
+  50% { left: 30%; transform: scaleX(-1) translateY(-10px) rotate(-10deg); }
+  60% { left: 50%; transform: scaleX(-1) translateY(-5px); }
+  75% { left: 75%; transform: scaleX(-1); }
+  100% { left: 100%; transform: scaleX(-1); }
 }
 
 .nav-mascot {
