@@ -263,7 +263,12 @@ function processItemsForExcel(receipts) {
       const fbKeywords = ['water', 'soda', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'milk', 'coffee', 'tea', 'juice', 'cookie', 'brownie', 'cake', 'soju', 'gummy', 'snack', 'food', 'bakery'];
       const accessoryKeywords = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray', 'pipe', 'small pipe', 'best buds grinder', 'best buds shirt'];
 
-      let isFlowerStrain = flowerStrains.some(s => itemName.includes(s));
+      let isFlowerStrain = flowerStrains.some(s => {
+        if (s === 'grape soda') {
+          return itemName === 'grape soda' || itemName.includes('grape soda');
+        }
+        return itemName.includes(s);
+      });
       let isThcGummy = itemName.includes("thc gummy");
       let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
       let isFB = !isFlowerStrain && !isThcGummy && (fbKeywords.some(k => itemName.includes(k) || category.includes(k)));
