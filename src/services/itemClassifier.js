@@ -5,7 +5,7 @@
  */
 
 const MAIN_KEYWORDS = [
-  'blue pave', 'devil driver', 'lemon cherry gelato', 
+  'grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 
   'moonbow', 'emergen c', 'tea time', 'silver shadow', 
   'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
   'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
@@ -47,7 +47,13 @@ function classifyItem(itemName, categoryName = '', unitPrice = 0) {
 
   // 2. Check for Main/Flower keywords first
   // Priority: Check Main keywords before F&B keywords to catch items like "Thc Gummy" (Main) vs "Gummy" (F&B)
-  if (MAIN_KEYWORDS.some(keyword => name.includes(keyword))) {
+  // We use word boundary check or exact match for specific items like "Grape Soda" vs "Soda"
+  if (MAIN_KEYWORDS.some(keyword => {
+    if (keyword === 'grape soda') {
+      return name === 'grape soda' || name.includes('grape soda');
+    }
+    return name.includes(keyword);
+  })) {
     return 'main';
   }
 
