@@ -571,7 +571,8 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
     const itemDiscountPercent = itemGrossTotal > 0 ? (itemDiscount / itemGrossTotal * 100) : 0;
     
     // Strictly exclude items with 100% discount or price 0 from gram totals
-    if (itemTotal <= 0.01 || itemDiscountPercent >= 99.99) continue;
+    const is100PercentDiscount = itemTotal <= 0.01 || itemDiscountPercent >= 99.99;
+    if (is100PercentDiscount) continue;
 
     let qty = extractLineItemQty(lineItem);
 
@@ -1081,11 +1082,12 @@ function extractDiscountPercentage(entry, options = {}) {
 
 function createDiscountEntry(amount, percentage = null, time = null, receiptNumber = null) {
   const normalizedAmount = roundCurrency(Math.abs(amount));
-  if (normalizedAmount <= 0) {
+  const normalizedPercentage = normalizePercentageValue(percentage);
+
+  // Keep 100% discounts even if amount is 0, or any discount with a positive amount
+  if (normalizedAmount <= 0 && (normalizedPercentage === null || normalizedPercentage < 99.99)) {
     return null;
   }
-
-  const normalizedPercentage = normalizePercentageValue(percentage);
 
   return {
     amount: normalizedAmount,

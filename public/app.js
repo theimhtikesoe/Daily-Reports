@@ -200,7 +200,7 @@ function normalizeEntries(entries) {
       mainAccTotal: parseNumber(mainAccTotal),
       fbTotal: parseNumber(fbTotal)
     };
-  }).filter(e => e.amount > 0);
+  }).filter(e => e.amount > 0 || (e.percentage !== null && e.percentage >= 99.99));
 }
 
 function renderEntryList(listElement, entries, options = {}) {
@@ -222,7 +222,9 @@ function renderEntryList(listElement, entries, options = {}) {
     if (showPercentage) {
       let content = '';
       if (entry.percentage !== null) {
-        content = percentageOnly ? `${formatPercentage(entry.percentage)}` : `${formatPercentage(entry.percentage)} • ${formatCurrency(entry.amount)}`;
+        // Ensure 100% is shown correctly even for zero-amount discounts
+        const pctStr = formatPercentage(entry.percentage);
+        content = percentageOnly ? pctStr : `${pctStr} • ${formatCurrency(entry.amount)}`;
       } else {
         content = percentageOnly ? `${percentageFallbackText}` : `${formatCurrency(entry.amount)}`;
       }

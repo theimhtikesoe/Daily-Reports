@@ -79,7 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (isDiscount) {
         const percentage = parseFloat(entry.percentage || 0);
-        li.textContent = `${percentage.toFixed(0)}%`;
+        // Ensure 100% is shown correctly even for zero-amount discounts
+        li.textContent = percentage > 0 ? `${percentage.toFixed(0)}%` : '0%';
       } else {
         const mainTotal = parseFloat(entry.main_acc_total || 0);
         const fbTotal = parseFloat(entry.fb_total || 0);

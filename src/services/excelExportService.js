@@ -196,12 +196,14 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
       const totalItemDiscount = Math.max(0, grossPrice - itemNetPrice);
       const discountPercent = grossPrice > 0 ? (totalItemDiscount / grossPrice * 100) : 0;
       
-      // Rule: Skip items where price is 0 OR discount is 100%
-      if (itemNetPrice <= 0.01 || discountPercent >= 99.99) {
-        return;
-      }
-
-      const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` : '-';
+      // Rule: Skip items where price is 0 OR discount is 100% from TOTALS, but we might want to list them
+      // Based on user request: "The planet of grape" at 100% discount should not be counted in total grams
+      // but should be shown in the list with 100% discount.
+      
+      const is100PercentDiscount = itemNetPrice <= 0.01 || discountPercent >= 99.99;
+      const discountStr = (totalItemDiscount > 0.01 || is100PercentDiscount) 
+        ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` 
+        : '-';
 
       let isThcGummy = itemName.includes('thc gummy');
       let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
@@ -249,7 +251,10 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
       if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) {
         displayQty = '-';
         displayGram = `${qty.toFixed(3)} G`;
-        totalFlowerGrams += qty;
+        // Only add to total grams if NOT 100% discounted
+        if (!is100PercentDiscount) {
+          totalFlowerGrams += qty;
+        }
       }
 
       const unitPrice = grossPrice / (qty || 1);
@@ -268,7 +273,10 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
 
       if (isFB) {
         fbItems.push(exportItem);
-        calculatedFbTotal += itemNetPrice;
+        // Only add to total revenue if NOT 100% discounted
+        if (!is100PercentDiscount) {
+          calculatedFbTotal += itemNetPrice;
+        }
       } else {
         flowerItems.push(exportItem);
       }
