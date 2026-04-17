@@ -101,13 +101,29 @@ function classifyItems(receipts) {
       const itemName = item.name || item.item_name || '';
       const categoryName = item.category_name || '';
       const qty = Number(item.quantity || item.qty || 0);
+      
+      // Extract prices and discounts
       const grossPrice = Number(item.gross_total_money?.amount || item.subtotal_money?.amount || 0);
-      const unitPrice = qty > 0 ? grossPrice / qty : 0;
+      const totalDiscount = Number(item.total_discount_money?.amount || item.discount_money?.amount || 0);
+      const netPrice = Number(item.total_money?.amount || item.total_price_money?.amount || (grossPrice - totalDiscount));
+      
+      // Calculate discount percentage
+      const discountPercent = grossPrice > 0 ? (totalDiscount / grossPrice * 100) : 0;
+      
+      // RULE: Exclude items with 100% discount or price 0
+      if (netPrice <= 0.01 || discountPercent >= 99.99) {
+        return;
+      }
+
+      const unitPrice = qty > 0 ? netPrice / qty : 0;
 
       const type = classifyItem(itemName, categoryName, unitPrice);
       classifiedItems.push({
         ...item,
-        classification: type
+        classification: type,
+        category: type, // Ensure compatibility with services using .category
+        unitPrice: unitPrice,
+        netPrice: netPrice
       });
     });
   });
@@ -115,9 +131,40 @@ function classifyItems(receipts) {
   return classifiedItems;
 }
 
+/**
+ * Get classification statistics for a list of classified items.
+ * @param {Array} classifiedItems - List of classified items.
+ * @returns {Object} - Statistics object.
+ */
+function getClassificationStats(classifiedItems) {
+  const stats = {
+    main: { count: 0, total: 0 },
+    fb: { count: 0, total: 0 },
+    accessory: { count: 0, total: 0 },
+    total: { count: 0, total: 0 }
+  };
+
+  classifiedItems.forEach(item => {
+    const type = item.classification || 'main';
+    const qty = Number(item.quantity || item.qty || 0);
+    const price = Number(item.netPrice || 0);
+    
+    if (stats[type]) {
+      stats[type].count += 1;
+      stats[type].total += price;
+    }
+    
+    stats.total.count += 1;
+    stats.total.total += price;
+  });
+
+  return stats;
+}
+
 module.exports = {
   classifyItem,
   classifyItems,
+  getClassificationStats,
   MAIN_KEYWORDS,
   FB_KEYWORDS,
   ACCESSORY_KEYWORDS

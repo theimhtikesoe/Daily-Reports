@@ -41,14 +41,14 @@ async function fetchAndClassifyReceipts(date) {
  * @returns {Object} Breakdown by category
  */
 function getReceiptBreakdown(classifiedReceipts) {
-  const mainItems = classifiedReceipts.filter(r => r.category === 'main');
-  const fbItems = classifiedReceipts.filter(r => r.category === 'fb');
+  const mainItems = classifiedReceipts.filter(r => r.classification === 'main');
+  const fbItems = classifiedReceipts.filter(r => r.classification === 'fb');
+  const accessoryItems = classifiedReceipts.filter(r => r.classification === 'accessory');
 
   const calculateTotal = (items) => {
     return items.reduce((sum, item) => {
-      const qty = parseFloat(item.quantity) || 0;
-      const price = parseFloat(item.unitPrice) || 0;
-      return sum + (qty * price);
+      const price = parseFloat(item.netPrice) || 0;
+      return sum + price;
     }, 0);
   };
 
@@ -62,6 +62,11 @@ function getReceiptBreakdown(classifiedReceipts) {
       items: fbItems,
       count: fbItems.length,
       total: calculateTotal(fbItems)
+    },
+    accessory: {
+      items: accessoryItems,
+      count: accessoryItems.length,
+      total: calculateTotal(accessoryItems)
     },
     combined: {
       count: classifiedReceipts.length,
@@ -93,6 +98,13 @@ function generateReceiptSummary(classifiedReceipts) {
         ? ((breakdown.fb.total / breakdown.combined.total) * 100).toFixed(2)
         : '0.00'
     },
+    accessory: {
+      count: breakdown.accessory.count,
+      total: breakdown.accessory.total.toFixed(2),
+      percentage: breakdown.combined.total > 0 
+        ? ((breakdown.accessory.total / breakdown.combined.total) * 100).toFixed(2)
+        : '0.00'
+    },
     total: {
       count: breakdown.combined.count,
       total: breakdown.combined.total.toFixed(2)
@@ -103,11 +115,11 @@ function generateReceiptSummary(classifiedReceipts) {
 /**
  * Get items by category
  * @param {Array} classifiedReceipts - Classified receipt items
- * @param {string} category - Category to filter ('main' or 'fb')
+ * @param {string} category - Category to filter ('main', 'fb', or 'accessory')
  * @returns {Array} Filtered items
  */
 function getItemsByCategory(classifiedReceipts, category) {
-  return classifiedReceipts.filter(item => item.category === category);
+  return classifiedReceipts.filter(item => item.classification === category);
 }
 
 module.exports = {
