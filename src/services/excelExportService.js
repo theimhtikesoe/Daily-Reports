@@ -208,6 +208,7 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
 
       let isFB = !isAccessory && (
         fbKeywords.some(k => itemName.includes(k) || category.includes(k)) ||
+        itemName.includes('budweiser') ||
         category.includes('soft drink') || 
         category.includes('snacks') || 
         category.includes('beverage') ||
@@ -276,185 +277,93 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
   titleCell.font = { size: 14, bold: true, color: { argb: 'FFF8EBCF' } };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-  // --- ROW 2: CLOSING STAFF ---
-  sheet.mergeCells('A2:I2');
-  const staffCell = sheet.getCell('A2');
-  staffCell.value = `Closing Staff: ${closingStaff}`;
-  staffCell.font = { bold: true };
-  staffCell.alignment = { vertical: 'middle' };
+  // --- ROW 2: HEADERS ---
+  const headerRow = sheet.getRow(2);
+  headerRow.values = ['Item Type', 'Item Name', 'Qty', 'Gram', 'Unit Price', 'Discount', 'Net Price', 'Payment', 'Note'];
+  headerRow.eachCell((cell) => {
+    cell.fill = headerFill;
+    cell.font = { bold: true, color: { argb: 'FF2A2010' } };
+    cell.border = border;
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+  });
 
-  let currRow = 4;
+  // --- ROWS: DATA ---
+  let currentRow = 3;
 
-  // Helper function to paint section header
-  const paintSection = (label) => {
-    sheet.mergeCells(`A${currRow}:I${currRow}`);
-    const c = sheet.getCell(`A${currRow}`);
-    c.value = label;
-    c.fill = sectionFill;
-    c.font = { bold: true, color: { argb: 'FFF6E5C4' } };
-    c.alignment = { vertical: 'middle' };
-    currRow++;
-  };
-
-  // Helper function to paint column headers
-  const paintHeader = () => {
-    const headers = ['Item Type', 'Item Name', 'Qty', 'Gram', 'Unit Price', 'Discount', 'Net Price', 'Payment', 'Note'];
-    headers.forEach((h, i) => {
-      const c = sheet.getCell(currRow, i + 1);
-      c.value = h;
-      c.fill = headerFill;
-      c.font = { bold: true };
-      c.border = border;
-      c.alignment = { vertical: 'middle', horizontal: 'center' };
-    });
-    currRow++;
-  };
-
-  // --- SECTION 1: FLOWERS & ACCESSORIES ---
-  paintSection('Flower / Main / Accessories');
-  paintHeader();
-  flowerItems.forEach((item, i) => {
-    const row = sheet.getRow(currRow);
-    row.values = [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note];
+  // 1. Flower Items
+  flowerItems.forEach((item, index) => {
+    const row = sheet.getRow(currentRow++);
+    row.values = [
+      item.type,
+      item.name,
+      item.qty,
+      item.gram,
+      item.unitPrice,
+      item.discount,
+      item.netPrice,
+      item.payment,
+      item.note
+    ];
     row.eachCell((cell) => {
-      cell.fill = i % 2 === 0 ? rowLight : rowDark;
+      cell.fill = index % 2 === 0 ? rowLight : rowDark;
       cell.border = border;
-      cell.alignment = { vertical: 'middle' };
+      if (cell.col === 5 || cell.col === 7) cell.numFmt = '#,##0.00';
     });
-    currRow++;
   });
 
-  // Add Flower Total Row
-  const flowerTotalRow = sheet.getRow(currRow);
-  flowerTotalRow.getCell(1).value = 'TOTAL FLOWERS';
-  flowerTotalRow.getCell(4).value = `${totalFlowerGrams.toFixed(3)} G`;
-  flowerTotalRow.eachCell((cell, colNumber) => {
-    if (colNumber === 1 || colNumber === 4) {
-      cell.font = { bold: true };
-      cell.fill = headerFill;
-      cell.border = border;
-      cell.alignment = { vertical: 'middle' };
-    }
-  });
-  currRow += 2;
-
-  // --- SECTION 2: EXPENSES ---
-  paintSection('Expenses');
-  const expenseHeaders = ['Category', 'Description', 'Amount'];
-  expenseHeaders.forEach((h, i) => {
-    const c = sheet.getCell(currRow, i + 1);
-    c.value = h;
-    c.fill = headerFill;
-    c.font = { bold: true };
-    c.border = border;
-    c.alignment = { vertical: 'middle', horizontal: 'center' };
-  });
-  currRow++;
-
-  let totalExp = 0;
-  if (expenses.length === 0) {
-    sheet.getCell(`A${currRow}`).value = '-';
-    sheet.getCell(`B${currRow}`).value = 'No expenses';
-    sheet.getCell(`C${currRow}`).value = 0;
-    ['A', 'B', 'C'].forEach(col => {
-      const c = sheet.getCell(`${col}${currRow}`);
-      c.border = border;
-      c.alignment = { vertical: 'middle' };
-    });
-    currRow++;
-  } else {
-    expenses.forEach((exp, i) => {
-      const amt = Number(exp.amount || 0);
-      totalExp += amt;
-      sheet.getCell(`A${currRow}`).value = exp.category;
-      sheet.getCell(`B${currRow}`).value = exp.description || '-';
-      sheet.getCell(`C${currRow}`).value = amt;
-      ['A', 'B', 'C'].forEach(col => {
-        const c = sheet.getCell(`${col}${currRow}`);
-        c.fill = i % 2 === 0 ? rowLight : rowDark;
-        c.border = border;
-        c.alignment = { vertical: 'middle' };
-      });
-      currRow++;
-    });
-  }
-
-  currRow += 2;
-
-  // --- SECTION 3: FOOD & DRINKS ---
-  paintSection('Food & Drinks');
-  paintHeader();
-  fbItems.forEach((item, i) => {
-    const row = sheet.getRow(currRow);
-    row.values = [item.type, item.name, item.qty, item.gram, item.unitPrice, item.discount, item.netPrice, item.payment, item.note];
+  // 2. F&B Items
+  fbItems.forEach((item, index) => {
+    const row = sheet.getRow(currentRow++);
+    row.values = [
+      item.type,
+      item.name,
+      item.qty,
+      item.gram,
+      item.unitPrice,
+      item.discount,
+      item.netPrice,
+      item.payment,
+      item.note
+    ];
     row.eachCell((cell) => {
-      cell.fill = i % 2 === 0 ? rowLight : rowDark;
+      cell.fill = index % 2 === 0 ? rowLight : rowDark;
       cell.border = border;
-      cell.alignment = { vertical: 'middle' };
+      if (cell.col === 5 || cell.col === 7) cell.numFmt = '#,##0.00';
     });
-    currRow++;
   });
 
-  // Add F&B Total Row
-  const fbTotalRow = sheet.getRow(currRow);
-  fbTotalRow.getCell(1).value = 'TOTAL F&B';
-  fbTotalRow.getCell(7).value = calculatedFbTotal;
-  fbTotalRow.getCell(7).numFmt = '#,##0.00 "THB"';
-  fbTotalRow.eachCell((cell, colNumber) => {
-    if (colNumber === 1 || colNumber === 7) {
-      cell.font = { bold: true };
-      cell.fill = headerFill;
-      cell.border = border;
-      cell.alignment = { vertical: 'middle' };
-    }
-  });
-  currRow += 2;
+  // --- SUMMARY DASHBOARD ---
+  currentRow += 2;
+  sheet.mergeCells(`A${currentRow}:I${currentRow}`);
+  const summaryTitle = sheet.getCell(`A${currentRow}`);
+  summaryTitle.value = 'REPORT SUMMARY';
+  summaryTitle.fill = sectionFill;
+  summaryTitle.font = { bold: true, color: { argb: 'FFF1D8AC' } };
+  summaryTitle.alignment = { horizontal: 'center' };
 
-  // NOTE: Refund receipts are already excluded by filterOutRefundReceipts() in the controller.
-  // No separate Refunds section is needed - refund data must NOT appear in the export.
-
-  // --- SECTION 5: DASHBOARD ---
-  paintSection('Daily Summary Dashboard');
-
-  // Calculate totals from reportData
-  const cashTotal = Number(reportData.cash_total || 0);
-  const cardTotal = Number(reportData.card_total || 0);
-  const transferTotal = Number(reportData.transfer_total || 0);
+  currentRow++;
   const fbTotal = Number(reportData.fb_total || calculatedFbTotal || 0);
-  const netSale = Number(reportData.net_sale || 0);
-  // Priority: Use totalFlowerGrams calculated from line items if available, 
-  // otherwise fallback to database total_grams.
   const totalGrams = totalFlowerGrams > 0 ? totalFlowerGrams : Number(reportData.total_grams || 0);
 
-  const summaryData = [
-    ['Total Grams Sold', `${totalGrams.toFixed(3)} G`],
-    ['Cash In', `${cashTotal.toLocaleString()} THB`],
-    ['Card In', `${cardTotal.toLocaleString()} THB`],
-    ['Transfer In', `${transferTotal.toLocaleString()} THB`],
-    ['F&B Total', `${fbTotal.toLocaleString()} THB`],
-    ['Total Expenses', `${totalExp.toLocaleString()} THB`],
-    ['Net Sales (Total)', `${netSale.toLocaleString()} THB`],
-    ['Net Profit (After Expenses)', `${(netSale - totalExp).toLocaleString()} THB`]
-  ];
+  sheet.getCell(`A${currentRow}`).value = 'Total F&B:';
+  sheet.getCell(`B${currentRow}`).value = fbTotal;
+  sheet.getCell(`B${currentRow}`).numFmt = '#,##0.00';
+  
+  sheet.getCell(`D${currentRow}`).value = 'Total Grams:';
+  sheet.getCell(`E${currentRow}`).value = totalGrams;
+  sheet.getCell(`E${currentRow}`).numFmt = '#,##0.000 "G"';
 
-  summaryData.forEach((row) => {
-    sheet.mergeCells(`A${currRow}:C${currRow}`);
-    const labelCell = sheet.getCell(`A${currRow}`);
-    labelCell.value = row[0];
-    labelCell.border = border;
-    labelCell.font = { bold: true };
-    labelCell.alignment = { vertical: 'middle' };
+  currentRow++;
+  sheet.getCell(`A${currentRow}`).value = 'Net Sale:';
+  sheet.getCell(`B${currentRow}`).value = Number(reportData.net_sale || 0);
+  sheet.getCell(`B${currentRow}`).numFmt = '#,##0.00';
 
-    sheet.mergeCells(`D${currRow}:F${currRow}`);
-    const valueCell = sheet.getCell(`D${currRow}`);
-    valueCell.value = row[1];
-    valueCell.border = border;
-    valueCell.alignment = { vertical: 'middle', horizontal: 'right' };
-    
-    currRow++;
-  });
+  sheet.getCell(`D${currentRow}`).value = 'Closing Staff:';
+  sheet.getCell(`E${currentRow}`).value = closingStaff;
 
   return await workbook.xlsx.writeBuffer();
 }
 
-module.exports = { generateExcelReport };
+module.exports = {
+  generateExcelReport
+};

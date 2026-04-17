@@ -584,7 +584,7 @@ function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
     const classification = itemClassifier.classifyItem(itemName, normalizedCategory, unitPrice);
     
     const isFlowerStrain = classification === 'main';
-    const isFB = classification === 'fb';
+    const isFB = classification === 'fb' || itemName.includes('budweiser');
     const isAcc = classification === 'accessory';
     const isThcGummy = itemName.includes('thc gummy');
 

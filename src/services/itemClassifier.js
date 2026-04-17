@@ -47,19 +47,20 @@ function classifyItem(itemName, categoryName = '', unitPrice = 0) {
     return 'accessory';
   }
 
-  // 2. Check for F&B keywords BEFORE Main keywords to ensure beverages like Budweiser aren't caught by 'bud'
-  if (FB_KEYWORDS.some(keyword => name.includes(keyword)) || 
+  // 2. Check for F&B keywords BEFORE Main keywords
+  // This is critical to ensure beverages like "Budweiser" aren't caught by the "bud" keyword in MAIN_KEYWORDS
+  const isFB = FB_KEYWORDS.some(keyword => name.includes(keyword)) || 
       cat.includes('soft drink') || 
       cat.includes('alcohol') ||
       cat.includes('snacks') || 
       cat.includes('beverage') ||
       cat.includes('drink') ||
       cat.includes('food') ||
-      cat.includes('bakery')) {
-    
+      cat.includes('bakery');
+  
+  if (isFB) {
     // Exception: 'tea time' should not be F&B
     if (name.includes('tea time')) return 'main';
-    
     return 'fb';
   }
 

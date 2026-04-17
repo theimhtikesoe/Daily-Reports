@@ -268,6 +268,7 @@ function processItemsForExcel(receipts) {
       
       let isFB = !isAccessory && (
         fbKeywords.some(k => itemName.includes(k) || category.includes(k)) ||
+        itemName.includes('budweiser') ||
         category.includes('soft drink') || 
         category.includes('snacks') || 
         category.includes('beverage') ||
