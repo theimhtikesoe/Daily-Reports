@@ -260,7 +260,7 @@ function processItemsForExcel(receipts) {
       const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}%` : "-";
 
       const flowerStrains = ['grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 'moonbow', 'emergen c', 'tea time', 'silver shadow', 'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez', 'big foot', 'honey bee', 'jealousy mintz', 'crystal candy', 'alien mint', 'rocket fuel', 'gold dust', 'darth vader', 'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz', 'free pina colada', 'thc gummy', 'flower', 'bud', 'pre-roll', 'joint', 'cheese candy', 'vino tinto', 'mac stormper', 'r2d2 fluid', 'planet of the grape'];
-      const fbKeywords = ['water', 'soda', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'milk', 'coffee', 'tea', 'juice', 'corona', 'sato', 'budweiser', 'singha', 'asahi', 'chang', 'leo', 'cocacola', 'coke', 'sprite', 'tonic water', 'soda water', 'cookie', 'brownie', 'cake', 'soju', 'gummy', 'snack', 'food', 'bakery'];
+      const fbKeywords = ['water', 'soda', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'milk', 'coffee', 'tea', 'juice', 'corona', 'sato', 'budweiser', 'singha', 'asahi', 'chang', 'leo', 'cocacola', 'coke', 'sprite', 'tonic water', 'soda water', 'cookie', 'brownie', 'cake', 'soju', 'snack', 'food', 'bakery'];
       const accessoryKeywords = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray', 'pipe', 'small pipe', 'best buds grinder', 'best buds shirt'];
 
       let isThcGummy = itemName.includes("thc gummy");
@@ -276,8 +276,8 @@ function processItemsForExcel(receipts) {
         category.includes('bakery')
       );
 
-      // Exception: 'tea time' should not be F&B
-      if (isFB && itemName.includes('tea time')) isFB = false;
+      // Exception: 'tea time' and 'gummy' should not be F&B
+      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy'))) isFB = false;
 
       let isFlowerStrain = !isFB && !isAccessory && flowerStrains.some(s => {
         if (s === 'grape soda') {

@@ -79,7 +79,7 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
     'cider', 'spirit', 'cocktail', 'milk', 'coffee', 'tea', 'juice', 
     'corona', 'sato', 'budweiser', 'singha', 'asahi', 'chang', 'leo', 
     'cocacola', 'coke', 'sprite', 'tonic water',
-    'cookie', 'brownie', 'cake', 'soju', 'gummy', 'snack', 'food', 'bakery'
+    'cookie', 'brownie', 'cake', 'soju', 'snack', 'food', 'bakery'
   ];
   
   const accessoryKeywords = [
@@ -218,6 +218,11 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
         category.includes('bakery') ||
         (['tea'].some(k => itemName.includes(k) || category.includes(k)) && !itemName.includes('tea time'))
       );
+
+      // Exception: 'tea time' and 'gummy' should not be F&B
+      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy'))) {
+        isFB = false;
+      }
 
       let isFlowerStrain = !isFB && !isAccessory && flowerStrains.some(strain => {
         return itemName.includes(strain);
