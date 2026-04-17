@@ -202,15 +202,11 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
 
       const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` : '-';
 
-      let isFlowerStrain = flowerStrains.some(strain => {
-        if (strain === 'bud' && itemName.includes('budweiser')) return false;
-        return itemName.includes(strain);
-      });
       let isThcGummy = itemName.includes('thc gummy');
       let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
       let isLobbyShirt = itemName.includes('the lobby shirt');
 
-      let isFB = !isFlowerStrain && !isThcGummy && !isAccessory && (
+      let isFB = !isAccessory && (
         fbKeywords.some(k => itemName.includes(k) || category.includes(k)) ||
         category.includes('soft drink') || 
         category.includes('snacks') || 
@@ -220,6 +216,10 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
         category.includes('bakery') ||
         (['tea'].some(k => itemName.includes(k) || category.includes(k)) && !itemName.includes('tea time'))
       );
+
+      let isFlowerStrain = !isFB && !isAccessory && flowerStrains.some(strain => {
+        return itemName.includes(strain);
+      });
 
       if (!isFlowerStrain && !isFB && !isThcGummy && !isAccessory) {
         const unitPrice = itemNetPrice / (qty || 1);

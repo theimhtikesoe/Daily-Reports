@@ -47,23 +47,7 @@ function classifyItem(itemName, categoryName = '', unitPrice = 0) {
     return 'accessory';
   }
 
-  // 2. Check for Main/Flower keywords first
-  // Priority: Check Main keywords before F&B keywords to catch items like "Thc Gummy" (Main) vs "Gummy" (F&B)
-  // We use word boundary check or exact match for specific items like "Grape Soda" vs "Soda"
-  if (MAIN_KEYWORDS.some(keyword => {
-    if (keyword === 'grape soda') {
-      return name === 'grape soda' || name.includes('grape soda');
-    }
-    // Budweiser check - ensure it's not caught by 'bud'
-    if (keyword === 'bud' && name.includes('budweiser')) {
-      return false;
-    }
-    return name.includes(keyword);
-  })) {
-    return 'main';
-  }
-
-  // 3. Check for F&B keywords
+  // 2. Check for F&B keywords BEFORE Main keywords to ensure beverages like Budweiser aren't caught by 'bud'
   if (FB_KEYWORDS.some(keyword => name.includes(keyword)) || 
       cat.includes('soft drink') || 
       cat.includes('alcohol') ||
@@ -77,6 +61,16 @@ function classifyItem(itemName, categoryName = '', unitPrice = 0) {
     if (name.includes('tea time')) return 'main';
     
     return 'fb';
+  }
+
+  // 3. Check for Main/Flower keywords
+  if (MAIN_KEYWORDS.some(keyword => {
+    if (keyword === 'grape soda') {
+      return name === 'grape soda' || name.includes('grape soda');
+    }
+    return name.includes(keyword);
+  })) {
+    return 'main';
   }
 
   // 4. Fallback to price if name doesn't match anything
