@@ -422,7 +422,9 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
   const transferTotal = Number(reportData.transfer_total || 0);
   const fbTotal = Number(reportData.fb_total || calculatedFbTotal || 0);
   const netSale = Number(reportData.net_sale || 0);
-  const totalGrams = Number(reportData.total_grams || totalFlowerGrams || 0);
+  // Priority: Use totalFlowerGrams calculated from line items if available, 
+  // otherwise fallback to database total_grams.
+  const totalGrams = totalFlowerGrams > 0 ? totalFlowerGrams : Number(reportData.total_grams || 0);
 
   const summaryData = [
     ['Total Grams Sold', `${totalGrams.toFixed(3)} G`],
