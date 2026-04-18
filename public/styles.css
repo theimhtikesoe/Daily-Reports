@@ -36,13 +36,14 @@ body {
 
 /* Premium Header */
 .app-header {
-  background: linear-gradient(180deg, #000000 0%, rgba(15, 15, 15, 0.9) 100%);
+  background: linear-gradient(180deg, #000000 0%, rgba(15, 15, 15, 0.95) 100%);
   border-bottom: 1px solid var(--glass-border);
-  padding: 0.25rem 0; /* Further minimized padding */
-  backdrop-filter: blur(10px);
+  padding: 0.75rem 0;
+  backdrop-filter: blur(15px);
   position: sticky;
   top: 0;
   z-index: 1000;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
 }
 
 .header-bar {
@@ -127,19 +128,36 @@ body {
 }
 
 .brand-text h1 {
-  color: #ffffff;
+  background: linear-gradient(135deg, #ffffff 0%, #e0a040 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   font-weight: 800;
   margin: 0;
-  font-size: 1rem; /* Further reduced font size */
-  letter-spacing: -0.01em;
-  text-shadow: 0 2px 10px rgba(224, 160, 64, 0.3);
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  filter: drop-shadow(0 2px 10px rgba(224, 160, 64, 0.4));
+  position: relative;
+  display: inline-block;
+}
+
+.brand-text h1::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 40px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
 }
 
 .brand-text p {
   color: #cccccc !important;
-  margin: 0;
-  font-size: 0.7rem; /* Further reduced font size */
+  margin: 5px 0 0 0;
+  font-size: 0.7rem;
   font-weight: 600;
+  opacity: 0.8;
 }
 
 .made-by-tag {
