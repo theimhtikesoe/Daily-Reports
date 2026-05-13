@@ -5,7 +5,7 @@
  */
 
 const MAIN_KEYWORDS = [
-  'grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 
+  'grape soda', 'gelonade', 'blue pave', 'devil driver', 'lemon cherry gelato', 
   'moonbow', 'emergen c', 'tea time', 'silver shadow', 
   'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
   'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
