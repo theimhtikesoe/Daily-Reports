@@ -276,8 +276,8 @@ function processItemsForExcel(receipts) {
         category.includes('bakery')
       );
 
-      // Exception: 'tea time' and 'gummy' should not be F&B
-      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy'))) isFB = false;
+      // Exception: 'tea time', 'gummy', and 'grape soda' should not be F&B
+      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda'))) isFB = false;
 
       let isFlowerStrain = !isFB && !isAccessory && flowerStrains.some(s => {
         if (s === 'grape soda') {
