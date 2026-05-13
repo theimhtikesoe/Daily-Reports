@@ -276,12 +276,12 @@ function processItemsForExcel(receipts) {
         category.includes('bakery')
       );
 
-      // Exception: 'tea time', 'gummy', and 'grape soda' should not be F&B
-      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda'))) isFB = false;
+      // Exception: 'tea time', 'gummy', 'grape soda', and 'gelonade' should not be F&B
+      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade'))) isFB = false;
 
       let isFlowerStrain = !isFB && !isAccessory && flowerStrains.some(s => {
-        if (s === 'grape soda') {
-          return itemName === 'grape soda' || itemName.includes('grape soda');
+        if (s === 'grape soda' || s === 'gelonade') {
+          return itemName === s || itemName.includes(s);
         }
         return itemName.includes(s);
       });

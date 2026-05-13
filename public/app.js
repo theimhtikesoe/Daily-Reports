@@ -652,7 +652,7 @@ function processOrdersData(data) {
       }
 
       const flowerStrains = [
-        'grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 
+        'grape soda', 'gelonade', 'blue pave', 'devil driver', 'lemon cherry gelato', 
         'moonbow', 'emergen c', 'tea time', 'silver shadow', 
         'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
         'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
@@ -687,14 +687,14 @@ function processOrdersData(data) {
         (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time'))
       );
 
-      // Exception: 'tea time', 'gummy', and 'grape soda' should not be F&B
-      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda'))) {
+      // Exception: 'tea time', 'gummy', 'grape soda', and 'gelonade' should not be F&B
+      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade'))) {
         isFB = false;
       }
 
       let isFlowerStrain = !isFB && !isAccessory && flowerStrains.some(strain => {
-        if (strain === 'grape soda') {
-          return itemName === 'grape soda' || itemName.includes('grape soda');
+        if (strain === 'grape soda' || strain === 'gelonade') {
+          return itemName === strain || itemName.includes(strain);
         }
         return itemName.includes(strain);
       });
@@ -764,7 +764,7 @@ function processAutomatedReportRows(data) {
       let price = Number(item?.price || 0);
 
       const flowerStrains = [
-        'grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 
+        'grape soda', 'gelonade', 'blue pave', 'devil driver', 'lemon cherry gelato', 
         'moonbow', 'emergen c', 'tea time', 'silver shadow', 
         'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez',
         'big foot', 'honey bee', 'jealousy mintz', 'crystal candy',
@@ -799,14 +799,14 @@ function processAutomatedReportRows(data) {
         (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time'))
       );
 
-      // Exception: 'tea time', 'gummy', and 'grape soda' should not be F&B
-      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda'))) {
+      // Exception: 'tea time', 'gummy', 'grape soda', and 'gelonade' should not be F&B
+      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade'))) {
         isFB = false;
       }
 
       let isFlowerStrain = !isFB && !isAccessory && flowerStrains.some(strain => {
-        if (strain === 'grape soda') {
-          return itemName === 'grape soda' || itemName.includes('grape soda');
+        if (strain === 'grape soda' || strain === 'gelonade') {
+          return itemName === strain || itemName.includes(strain);
         }
         return itemName.includes(strain);
       });

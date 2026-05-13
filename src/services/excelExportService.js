@@ -231,12 +231,15 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
         (['tea'].some(k => itemName.includes(k) || category.includes(k)) && !itemName.includes('tea time'))
       );
 
-      // Exception: 'tea time', 'gummy', and 'grape soda' should not be F&B
-      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda'))) {
+      // Exception: 'tea time', 'gummy', 'grape soda', and 'gelonade' should not be F&B
+      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade'))) {
         isFB = false;
       }
 
       let isFlowerStrain = !isFB && !isAccessory && flowerStrains.some(strain => {
+        if (strain === 'grape soda' || strain === 'gelonade') {
+          return itemName === strain || itemName.includes(strain);
+        }
         return itemName.includes(strain);
       });
 
