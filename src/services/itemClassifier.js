@@ -62,7 +62,7 @@ function classifyItem(itemName, categoryName = '', unitPrice = 0) {
   
   if (isFB) {
     // Exception: 'tea time' and 'gummy' should not be F&B
-    if (name.includes('tea time') || name.includes('gummy')) return 'main';
+    if (name.includes('tea time') || name.includes('gummy') || name.includes('grape soda')) return 'main';
     return 'fb';
   }
 

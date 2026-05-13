@@ -231,8 +231,8 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
         (['tea'].some(k => itemName.includes(k) || category.includes(k)) && !itemName.includes('tea time'))
       );
 
-      // Exception: 'tea time' and 'gummy' should not be F&B
-      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy'))) {
+      // Exception: 'tea time', 'gummy', and 'grape soda' should not be F&B
+      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda'))) {
         isFB = false;
       }
 
