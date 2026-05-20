@@ -4,8 +4,8 @@
   "description": "Loyverse-integrated daily closing workflow for BestBuds",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#050505",
+  "theme_color": "#d4af37",
   "icons": [
     {
       "src": "icon-192.png",

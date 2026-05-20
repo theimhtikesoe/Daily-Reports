@@ -1,16 +1,17 @@
 :root {
-  --ink: #f5f0e8;
-  --ink-soft: #b0a090;
-  --paper: #0f0f0f;
-  --paper-strong: #1a1a1a;
-  --paper-glass: rgba(26, 26, 26, 0.8);
-  --paper-line: #3a3020;
-  --accent: #c8882e;
-  --accent-strong: #e0a040;
-  --positive: #4edd9f;
-  --negative: #e05a4a;
-  --amber: #ffa500;
-  --glass-border: rgba(200, 136, 46, 0.2);
+  --ink: #f8f4eb;
+  --ink-soft: #a89a8a;
+  --paper: #0a0a0a;
+  --paper-strong: #141414;
+  --paper-glass: rgba(18, 18, 18, 0.85);
+  --paper-line: #2d261a;
+  --accent: #d4af37; /* Metallic Gold */
+  --accent-strong: #f4cf6d;
+  --accent-muted: rgba(212, 175, 55, 0.15);
+  --positive: #50fa7b;
+  --negative: #ff5555;
+  --amber: #ffb86c;
+  --glass-border: rgba(212, 175, 55, 0.25);
 }
 
 html {
@@ -24,14 +25,17 @@ html {
 }
 
 body {
-  background: #080808;
-  background-image: radial-gradient(rgba(200, 136, 46, 0.05) 1px, transparent 1px);
-  background-size: 30px 30px;
+  background: #050505;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.08) 0%, transparent 50%),
+    radial-gradient(rgba(212, 175, 55, 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 40px;
   min-height: 100vh;
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   margin: 0;
   padding: 0;
+  letter-spacing: -0.01em;
 }
 
 /* Premium Header */
@@ -148,9 +152,9 @@ body {
   background: linear-gradient(
     90deg,
     #ffffff,
-    #e0a040,
+    #f4cf6d,
     #ffffff,
-    #e0a040,
+    #f4cf6d,
     #ffffff
   );
   background-size: 200% auto;
@@ -158,10 +162,10 @@ body {
   -webkit-text-fill-color: transparent;
   font-weight: 800;
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  filter: drop-shadow(0 2px 10px rgba(224, 160, 64, 0.4));
+  filter: drop-shadow(0 2px 12px rgba(212, 175, 55, 0.5));
   position: relative;
   display: inline-block;
   animation: shine 3s linear infinite;
@@ -231,13 +235,13 @@ body {
 /* Premium Cards */
 .card {
   border: 1px solid var(--glass-border);
-  border-radius: 1.25rem;
-  background: rgba(26, 26, 26, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  border-radius: 1.5rem;
+  background: linear-gradient(145deg, rgba(26, 26, 26, 0.8) 0%, rgba(15, 15, 15, 0.9) 100%);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   overflow: hidden;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .card-body {
@@ -253,25 +257,27 @@ body {
 }
 
 .metric-box {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1rem;
-  padding: 1.25rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid var(--glass-border);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
   text-align: center;
   transition: all 0.3s ease;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .metric-box .form-control {
-  background: rgba(0, 0, 0, 0.5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  font-size: 1.5rem !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid var(--glass-border) !important;
+  font-size: 1.75rem !important;
   font-weight: 800 !important;
-  padding: 8px !important;
+  padding: 12px !important;
   height: auto !important;
-  color: #ffffff !important;
+  color: var(--accent-strong) !important;
   text-align: center;
-  border-radius: 12px;
+  border-radius: 16px;
   transition: all 0.3s ease;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
 }
 
 .metric-box .form-control:focus {
@@ -286,13 +292,14 @@ body {
 }
 
 .metric-label {
-  color: #ffffff;
-  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 0.75rem;
+  letter-spacing: 0.12em;
+  margin-bottom: 1rem;
   text-shadow: 0 0 10px rgba(0,0,0,1);
+  opacity: 0.9;
 }
 
 .metric-value {
@@ -303,12 +310,12 @@ body {
 
 /* Stat Cards (Grams & F&B) */
 .gram-stat-card {
-  background: rgba(15, 15, 15, 0.8);
-  border-radius: 1.25rem;
-  padding: 1.75rem;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
+  background: linear-gradient(145deg, #141414 0%, #0a0a0a 100%);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--glass-border);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: hidden;
 }
@@ -409,11 +416,12 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #c8882e 0%, #a67026 100%);
-  border: none;
-  box-shadow: 0 4px 15px rgba(200, 136, 46, 0.3);
-  color: #ffffff !important;
-  animation: pulse-gold 3s infinite;
+  background: linear-gradient(135deg, #d4af37 0%, #aa8a2e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 20px rgba(212, 175, 55, 0.2);
+  color: #000000 !important;
+  font-weight: 800;
+  animation: pulse-gold 4s infinite;
 }
 
 @keyframes pulse-gold {
@@ -467,11 +475,12 @@ body {
 
 /* Tables */
 .order-entries-table-wrap {
-  border-radius: 1rem;
-  border: 2px solid #ffffff;
-  background: #000000;
+  border-radius: 1.5rem;
+  border: 1px solid var(--glass-border);
+  background: linear-gradient(145deg, #0f0f0f 0%, #050505 100%);
   overflow: hidden;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
 }
 
 .table {
@@ -480,36 +489,87 @@ body {
 }
 
 .table thead th {
-  background: #ffffff !important;
+  background: linear-gradient(180deg, #ffffff 0%, #e8e8e8 100%) !important;
   color: #000000 !important;
   font-weight: 900 !important;
   text-transform: uppercase;
-  font-size: 0.9rem !important;
-  padding: 1.25rem 1rem;
-  border-bottom: 3px solid #000000;
+  font-size: 1rem !important;
+  padding: 1.5rem 1.25rem;
+  border-bottom: 4px solid var(--accent);
   text-align: left;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .table tbody td {
-  padding: 1.25rem 1rem;
+  padding: 1.5rem 1.25rem;
   color: #ffffff !important;
-  border-bottom: 1px solid #444444;
-  font-weight: 700;
-  background: #000000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+  background: rgba(10, 10, 10, 0.4);
+  font-size: 1.2rem; /* Significantly larger text as requested */
+}
+
+/* Specific styling for numbers to make them pop */
+.table tbody td.text-end, 
+.table tfoot td.text-end,
+.price-split,
+.gram-stat-value {
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-weight: 800;
+  color: var(--accent-strong) !important;
+}
+
+.price-split .main-acc {
+  font-size: 1.4rem;
+}
+
+.price-split .fb-val {
+  color: var(--amber);
+  font-size: 1.15rem;
+  opacity: 0.9;
+}
+
+.price-split .divider {
+  color: var(--ink-soft);
+  margin: 0 4px;
+  font-weight: 400;
+}
+
+/* Enhancing the Order Entries Table rows */
+.table-summary-row td {
+  background: rgba(212, 175, 55, 0.1) !important;
+  color: var(--accent-strong) !important;
+  font-size: 1.3rem !important;
+  border-top: 1px solid var(--glass-border) !important;
+}
+
+.detail-row td {
+  font-size: 1.1rem !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+.receipt-number-badge {
+  background: var(--accent-muted);
+  color: var(--accent-strong);
+  border: 1px solid var(--glass-border);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 800;
 }
 
 .table tbody tr:hover {
-  background: rgba(200, 136, 46, 0.08) !important;
+  background: rgba(212, 175, 55, 0.12) !important;
   transition: background 0.2s ease;
+  border-left: 3px solid var(--accent);
 }
 
 .table tfoot td {
-  background: #000000 !important;
+  background: rgba(20, 20, 20, 0.8) !important;
   color: #ffffff !important;
-  font-weight: 800;
-  padding: 1.25rem 1rem;
-  border-top: 2px solid #ffffff;
+  font-weight: 900;
+  padding: 1.75rem 1.25rem;
+  border-top: 2px solid var(--accent);
+  font-size: 1.3rem;
 }
 
 /* Charts */
@@ -524,29 +584,29 @@ body {
 h2 {
   color: #ffffff !important;
   font-weight: 800 !important;
-  font-size: 1.4rem !important;
-  margin: 2rem 0 1.2rem 0 !important;
-  border-left: 5px solid var(--accent-strong);
-  padding-left: 15px;
+  font-size: 1.5rem !important;
+  margin: 2.5rem 0 1.5rem 0 !important;
+  border-left: 4px solid var(--accent);
+  padding-left: 18px;
   letter-spacing: -0.01em;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 6px rgba(0,0,0,0.6);
 }
 
 /* Golden Digital Clock Styling */
 .digital-clock {
   font-family: 'Courier New', Courier, monospace;
-  color: #e0a040;
-  font-size: 1.1rem;
+  color: var(--accent-strong);
+  font-size: 1.15rem;
   font-weight: 800;
-  padding: 4px 12px;
-  border: 1px solid rgba(224, 160, 64, 0.3);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 15px rgba(224, 160, 64, 0.15);
-  min-width: 100px;
+  padding: 6px 16px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+  min-width: 120px;
   text-align: center;
   letter-spacing: 1px;
-  text-shadow: 0 0 8px rgba(224, 160, 64, 0.5);
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
 }
 
 /* Responsive */
@@ -761,23 +821,24 @@ h2 {
   background: linear-gradient(
     90deg,
     #ffffff,
-    #e0a040,
+    #f4cf6d,
     #ffffff,
-    #e0a040,
+    #f4cf6d,
     #ffffff
   ) !important;
   background-size: 200% auto !important;
   color: #000000 !important;
-  border: 1px solid var(--accent) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
   animation: shine 3s linear infinite !important;
-  box-shadow: 0 4px 15px rgba(224, 160, 64, 0.4) !important;
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3) !important;
   transition: all 0.3s ease !important;
+  letter-spacing: 0.05em !important;
 }
 
 #syncButton:hover {
   transform: translateY(-3px) !important;
-  box-shadow: 0 8px 25px rgba(224, 160, 64, 0.6) !important;
-  filter: brightness(1.1) !important;
+  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.5) !important;
+  filter: brightness(1.15) !important;
 }
