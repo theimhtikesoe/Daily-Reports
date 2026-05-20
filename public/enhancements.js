@@ -261,7 +261,7 @@ function processItemsForExcel(receipts) {
 
       const flowerStrains = ['grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 'moonbow', 'emergen c', 'tea time', 'silver shadow', 'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez', 'big foot', 'honey bee', 'jealousy mintz', 'crystal candy', 'alien mint', 'rocket fuel', 'gold dust', 'darth vader', 'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz', 'free pina colada', 'free kanobi sunset', 'fakescotti', 'pina colada', 'thc gummy', 'flower', 'bud', 'pre-roll', 'joint', 'cheese candy', 'vino tinto', 'mac stormper', 'r2d2 fluid', 'planet of the grape'];
       const fbKeywords = ['water', 'soda', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'milk', 'coffee', 'tea', 'juice', 'corona', 'sato', 'budweiser', 'singha', 'asahi', 'chang', 'leo', 'cocacola', 'coke', 'sprite', 'tonic water', 'soda water', 'cookie', 'brownie', 'cake', 'soju', 'snack', 'food', 'bakery'];
-      const accessoryKeywords = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray', 'pipe', 'small pipe', 'best buds grinder', 'best buds shirt', 'balm 10g'];
+      const accessoryKeywords = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray', 'pipe', 'small pipe', 'best buds grinder', 'best buds shirt', 'balm 10g', 'pillow mist', 'balm'];
 
       let isThcGummy = itemName.includes("thc gummy");
       let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
@@ -294,7 +294,7 @@ function processItemsForExcel(receipts) {
       let displayGram = "-";
       let displayType = isFB ? "F&B" : (isAccessory ? "Accessories" : "Flower/Main");
 
-      if (isFlowerStrain && !isThcGummy && !isAccessory) {
+      if (isFlowerStrain && !isThcGummy && !isAccessory && !itemName.includes('balm') && !itemName.includes('pillow mist')) {
         displayQty = "-";
         displayGram = `${qty.toFixed(3)} G`;
         totalFlowerGrams += qty;

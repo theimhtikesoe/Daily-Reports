@@ -675,7 +675,7 @@ function processOrdersData(data) {
         'accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder',
         'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray',
         'pipe', 'small pipe', 'best buds grinder', 'best buds shirt',
-        'nf best buds shirt', 'sw best buds shirt', 'balm 10g'
+        'nf best buds shirt', 'sw best buds shirt', 'balm 10g', 'pillow mist', 'balm'
       ];
 
       let isThcGummy = itemName.includes('thc gummy');
@@ -715,7 +715,7 @@ function processOrdersData(data) {
       } else {
         mainAndAccPrice += itemNetPrice;
         // Only count actual flower strains (not accessories or gummy)
-        if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) {
+        if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt && !itemName.includes('balm') && !itemName.includes('pillow mist')) {
           orderLineGram += qty;
         }
       }
@@ -723,7 +723,7 @@ function processOrdersData(data) {
       detailedItems.push({
         receipt: receiptNumber,
         time: receiptTime,
-        gram: (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) ? `${qty.toFixed(3)} G` : '',
+        gram: (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt && !itemName.includes('balm') && !itemName.includes('pillow mist')) ? `${qty.toFixed(3)} G` : '',
         itemName: item.name || item.item_name,
         price: itemNetPrice,
         isFB: isFB,
@@ -787,7 +787,7 @@ function processAutomatedReportRows(data) {
         'accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder',
         'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray',
         'pipe', 'small pipe', 'best buds grinder', 'best buds shirt',
-        'nf best buds shirt', 'sw best buds shirt', 'balm 10g'
+        'nf best buds shirt', 'sw best buds shirt', 'balm 10g', 'pillow mist', 'balm'
       ];
 
       let isThcGummy = itemName.includes('thc gummy');
@@ -827,7 +827,7 @@ function processAutomatedReportRows(data) {
       } else {
         mainAndAccPrice += price;
         // Only count actual flower strains (not accessories or gummy)
-        if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) {
+        if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt && !itemName.includes('balm') && !itemName.includes('pillow mist')) {
           orderLineGram += qty;
         }
       }
@@ -835,7 +835,7 @@ function processAutomatedReportRows(data) {
       detailedItems.push({
         receipt: row.receipt_number,
         time: row.time,
-        gram: (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) ? `${qty.toFixed(3)} G` : '',
+        gram: (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt && !itemName.includes('balm') && !itemName.includes('pillow mist')) ? `${qty.toFixed(3)} G` : '',
         itemName: item.item_name,
         price: price,
         isFB: isFB,
