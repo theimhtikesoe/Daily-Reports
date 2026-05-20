@@ -520,8 +520,9 @@ body {
 }
 
 /* Payment Table Specific Styles */
-.table-payment tbody td {
-  font-size: 1.8rem !important; /* Increased to match Gram column size as requested */
+.table-payment tbody td,
+.table-payment tbody td.text-end {
+  font-size: 1.8rem !important; /* Force font size on all cells including text-end */
   padding: 1.5rem 1.25rem !important;
 }
 
