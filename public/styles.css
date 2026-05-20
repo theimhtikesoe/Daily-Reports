@@ -362,34 +362,60 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+  background: linear-gradient(135deg, #c8882e 0%, #a67026 100%);
   border: none;
-  box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3);
+  box-shadow: 0 4px 15px rgba(200, 136, 46, 0.3);
   color: #ffffff !important;
-  animation: pulse-blue 3s infinite;
+  animation: pulse-gold 3s infinite;
 }
 
-@keyframes pulse-blue {
-  0% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(0, 102, 204, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0); }
+@keyframes pulse-gold {
+  0% { box-shadow: 0 0 0 0 rgba(200, 136, 46, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(200, 136, 46, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(200, 136, 46, 0); }
 }
 
 .btn-primary:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 102, 204, 0.5);
-  background: linear-gradient(135deg, #0077dd 0%, #0055bb 100%);
+  box-shadow: 0 8px 25px rgba(200, 136, 46, 0.5);
+  background: linear-gradient(135deg, #e0a040 0%, #c8882e 100%);
 }
 
 .btn-success {
-  background: linear-gradient(135deg, #2ecc8a 0%, #1a9d5a 100%);
+  background: linear-gradient(135deg, #c8882e 0%, #8b5e1b 100%);
   border: none;
+  color: #ffffff !important;
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #e0a040 0%, #c8882e 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(200, 136, 46, 0.4);
 }
 
 .btn-warning {
-  background: linear-gradient(135deg, #f0ad4e 0%, #d48806 100%);
+  background: linear-gradient(135deg, #e0a040 0%, #c8882e 100%);
   border: none;
   color: #000;
+  font-weight: 800;
+}
+
+.btn-warning:hover {
+  background: linear-gradient(135deg, #f0b050 0%, #e0a040 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(224, 160, 64, 0.4);
+}
+
+.btn-info {
+  background: linear-gradient(135deg, #a67026 0%, #7a521c 100%);
+  border: none;
+  color: #ffffff !important;
+}
+
+.btn-info:hover {
+  background: linear-gradient(135deg, #c8882e 0%, #a67026 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(166, 112, 38, 0.4);
 }
 
 /* Tables */
