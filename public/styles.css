@@ -501,12 +501,12 @@ body {
 }
 
 .table tbody td {
-  padding: 1.5rem 1.25rem;
+  padding: 1.75rem 1.5rem;
   color: #ffffff !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   font-weight: 600;
   background: rgba(10, 10, 10, 0.4);
-  font-size: 1.2rem; /* Significantly larger text as requested */
+  font-size: 1.35rem; /* Enlarged text for better readability */
 }
 
 /* Specific styling for numbers to make them pop */
@@ -525,9 +525,10 @@ body {
   /* Grams column */
   color: var(--positive) !important;
   font-weight: 900 !important;
-  font-size: 1.3rem !important;
-  background: rgba(80, 250, 123, 0.08) !important;
-  border-right: 2px solid rgba(80, 250, 123, 0.3) !important;
+  font-size: 1.4rem !important;
+  background: rgba(80, 250, 123, 0.1) !important;
+  border-right: 3px solid var(--positive) !important;
+  text-shadow: 0 0 8px rgba(80, 250, 123, 0.3);
 }
 
 .table tbody td.text-center:nth-child(2),
@@ -597,10 +598,10 @@ body {
 .table tfoot td {
   background: rgba(20, 20, 20, 0.8) !important;
   color: #ffffff !important;
-  font-weight: 900;
-  padding: 1.75rem 1.25rem;
+  font-weight: 800;
+  padding: 1.25rem 1.25rem;
   border-top: 2px solid var(--accent);
-  font-size: 1.3rem;
+  font-size: 1.1rem; /* Reduced footer size for balance */
 }
 
 /* Charts */
