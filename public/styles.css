@@ -584,3 +584,29 @@ h2 {
   font-family: monospace;
   font-size: 0.9rem;
 }
+
+/* Custom Gold Style for Sync Button */
+#syncButton {
+  background: linear-gradient(
+    90deg,
+    #ffffff,
+    #e0a040,
+    #ffffff,
+    #e0a040,
+    #ffffff
+  ) !important;
+  background-size: 200% auto !important;
+  color: #000000 !important;
+  border: 1px solid var(--accent) !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  animation: shine 3s linear infinite !important;
+  box-shadow: 0 4px 15px rgba(224, 160, 64, 0.4) !important;
+  transition: all 0.3s ease !important;
+}
+
+#syncButton:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 8px 25px rgba(224, 160, 64, 0.6) !important;
+  filter: brightness(1.1) !important;
+}
