@@ -1415,3 +1415,38 @@ window.updateChartsAfterReportLoad = function(data) {
   const transferTotal = data.transfer_total || 0;
   renderPaymentMethodChart(cashTotal, cardTotal, transferTotal);
 };
+
+/**
+ * Bangkok Time Clock Logic
+ */
+function updateBangkokClock() {
+  const clockElement = document.getElementById('bangkok-clock');
+  if (!clockElement) return;
+
+  const now = new Date();
+  const options = {
+    timeZone: 'Asia/Bangkok',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  };
+  
+  try {
+    const bangkokTime = new Intl.DateTimeFormat('en-GB', options).format(now);
+    clockElement.textContent = bangkokTime;
+  } catch (e) {
+    console.error('Clock update error:', e);
+  }
+}
+
+// Initialize clock and update every second
+document.addEventListener('DOMContentLoaded', () => {
+  updateBangkokClock();
+  setInterval(updateBangkokClock, 1000);
+  
+  // Also call setupRealtimeListener if it's not already called
+  if (typeof setupRealtimeListener === 'function') {
+    setupRealtimeListener();
+  }
+});
