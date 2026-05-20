@@ -87,7 +87,7 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
     'accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder',
     'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray',
     'pipe', 'small pipe', 'best buds grinder', 'best buds shirt',
-    'nf best buds shirt', 'sw best buds shirt', 'balm 10g'
+    'nf best buds shirt', 'sw best buds shirt', 'balm 10g', 'pillow mist', 'balm'
   ];
 
   function toMoneyNumber(value) {
@@ -218,6 +218,8 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
       let isThcGummy = itemName.includes('thc gummy');
       let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
       let isLobbyShirt = itemName.includes('the lobby shirt');
+      let isBalm = itemName.includes('balm');
+      let isPillowMist = itemName.includes('pillow mist');
 
       let isFB = !isAccessory && (
         fbKeywords.some(k => itemName.includes(k) || category.includes(k)) ||
@@ -261,7 +263,7 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
       let displayGram = '-';
       
       // For flower strains (not gummy, not accessories), show gram instead of qty
-      if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt) {
+      if (isFlowerStrain && !isThcGummy && !isAccessory && !isLobbyShirt && !isBalm && !isPillowMist) {
         displayQty = '-';
         displayGram = `${qty.toFixed(3)} G`;
         // Only add to total grams if NOT 100% discounted AND price > 0 AND no 100% receipt discount
