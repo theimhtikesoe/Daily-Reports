@@ -519,26 +519,54 @@ body {
   color: var(--accent-strong) !important;
 }
 
-/* Left-side table columns (Grams & Discount) with green accent */
-.table tbody td.text-center:nth-child(1),
-.table tfoot td.text-center:nth-child(1) {
-  /* Grams column */
+/* Payment Table Specific Styles */
+.table-payment tbody td {
+  font-size: 1.6rem !important; /* Even larger for Payment Details as requested */
+  padding: 1.5rem 1.25rem !important;
+}
+
+.table-payment tbody td.text-center:nth-child(1) {
+  /* Grams column in Payment Table */
   color: var(--positive) !important;
   font-weight: 900 !important;
-  font-size: 1.4rem !important;
+  font-size: 1.8rem !important;
   background: rgba(80, 250, 123, 0.1) !important;
   border-right: 3px solid var(--positive) !important;
   text-shadow: 0 0 8px rgba(80, 250, 123, 0.3);
 }
 
-.table tbody td.text-center:nth-child(2),
-.table tfoot td.text-center:nth-child(2) {
-  /* Discount column */
+.table-payment tbody td.text-center:nth-child(2) {
+  /* Discount column in Payment Table */
   color: var(--accent-strong) !important;
   font-weight: 800 !important;
-  font-size: 1.2rem !important;
+  font-size: 1.4rem !important;
   background: rgba(212, 175, 55, 0.06) !important;
   border-right: 2px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+.table-payment tfoot td {
+  background: rgba(20, 20, 20, 0.9) !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  padding: 1rem 1.25rem !important; /* Smaller padding for footer */
+  border-top: 2px solid var(--accent);
+  font-size: 1.1rem !important; /* Smaller font for footer as requested */
+}
+
+.table-payment tfoot td.text-center:nth-child(1) {
+  /* Total Grams in Footer - Normal style, not loud green */
+  color: var(--ink) !important;
+  background: rgba(20, 20, 20, 0.9) !important;
+  border-right: none !important;
+  text-shadow: none !important;
+  font-size: 1.1rem !important;
+  font-weight: 800 !important;
+}
+
+/* Order Entries Table Specific Styles */
+.table-entries tbody td {
+  font-size: 1.1rem !important; /* Standard size for entries */
+  padding: 1rem 0.75rem !important;
 }
 
 .price-split .main-acc {
@@ -561,12 +589,12 @@ body {
 .table-summary-row td {
   background: rgba(212, 175, 55, 0.1) !important;
   color: var(--accent-strong) !important;
-  font-size: 1.3rem !important;
+  font-size: 1.1rem !important;
   border-top: 1px solid var(--glass-border) !important;
 }
 
 .detail-row td {
-  font-size: 1.1rem !important;
+  font-size: 0.95rem !important;
   background: rgba(255, 255, 255, 0.02) !important;
 }
 
@@ -585,12 +613,12 @@ body {
   border-left: 3px solid var(--accent);
 }
 
-.table tbody tr:hover td.text-center:nth-child(1) {
+.table-payment tbody tr:hover td.text-center:nth-child(1) {
   background: rgba(80, 250, 123, 0.15) !important;
   box-shadow: inset 0 0 10px rgba(80, 250, 123, 0.2);
 }
 
-.table tbody tr:hover td.text-center:nth-child(2) {
+.table-payment tbody tr:hover td.text-center:nth-child(2) {
   background: rgba(212, 175, 55, 0.12) !important;
   box-shadow: inset 0 0 10px rgba(212, 175, 55, 0.15);
 }
