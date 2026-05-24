@@ -159,6 +159,11 @@ async function syncFromLoyverse(req, res, next) {
     broadcast({ type: 'REPORT', date, action: 'SYNC' });
     res.json(summary);
   } catch (error) {
+    if (error.response && error.response.status === 402) {
+      const apiError = new Error('Loyverse API restriction: Cannot sync data older than 30 days. Please use manual entry or check existing records.');
+      apiError.status = 402;
+      return next(apiError);
+    }
     next(error);
   }
 }

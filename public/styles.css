@@ -1122,3 +1122,14 @@ h2 {
   box-shadow: 0 10px 30px rgba(212, 175, 55, 0.5) !important;
   filter: brightness(1.15) !important;
 }
+
+/* Disabled Sync Button Style */
+#syncButton:disabled {
+  background: linear-gradient(135deg, #2d261a 0%, #1a1a1a 100%) !important;
+  border: 1px solid var(--paper-line) !important;
+  color: var(--ink-soft) !important;
+  cursor: not-allowed;
+  animation: none !important;
+  box-shadow: none !important;
+  opacity: 0.6;
+}

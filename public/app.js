@@ -888,6 +888,29 @@ async function syncFromLoyverse() {
     return;
   }
 
+  // Check if date is older than 30 days
+  const selectedDate = new Date(date);
+  const today = new Date(todayLocalDate());
+  const diffTime = Math.abs(today - selectedDate);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const isOldDate = diffDays > 30;
+
+  if (isOldDate) {
+    if (syncBtn) {
+      syncBtn.disabled = true;
+      syncBtn.title = "Syncing is only available for the last 30 days";
+    }
+    // For old dates, we don't sync from Loyverse. 
+    // loadReportData is already called in bindEvents change listener, 
+    // which pulls from our database.
+    return;
+  } else {
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.title = "";
+    }
+  }
+
   if (activeSyncController) {
     activeSyncController.abort();
   }
@@ -910,7 +933,12 @@ async function syncFromLoyverse() {
     console.log("Received Payload:", data);
 
     
-    if (!res.ok) throw new Error(data?.message || 'Sync failed');
+    if (!res.ok) {
+      if (res.status === 402) {
+        throw new Error('Loyverse API restriction: Cannot sync data older than 30 days. Please use manual entry or check existing records.');
+      }
+      throw new Error(data?.message || 'Sync failed');
+    }
     
     window.lastSyncedData = data;
     console.log("Raw Cash Entries:", data?.cash_entries);
@@ -1044,6 +1072,29 @@ function setButtonLoading(button, text, isLoading) {
 window.loadReportData = async function(date) {
   if (!date) return;
   
+  // Check if date is older than 30 days
+  const selectedDate = new Date(date);
+  const today = new Date(todayLocalDate());
+  const diffTime = Math.abs(today - selectedDate);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const isOldDate = diffDays > 30;
+  const syncBtn = document.getElementById('syncButton');
+
+  if (isOldDate) {
+    if (syncBtn) {
+      syncBtn.disabled = true;
+      syncBtn.title = "Syncing is only available for the last 30 days";
+      syncBtn.innerHTML = 'Sync Disabled (>30 days)';
+    }
+    window.showMessage('Displaying data from Database (Sync disabled for dates > 30 days)', 'info');
+  } else {
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.title = "";
+      syncBtn.innerHTML = 'Sync From Loyverse';
+    }
+  }
+
   // Clear lists to prevent "frozen" UI while loading
   const staffContainer = document.getElementById('closingStaffList');
   if (staffContainer) staffContainer.innerHTML = '<p class="text-muted">Loading...</p>';
