@@ -522,15 +522,15 @@ body {
 /* Payment Table Specific Styles */
 .table-payment tbody td,
 .table-payment tbody td.text-end {
-  font-size: 1.8rem !important; /* Force font size on all cells including text-end */
-  padding: 1.5rem 1.25rem !important;
+  font-size: 1.4rem !important; /* Reduced for better balance and to avoid wrapping */
+  padding: 1.25rem 1rem !important;
 }
 
 .table-payment tbody td.text-center:nth-child(1) {
   /* Grams column in Payment Table */
   color: var(--positive) !important;
   font-weight: 900 !important;
-  font-size: 1.8rem !important;
+  font-size: 1.4rem !important; /* Matched with other columns */
   background: rgba(80, 250, 123, 0.1) !important;
   border-right: 3px solid var(--positive) !important;
   text-shadow: 0 0 8px rgba(80, 250, 123, 0.3);
