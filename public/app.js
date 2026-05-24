@@ -416,10 +416,7 @@ function applyPaymentDetails(data, receiptGramMap = new Map()) {
     return entries.filter(e => {
       const receiptKey = String(e.receiptNumber || '').trim();
       
-      // 🛡️ MANUAL OVERRIDE: Receipt #2-21386 date discrepancy fix
-      if (currentDate === '2026-05-21' && receiptKey === '#2-21386') {
-        return false;
-      }
+      // Manual override removed. Logic now handled by backend date boundaries.
 
       return !refundReceiptNumbers.has(receiptKey) && !originalReceiptNumbersToExclude.has(receiptKey);
     });
@@ -768,11 +765,7 @@ function processAutomatedReportRows(data) {
   rows.forEach(row => {
     const receiptNumber = String(row.receipt_number || '').trim();
     
-    // 🛡️ MANUAL OVERRIDE: Receipt #2-21386 date discrepancy fix
-    const currentDate = document.getElementById("reportDate")?.value;
-    if (currentDate === '2026-05-21' && receiptNumber === '#2-21386') {
-      return;
-    }
+      // Manual override removed. Logic now handled by backend date boundaries.
 
     const items = row.items || [];
     let orderLineGram = 0;

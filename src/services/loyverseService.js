@@ -31,12 +31,12 @@ function getDateBounds(date) {
   const tz = process.env.LOYVERSE_TIMEZONE || 'Asia/Bangkok';
 
   // 🛡️ MIDNIGHT BOUNDARY FIX:
-  // To include the 00:00 sale in the previous day's report:
-  // Start exactly at 00:00:01 of the selected date
-  // End exactly at 00:00:00 of the NEXT date
-  // This ensures a receipt at 00:00:00 is attributed to the previous day.
+  // We want to attribute sales at 00:00:00 to the PREVIOUS day.
+  // Example: 2026-05-20 report should include sales from:
+  // 2026-05-20 00:00:01 local
+  // UNTIL 2026-05-21 00:00:00 local (Inclusive)
   const startLocal = dayjs.tz(`${date} 00:00:01`, tz);
-  const endLocal = dayjs.tz(`${date} 00:00:00`, tz).add(1, 'day');
+  const endLocal = dayjs.tz(`${date} 23:59:59`, tz).add(1, 'second');
 
   // SPECIAL CASE: Receipt #2-21386 was at 23:59:56 local time on May 20.
   // The current logic correctly maps 23:59:59.999 local to UTC.
