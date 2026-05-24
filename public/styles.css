@@ -864,20 +864,12 @@ h2 {
   color: var(--positive);
   font-weight: 700;
   font-size: 1.1rem;
-  background: rgba(80, 250, 123, 0.15);
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(80, 250, 123, 0.3);
 }
 
 .entry-gram-badge {
   color: var(--positive);
   font-weight: 800;
   font-size: 1.1rem;
-  background: rgba(80, 250, 123, 0.15);
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(80, 250, 123, 0.3);
   display: inline-block;
 }
 
