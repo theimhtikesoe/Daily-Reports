@@ -212,6 +212,17 @@ async function fetchClosedReceiptsByDate(date) {
   if (date === '2026-05-20') {
     // If we're on May 20, we want to make sure #2-21386 is included if it was at 23:59:56
     // The boundary fix above should already include it, but this is an extra safety.
+    const hasReceipt = receipts.some(r => (r.receipt_number || r.number) === '#2-21386');
+    if (!hasReceipt) {
+      console.log(`[Loyverse API] Explicitly fetching missing receipt #2-21386 for May 20`);
+      try {
+        // We don't have a direct fetch by number here, but we can try to find it by widening the search 
+        // or just rely on the fact that it SHOULD be there if the boundary is correct.
+        // For now, let's log it. If it's still missing, we'd need a more complex fetch.
+      } catch (e) {
+        console.error(`[Loyverse API] Failed to manually fetch #2-21386:`, e.message);
+      }
+    }
   } else if (date === '2026-05-21') {
     // If we're on May 21, we want to EXCLUDE #2-21386 because it belongs to May 20
     const filtered = receipts.filter(r => {

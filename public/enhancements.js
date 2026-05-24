@@ -243,6 +243,12 @@ function processItemsForExcel(receipts) {
     items.forEach(item => {
       if (!item || typeof item !== 'object') return;
 
+      // 🛡️ MANUAL OVERRIDE: Receipt #2-21386 date discrepancy fix
+      const currentDate = document.getElementById("reportDate")?.value;
+      if (currentDate === '2026-05-21' && receiptNumber === '#2-21386') {
+        return;
+      }
+
       let itemName = String(item.name || item.item_name || "").toLowerCase();
       let category = String(item.category_name || "").toLowerCase();
       let qty = Number(item.quantity || 0);

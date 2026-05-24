@@ -412,8 +412,15 @@ function applyPaymentDetails(data, receiptGramMap = new Map()) {
   });
 
   const filterRefundEntries = (entries) => {
+    const currentDate = document.getElementById("reportDate")?.value;
     return entries.filter(e => {
       const receiptKey = String(e.receiptNumber || '').trim();
+      
+      // 🛡️ MANUAL OVERRIDE: Receipt #2-21386 date discrepancy fix
+      if (currentDate === '2026-05-21' && receiptKey === '#2-21386') {
+        return false;
+      }
+
       return !refundReceiptNumbers.has(receiptKey) && !originalReceiptNumbersToExclude.has(receiptKey);
     });
   };
@@ -594,6 +601,13 @@ function processOrdersData(data) {
   orders.forEach(order => {
     const receiptNumber = String(order.receipt_number || order.number || '').trim();
     
+    // 🛡️ MANUAL OVERRIDE: Receipt #2-21386 date discrepancy fix
+    const currentDate = document.getElementById("reportDate")?.value;
+    if (currentDate === '2026-05-21' && receiptNumber === '#2-21386') {
+      console.log(`[Frontend] Manually excluded #2-21386 from May 21 table`);
+      return;
+    }
+
     // Skip refund orders and original orders that were refunded
     if (refundReceiptNumbers.has(receiptNumber) || originalReceiptNumbersToExclude.has(receiptNumber)) return;
     if (isRefundOrder(order)) return;
@@ -752,6 +766,14 @@ function processAutomatedReportRows(data) {
   let totalGrams = 0;
 
   rows.forEach(row => {
+    const receiptNumber = String(row.receipt_number || '').trim();
+    
+    // 🛡️ MANUAL OVERRIDE: Receipt #2-21386 date discrepancy fix
+    const currentDate = document.getElementById("reportDate")?.value;
+    if (currentDate === '2026-05-21' && receiptNumber === '#2-21386') {
+      return;
+    }
+
     const items = row.items || [];
     let orderLineGram = 0;
     let mainAndAccPrice = 0;
