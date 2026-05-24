@@ -19,6 +19,18 @@ html {
   scroll-padding-top: 240px; /* Increased to ensure section headers are fully visible with proper gap below the compact sticky nav */
 }
 
+@media (max-width: 767px) {
+  html {
+    scroll-padding-top: 140px;
+  }
+}
+
+@media (max-width: 479px) {
+  html {
+    scroll-padding-top: 100px;
+  }
+}
+
 * {
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
@@ -478,7 +490,8 @@ body {
   border-radius: 1.5rem;
   border: 1px solid var(--glass-border);
   background: linear-gradient(145deg, #0f0f0f 0%, #050505 100%);
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   margin-bottom: 2.5rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
 }
@@ -673,20 +686,65 @@ h2 {
   .header-bar {
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    text-align: center;
+    gap: 0.5rem;
   }
   
+  .brand-wrap {
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+  }
+
   .brand-logo {
-    max-height: 60px;
+    max-height: 45px;
+  }
+
+  .brand-text h1 {
+    font-size: 1.1rem;
+  }
+
+  .header-right {
+    width: 100%;
+    gap: 10px;
   }
 
   .nav-container {
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .app-nav {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 5px 0;
+  }
+
+  .nav-menu {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 15px;
+  }
+
+  .nav-menu a {
+    font-size: 0.7rem;
+    white-space: nowrap;
+    padding: 4px 0;
   }
 
   .digital-clock {
-    order: -1; /* Put clock above nav on mobile if needed, or keep below */
+    font-size: 0.9rem;
+    padding: 4px 12px;
+    min-width: 100px;
+  }
+
+  .made-by-tag {
+    padding: 4px 12px;
+    font-size: 0.7rem;
   }
 }
 
@@ -699,87 +757,73 @@ h2 {
 }
 
 @media (max-width: 767px) {
-  .header-bar {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 1rem;
-  }
-
-  .brand-wrap {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .brand-text h1 {
-    font-size: 1.1rem;
-  }
-
-  .header-right {
-    flex-direction: column;
-    gap: 0.75rem;
-    width: 100%;
-  }
-
-  .app-nav {
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: 5px;
-  }
-
-  .nav-menu {
-    justify-content: center;
-    flex-wrap: nowrap;
-    gap: 15px;
-    padding: 0 10px;
-  }
-
-  .nav-menu a {
-    font-size: 0.75rem;
-    white-space: nowrap;
-  }
-
   .summary-metrics-row {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
 
   .metric-box {
-    padding: 1rem;
+    padding: 0.75rem;
+  }
+
+  .metric-label {
+    font-size: 0.65rem;
+    margin-bottom: 0.5rem;
   }
 
   .metric-box .form-control {
-    font-size: 1.25rem !important;
+    font-size: 1.1rem !important;
+    padding: 8px !important;
+    border-radius: 10px;
   }
 
   .card-body {
-    padding: 1rem;
+    padding: 0.75rem;
   }
 
   .gram-stat-card {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
     padding: 1rem;
   }
 
+  .gram-stat-label {
+    font-size: 0.7rem;
+  }
+
   .gram-stat-value {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
   }
 
   /* Table responsiveness for mobile */
   .table-responsive {
     border: none;
-    margin: 0 -1rem;
-    width: calc(100% + 2rem);
+    margin: 0 -0.75rem;
+    width: calc(100% + 1.5rem);
+    overflow-x: auto;
   }
 
   .table thead th {
-    padding: 0.75rem 0.5rem;
-    font-size: 0.75rem !important;
+    padding: 0.6rem 0.4rem;
+    font-size: 0.65rem !important;
   }
 
   .table tbody td {
-    padding: 0.75rem 0.5rem;
-    font-size: 0.8rem !important;
+    padding: 0.6rem 0.4rem;
+    font-size: 0.75rem !important;
+  }
+
+  .table-payment tbody td,
+  .table-payment tbody td.text-end,
+  .table-payment tbody td.text-center:nth-child(1),
+  .table-payment tbody td.text-center:nth-child(2) {
+    font-size: 0.75rem !important;
+    padding: 0.6rem 0.4rem !important;
+  }
+
+  .table-payment tfoot td,
+  .table-payment tfoot td.text-center:nth-child(1) {
+    font-size: 0.75rem !important;
+    padding: 0.6rem 0.4rem !important;
   }
 
   .action-btn-row .col-lg-4 {
@@ -787,8 +831,156 @@ h2 {
   }
   
   #syncButton {
+    padding: 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  h2 {
+    font-size: 1.1rem !important;
+    margin: 1.5rem 0 1rem 0 !important;
+    padding-left: 12px;
+  }
+
+  .section-grid .col-lg-5,
+  .section-grid .col-lg-7 {
+    margin-bottom: 1.5rem;
+  }
+
+  .section-grid {
+    gap: 0.75rem;
+  }
+
+  .detail-box {
+    padding: 1rem !important;
+  }
+
+  .row.g-3 {
+    gap: 0.75rem !important;
+  }
+
+  .row.g-3 > [class*="col-"] {
+    padding-right: 0.375rem;
+    padding-left: 0.375rem;
+  }
+
+  .form-control, .form-select {
+    font-size: 0.95rem !important;
+  }
+
+  .form-label {
+    font-size: 0.75rem !important;
+    margin-bottom: 0.4rem !important;
+  }
+
+  .moving-emoji {
+    display: none;
+  }
+}
+
+/* Extra small devices (< 480px) */
+@media (max-width: 479px) {
+  .container {
+    padding: 0 10px;
+  }
+
+  .app-header {
+    padding: 0.5rem 0;
+  }
+
+  .header-bar {
+    gap: 0.25rem;
+  }
+
+  .brand-wrap {
+    gap: 3px;
+  }
+
+  .brand-logo {
+    max-height: 40px;
+  }
+
+  .brand-text h1 {
+    font-size: 0.95rem;
+  }
+
+  .brand-text p {
+    font-size: 0.6rem;
+  }
+
+  .nav-menu {
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .nav-menu a {
+    font-size: 0.65rem;
+  }
+
+  .summary-metrics-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .metric-box {
+    padding: 0.5rem;
+  }
+
+  .metric-label {
+    font-size: 0.6rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .metric-box .form-control {
+    font-size: 0.95rem !important;
+    padding: 6px !important;
+  }
+
+  .gram-stat-card {
     padding: 0.75rem;
-    font-size: 0.9rem;
+  }
+
+  .gram-stat-label {
+    font-size: 0.65rem;
+  }
+
+  .gram-stat-value {
+    font-size: 1rem;
+  }
+
+  .table thead th {
+    padding: 0.5rem 0.3rem;
+    font-size: 0.6rem !important;
+  }
+
+  .table tbody td {
+    padding: 0.5rem 0.3rem;
+    font-size: 0.7rem !important;
+  }
+
+  .table-payment tbody td,
+  .table-payment tbody td.text-end,
+  .table-payment tbody td.text-center:nth-child(1),
+  .table-payment tbody td.text-center:nth-child(2) {
+    font-size: 0.7rem !important;
+    padding: 0.5rem 0.3rem !important;
+  }
+
+  .card-body {
+    padding: 0.5rem;
+  }
+
+  h2 {
+    font-size: 1rem !important;
+    margin: 1rem 0 0.75rem 0 !important;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
+
+  .detail-box {
+    padding: 0.75rem !important;
   }
 }
 
