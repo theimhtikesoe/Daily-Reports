@@ -36,6 +36,19 @@ html {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Prevent auto-zoom on focus in mobile browsers */
+input, select, textarea, button {
+  font-size: 16px !important;
+}
+
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select:focus,
+  textarea:focus,
+  input:focus {
+    font-size: 16px !important;
+  }
+}
+
 body {
   background: #050505;
   background-image: 
