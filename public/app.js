@@ -686,7 +686,7 @@ function processOrdersData(data) {
         'accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder',
         'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray',
         'pipe', 'small pipe', 'best buds grinder', 'best buds shirt',
-        'nf best buds shirt', 'sw best buds shirt', 'balm 10g', 'pillow mist', 'balm'
+        'nf best buds shirt', 'sw best buds shirt', 'balm 10g', 'pillow mist', 'balm', 'bileaf'
       ];
 
       let isThcGummy = itemName.includes('thc gummy');
@@ -802,7 +802,7 @@ function processAutomatedReportRows(data) {
         'accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder',
         'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray',
         'pipe', 'small pipe', 'best buds grinder', 'best buds shirt',
-        'nf best buds shirt', 'sw best buds shirt', 'balm 10g', 'pillow mist', 'balm'
+        'nf best buds shirt', 'sw best buds shirt', 'balm 10g', 'pillow mist', 'balm', 'bileaf'
       ];
 
       let isThcGummy = itemName.includes('thc gummy');
