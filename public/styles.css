@@ -407,6 +407,7 @@ body {
   border-radius: 0.85rem !important;
   padding: 0.8rem 1.2rem !important;
   font-weight: 600 !important;
+  font-size: 16px !important;
   transition: all 0.3s ease !important;
 }
 
@@ -772,7 +773,7 @@ h2 {
   }
 
   .metric-box .form-control {
-    font-size: 1.1rem !important;
+    font-size: 16px !important;
     padding: 8px !important;
     border-radius: 10px;
   }
@@ -864,7 +865,7 @@ h2 {
   }
 
   .form-control, .form-select {
-    font-size: 0.95rem !important;
+    font-size: 16px !important;
   }
 
   .form-label {
@@ -931,7 +932,7 @@ h2 {
   }
 
   .metric-box .form-control {
-    font-size: 0.95rem !important;
+    font-size: 16px !important;
     padding: 6px !important;
   }
 
