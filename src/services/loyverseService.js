@@ -552,7 +552,7 @@ function extractReceiptDiscountAmount(receipt) {
 function buildAutomatedReceiptRow(receipt, itemCategoryMap = new Map()) {
   const lineItems = receipt.line_items || receipt.items || [];
   const receiptNumber = getReceiptIdentifier(receipt);
-  const time = receipt.created_at || receipt.receipt_date || null;
+  const time = receipt.receipt_date || receipt.created_at || null;
   const strictCategoryRequired = String(process.env.LOYVERSE_STRICT_CATEGORY || 'false').toLowerCase() === 'true';
 
   let totalGram = 0;
@@ -747,7 +747,7 @@ function extractPaymentEntries(receipt, paymentTypeMap) {
     receipt.payment_type_totals ||
     [];
 
-  const time = receipt.created_at || receipt.receipt_date || null;
+  const time = receipt.receipt_date || receipt.created_at || null;
   const receiptNumber = receipt.receipt_number || receipt.number || null;
 
   if (Array.isArray(payments) && payments.length > 0) {
@@ -1146,7 +1146,7 @@ function extractDiscountEntriesFromReceipt(receipt) {
       const entry = createDiscountEntry(
         amount, 
         percentage, 
-        receipt.created_at || receipt.receipt_date || null,
+        receipt.receipt_date || receipt.created_at || null,
         receipt.receipt_number || receipt.number || null
       );
       if (entry) {
@@ -1177,7 +1177,7 @@ function extractDiscountEntriesFromReceipt(receipt) {
           lineDiscount = createDiscountEntry(
             amount, 
             percentage, 
-            receipt.created_at || receipt.receipt_date || null,
+            receipt.receipt_date || receipt.created_at || null,
             receipt.receipt_number || receipt.number || null
           );
           break;
@@ -1205,7 +1205,7 @@ function extractDiscountEntriesFromReceipt(receipt) {
           const entry = createDiscountEntry(
         amount, 
         percentage, 
-        receipt.created_at || receipt.receipt_date || null,
+        receipt.receipt_date || receipt.created_at || null,
         receipt.receipt_number || receipt.number || null
       );
           if (entry) {
@@ -1229,7 +1229,7 @@ function extractDiscountEntriesFromReceipt(receipt) {
     const entry = createDiscountEntry(
         amount, 
         percentage, 
-        receipt.created_at || receipt.receipt_date || null,
+        receipt.receipt_date || receipt.created_at || null,
         receipt.receipt_number || receipt.number || null
       );
     if (entry) {

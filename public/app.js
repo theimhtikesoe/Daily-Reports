@@ -620,7 +620,7 @@ function processOrdersData(data) {
     let orderLineGram = 0;
     let mainAndAccPrice = 0;
     let fbPriceTotal = 0;
-    const receiptTime = order.created_at;
+    const receiptTime = order.receipt_date || order.created_at;
 
     const items = order?.line_items || order?.items || [];
     const orderTotalMoney = Number(order?.total_money || 0);
