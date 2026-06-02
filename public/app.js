@@ -124,8 +124,16 @@ function formatTime(isoString) {
   try {
     const date = new Date(isoString);
     if (isNaN(date.getTime())) return '';
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
+    // Use Intl.DateTimeFormat to force Asia/Bangkok timezone
+    const options = {
+      timeZone: 'Asia/Bangkok',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    };
+    const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(date);
+    const hours = parts.find(p => p.type === 'hour').value;
+    const minutes = parts.find(p => p.type === 'minute').value;
     return `${hours}:${minutes}`;
   } catch (e) { return ''; }
 }
@@ -498,6 +506,7 @@ function applyPaymentDetails(data, receiptGramMap = new Map()) {
 
       html += `
         <tr>
+          <td class="text-center">${formatTime(g.time)}</td>
           <td class="text-center">${g.grams > 0 ? formatGramCompact(g.grams) : '-'}</td>
           <td class="text-center">${g.discount ? formatPercentage(g.discount) : '-'}</td>
           <td class="text-end">${formatPriceSplit(g.cash.main, g.cash.fb)}</td>
@@ -1188,9 +1197,11 @@ function renderOrderEntriesTable(orderEntries, detailedItems = []) {
       return;
     }
 
+    // Use formatTime to ensure Asia/Bangkok timezone
+    const formattedTime = formatTime(entry.time);
     html += `
       <tr class="table-summary-row fw-semibold">
-        <td>${time}</td>
+        <td>${formattedTime}</td>
         <td><span class="receipt-number-badge">${entry.receipt}</span></td>
         <td><span class="detail-gram-badge">${entry.grams.toFixed(3)} G</span></td>
         <td><span class="receipt-summary-label">Order Summary</span></td>
