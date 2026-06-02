@@ -424,7 +424,13 @@ function applyPaymentDetails(data, receiptGramMap = new Map()) {
     return entries.filter(e => {
       const receiptKey = String(e.receiptNumber || '').trim();
       
-      // Manual override removed. Logic now handled by backend date boundaries.
+      // Strict Date Filtering: Only show entries that belong to the selected date
+      if (currentDate && e.time) {
+        const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
+        const formatter = new Intl.DateTimeFormat('en-CA', options);
+        const localDate = formatter.format(new Date(e.time));
+        if (localDate !== currentDate) return false;
+      }
 
       return !refundReceiptNumbers.has(receiptKey) && !originalReceiptNumbersToExclude.has(receiptKey);
     });

@@ -35,15 +35,15 @@ function getDateBounds(date) {
     parseInt(process.env.DAY_BOUNDARY_CUTOFF_MINUTES || '1', 10)
   );
 
+  // Expand the fetch window by 1 hour on both ends to catch late-syncing receipts
   const startLocal = dayjs
     .tz(`${date} 00:00:00`, tz)
-    .add(cutoffMinutes, 'minute')
-    .add(1, 'second');
+    .subtract(1, 'hour');
 
   const endLocal = dayjs
     .tz(`${date} 00:00:00`, tz)
     .add(1, 'day')
-    .add(cutoffMinutes, 'minute');
+    .add(2, 'hour'); // Look 2 hours into the next day for late syncs
 
   return {
     startIso: startLocal.utc().toISOString(),
@@ -1261,12 +1261,17 @@ async function fetchSalesSummaryByDate(date) {
     discount_entry_details: []
   };
 
-  // Use the comprehensive filterOutRefundReceipts which excludes:
-  // 1. Receipts with type === 'REFUND'
-  // 2. Original receipts that were later refunded
-  // 3. Voided/cancelled receipts
-  // 4. Receipts with negative totals
-  const closedReceipts = filterOutRefundReceipts(receipts);
+  // 1. Filter out refunds and voided receipts
+  let closedReceipts = filterOutRefundReceipts(receipts);
+
+  // 2. STRICT DATE FILTERING: Only keep receipts where receipt_date matches the requested date
+  const tz = process.env.LOYVERSE_TIMEZONE || 'Asia/Bangkok';
+  closedReceipts = closedReceipts.filter(receipt => {
+    const rDate = receipt.receipt_date || receipt.created_at;
+    if (!rDate) return false;
+    const localDate = dayjs(rDate).tz(tz).format('YYYY-MM-DD');
+    return localDate === date;
+  });
 
   // Enrich each receipt's line_items with category_name from itemCategoryMap
   // so the frontend can classify items correctly
