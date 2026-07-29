@@ -717,7 +717,7 @@ function processOrdersData(data) {
       );
 
       // Exception: 'tea time', 'gummy', 'grape soda', and 'gelonade' should not be F&B
-      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade'))) {
+      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade') || itemName.includes('groot'))) {
         isFB = false;
       }
 
@@ -836,7 +836,7 @@ function processAutomatedReportRows(data) {
       );
 
       // Exception: 'tea time', 'gummy', 'grape soda', and 'gelonade' should not be F&B
-      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade'))) {
+      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade') || itemName.includes('groot'))) {
         isFB = false;
       }
 
