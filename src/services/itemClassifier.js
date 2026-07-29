@@ -13,7 +13,10 @@ const MAIN_KEYWORDS = [
   'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz',
   'free pina colada', 'free kanobi sunset', 'fakescotti', 'pina colada', 'thc gummy', 'flower', 
   'bud', 'pre-roll', 'joint', 'cheese candy', 'vino tinto', 'mac stormper', 
-  'r2d2 fluid', 'planet of the grape'
+  'r2d2 fluid', 'planet of the grape', 'moonlight sonata', 'american pie', 
+  'gastro pop', 'dulce de uva', 'gelato 41', 'rs11', 'frost boof', 
+  'lemon cherry martini', 'royal marker', 'cherry rage', 'mac 1 x permanent', 
+  '3 hour tour', 'creature feature', 'trich tyson', 'groot snack'
 ];
 
 const FB_KEYWORDS = [
