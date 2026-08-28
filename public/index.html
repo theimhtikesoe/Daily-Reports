@@ -251,16 +251,30 @@
         <div class="row g-3 mt-4 mb-4">
           <!-- Daily Sales Trend Chart -->
           <div class="col-lg-6">
-            <h2 id="salesTrendSection" class="h5 mb-3" style="scroll-margin-top: 240px;">Daily Sales Trend <span class="moving-emoji">📈</span></h2>
-            <div class="chart-container" style="position: relative; height: 400px;">
-              <canvas id="dailySalesTrendChart"></canvas>
+            <h2 id="salesTrendSection" class="h5 mb-3" style="scroll-margin-top: 240px;">
+              <button type="button" class="btn btn-outline-warning w-100 text-start fw-bold chart-toggle" aria-expanded="false" aria-controls="dailySalesTrendPanel" onclick="toggleChartPanel('dailySalesTrendPanel', this)">
+                <span>Daily Sales Trend <span class="moving-emoji">📈</span></span>
+                <span class="chart-toggle-indicator" aria-hidden="true">＋</span>
+              </button>
+            </h2>
+            <div id="dailySalesTrendPanel" class="chart-panel d-none" aria-hidden="true">
+              <div class="chart-container" style="position: relative; height: 400px;">
+                <canvas id="dailySalesTrendChart"></canvas>
+              </div>
             </div>
           </div>
           <!-- Payment Method Pie Chart -->
           <div class="col-lg-6">
-            <h2 class="h5 mb-3">Payment Method Breakdown <span class="moving-emoji">💳</span></h2>
-            <div class="chart-container" style="position: relative; height: 400px;">
-              <canvas id="paymentMethodChart"></canvas>
+            <h2 class="h5 mb-3">
+              <button type="button" class="btn btn-outline-warning w-100 text-start fw-bold chart-toggle" aria-expanded="false" aria-controls="paymentMethodPanel" onclick="toggleChartPanel('paymentMethodPanel', this)">
+                <span>Payment Method Breakdown <span class="moving-emoji">💳</span></span>
+                <span class="chart-toggle-indicator" aria-hidden="true">＋</span>
+              </button>
+            </h2>
+            <div id="paymentMethodPanel" class="chart-panel d-none" aria-hidden="true">
+              <div class="chart-container" style="position: relative; height: 400px;">
+                <canvas id="paymentMethodChart"></canvas>
+              </div>
             </div>
           </div>
         </div>

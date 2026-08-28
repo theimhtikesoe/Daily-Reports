@@ -1452,3 +1452,27 @@ document.addEventListener('DOMContentLoaded', () => {
     setupRealtimeListener();
   }
 });
+
+
+/**
+ * Toggle chart panels without changing their data or rendering logic.
+ */
+window.toggleChartPanel = function(panelId, button) {
+  const panel = document.getElementById(panelId);
+  if (!panel || !button) return;
+
+  const isOpening = panel.classList.contains('d-none');
+  panel.classList.toggle('d-none', !isOpening);
+  panel.setAttribute('aria-hidden', String(!isOpening));
+  button.setAttribute('aria-expanded', String(isOpening));
+
+  const indicator = button.querySelector('.chart-toggle-indicator');
+  if (indicator) indicator.textContent = isOpening ? '－' : '＋';
+
+  if (isOpening) {
+    requestAnimationFrame(() => {
+      const chart = panelId === 'dailySalesTrendPanel' ? dailySalesTrendChart : paymentMethodChart;
+      if (chart) chart.resize();
+    });
+  }
+};

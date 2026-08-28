@@ -666,6 +666,20 @@ body {
   padding: 1.5rem !important;
 }
 
+/* Collapsible chart controls */
+.chart-toggle {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.chart-toggle-indicator {
+  flex: 0 0 auto;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
 /* Headings */
 h2 {
   color: #ffffff !important;
