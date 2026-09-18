@@ -716,6 +716,9 @@ function processOrdersData(data) {
         (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time'))
       );
 
+      // Rozay Cake is a Flower/Main strain; generic "cake" must not route it to F&B.
+      if (itemName.includes('rozay cake')) isFB = false;
+
       // Exception: 'tea time', 'gummy', 'grape soda', and 'gelonade' should not be F&B
       if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade') || itemName.includes('groot'))) {
         isFB = false;
@@ -727,6 +730,8 @@ function processOrdersData(data) {
         }
         return itemName.includes(strain);
       });
+
+      if (itemName.includes('rozay cake')) isFlowerStrain = true;
 
       if (!isFlowerStrain && !isFB && !isThcGummy && !isAccessory) {
         const unitPrice = grossPrice / (qty || 1);
@@ -835,6 +840,9 @@ function processAutomatedReportRows(data) {
         (['tea'].some(keyword => itemName.includes(keyword) || category.includes(keyword)) && !itemName.includes('tea time'))
       );
 
+      // Rozay Cake is a Flower/Main strain; generic "cake" must not route it to F&B.
+      if (itemName.includes('rozay cake')) isFB = false;
+
       // Exception: 'tea time', 'gummy', 'grape soda', and 'gelonade' should not be F&B
       if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade') || itemName.includes('groot'))) {
         isFB = false;
@@ -846,6 +854,8 @@ function processAutomatedReportRows(data) {
         }
         return itemName.includes(strain);
       });
+
+      if (itemName.includes('rozay cake')) isFlowerStrain = true;
 
       if (!isFlowerStrain && !isFB && !isThcGummy && !isAccessory) {
         const unitPrice = price / (qty || 1);

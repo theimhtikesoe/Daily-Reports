@@ -1,4 +1,5 @@
 const ExcelJS = require('exceljs');
+const { classifyItem } = require('./itemClassifier');
 
 /**
  * Check if a receipt is a refund receipt
@@ -218,46 +219,16 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
         ? `${discountPercent.toFixed(0)}% (${totalItemDiscount.toFixed(2)} THB)` 
         : '-';
 
+      const unitPrice = itemNetPrice / (qty || 1);
+      const classification = classifyItem(itemName, category, unitPrice);
       let isThcGummy = itemName.includes('thc gummy');
-      let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
+      let isAccessory = classification === 'accessory';
       let isLobbyShirt = itemName.includes('the lobby shirt');
       let isBalm = itemName.includes('balm');
       let isPillowMist = itemName.includes('pillow mist');
 
-      let isFB = !isAccessory && (
-        fbKeywords.some(k => itemName.includes(k) || category.includes(k)) ||
-        itemName.includes('budweiser') ||
-        category.includes('soft drink') || 
-        category.includes('snacks') || 
-        category.includes('beverage') ||
-        category.includes('drink') ||
-        category.includes('food') ||
-        category.includes('bakery') ||
-        (['tea'].some(k => itemName.includes(k) || category.includes(k)) && !itemName.includes('tea time'))
-      );
-
-      // Exception: 'tea time', 'gummy', 'grape soda', and 'gelonade' should not be F&B
-      if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade') || itemName.includes('groot'))) {
-        isFB = false;
-      }
-
-      let isFlowerStrain = !isFB && !isAccessory && flowerStrains.some(strain => {
-        if (strain === 'grape soda' || strain === 'gelonade') {
-          return itemName === strain || itemName.includes(strain);
-        }
-        return itemName.includes(strain);
-      });
-
-      if (!isFlowerStrain && !isFB && !isThcGummy && !isAccessory) {
-        const unitPrice = itemNetPrice / (qty || 1);
-        if (unitPrice > 50) {
-          isFlowerStrain = true;
-        } else if (unitPrice > 0) {
-          isFB = true;
-        } else {
-          isFlowerStrain = true;
-        }
-      }
+      const isFB = classification === 'fb';
+      const isFlowerStrain = classification === 'main';
 
       const exportType = isFB ? 'F&B' : (isAccessory ? 'Accessories' : 'Flower/Main');
       
@@ -275,14 +246,14 @@ async function generateExcelReport(date, reportData, receipts, expenses, closing
         }
       }
 
-      const unitPrice = grossPrice / (qty || 1);
+      const exportUnitPrice = grossPrice / (qty || 1);
 
       const exportItem = {
         type: exportType,
         name: item.name || item.item_name,
         qty: displayQty,
         gram: displayGram,
-        unitPrice: unitPrice,
+        unitPrice: exportUnitPrice,
         discount: discountStr,
         netPrice: itemNetPrice,
         payment: paymentMethod,

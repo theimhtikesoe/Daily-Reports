@@ -34,6 +34,13 @@ const ACCESSORY_KEYWORDS = [
   'nf best buds shirt', 'sw best buds shirt', 'balm 10g', 'pillow mist', 'balm', 'plastic tray'
 ];
 
+// These names must win over broad F&B words such as "cake", "tea", or "snack".
+// Keep this list intentionally small and explicit so ordinary food items are not
+// accidentally routed to Flower/Main.
+const PRIORITY_MAIN_KEYWORDS = [
+  'rozay cake'
+];
+
 /**
  * Classifies an item based on its name and category.
  * @param {string} itemName - The name of the item.
@@ -50,6 +57,12 @@ function classifyItem(itemName, categoryName = '', unitPrice = 0) {
       cat.includes('accessories') ||
       cat.includes('merchandise')) {
     return 'accessory';
+  }
+
+  // Check explicit Flower/Main exceptions before broad F&B keywords. Without
+  // this, "Rozay Cake" matches the generic "cake" rule and is sent to F&B.
+  if (PRIORITY_MAIN_KEYWORDS.some(keyword => name.includes(keyword))) {
+    return 'main';
   }
 
   // 2. Check for F&B keywords BEFORE Main keywords
@@ -171,5 +184,6 @@ module.exports = {
   getClassificationStats,
   MAIN_KEYWORDS,
   FB_KEYWORDS,
-  ACCESSORY_KEYWORDS
+  ACCESSORY_KEYWORDS,
+  PRIORITY_MAIN_KEYWORDS
 };
