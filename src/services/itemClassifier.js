@@ -30,8 +30,8 @@ const FB_KEYWORDS = [
 const ACCESSORY_KEYWORDS = [
   'accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder',
   'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray',
-  'pipe', 'small pipe', 'best buds grinder', 'best buds shirt',
-  'nf best buds shirt', 'sw best buds shirt', 'balm 10g', 'pillow mist', 'balm', 'plastic tray'
+    'pipe', 'small pipe', 'best buds grinder', 'best buds shirt',
+    'nf best buds shirt', 'sw best buds shirt', 'balm 10g', 'pillow mist', 'balm', 'bileaf', 'plastic tray'
 ];
 
 // These names must win over broad F&B words such as "cake", "tea", or "snack".

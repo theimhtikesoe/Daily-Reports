@@ -261,9 +261,9 @@ function processItemsForExcel(receipts) {
       if (itemNetPrice <= 0.01 || discountPercent >= 99.9) return;
       const discountStr = totalItemDiscount > 0.01 ? `${discountPercent.toFixed(0)}%` : "-";
 
-      const flowerStrains = ['grape soda', 'blue pave', 'devil driver', 'lemon cherry gelato', 'moonbow', 'emergen c', 'tea time', 'silver shadow', 'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez', 'big foot', 'honey bee', 'jealousy mintz', 'crystal candy', 'alien mint', 'rocket fuel', 'gold dust', 'darth vader', 'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz', 'free pina colada', 'free kanobi sunset', 'fakescotti', 'pina colada', 'thc gummy', 'flower', 'bud', 'pre-roll', 'joint', 'cheese candy', 'vino tinto', 'mac stormper', 'r2d2 fluid', 'planet of the grape', 'moonlight sonata', 'american pie', 'gastro pop', 'dulce de uva', 'gelato 41', 'rs11', 'frost boof', 'lemon cherry martini', 'royal marker', 'cherry rage', 'mac 1 x permanent', '3 hour tour', 'creature feature', 'trich tyson', 'groot snack', 'groot\'s snack'];
+      const flowerStrains = ['grape soda', 'gelonade', 'blue pave', 'devil driver', 'lemon cherry gelato', 'moonbow', 'emergen c', 'tea time', 'silver shadow', 'rozay cake', 'truffaloha', 'the planet of grape', 'crunch berriez', 'big foot', 'honey bee', 'jealousy mintz', 'crystal candy', 'alien mint', 'rocket fuel', 'gold dust', 'darth vader', 'cherry pop tarts', 'white cherry gelato', 'dosidos', 'obama runtz', 'free pina colada', 'free kanobi sunset', 'fakescotti', 'pina colada', 'thc gummy', 'flower', 'bud', 'pre-roll', 'joint', 'cheese candy', 'vino tinto', 'mac stormper', 'r2d2 fluid', 'planet of the grape', 'moonlight sonata', 'american pie', 'gastro pop', 'dulce de uva', 'gelato 41', 'rs11', 'frost boof', 'lemon cherry martini', 'royal marker', 'cherry rage', 'mac 1 x permanent', '3 hour tour', 'creature feature', 'trich tyson', 'groot snack', 'groot\'s snack'];
       const fbKeywords = ['water', 'soda', 'beer', 'drink', 'beverage', 'alcohol', 'wine', 'cider', 'spirit', 'cocktail', 'milk', 'coffee', 'tea', 'juice', 'corona', 'sato', 'budweiser', 'singha', 'asahi', 'chang', 'leo', 'cocacola', 'coke', 'sprite', 'tonic water', 'soda water', 'cookie', 'brownie', 'cake', 'soju', 'snack', 'food', 'bakery'];
-      const accessoryKeywords = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray', 'pipe', 'small pipe', 'best buds grinder', 'best buds shirt', 'balm 10g', 'pillow mist', 'balm', 'bileaf', 'plastic tray'];
+      const accessoryKeywords = ['accessories', 'merchandise', 'bong', 'paper', 'tip', 'grinder', 'shirt', 'hat', 'lighter', 'the lobby', 'merch', 'ashtray', 'ash tray', 'pipe', 'small pipe', 'best buds grinder', 'best buds shirt', 'nf best buds shirt', 'sw best buds shirt', 'balm 10g', 'pillow mist', 'balm', 'bileaf', 'plastic tray'];
 
       let isThcGummy = itemName.includes("thc gummy");
       let isAccessory = accessoryKeywords.some(k => itemName.includes(k) || category.includes(k));
@@ -278,6 +278,10 @@ function processItemsForExcel(receipts) {
         category.includes('bakery')
       );
 
+      // Rozay Cake is a Flower/Main strain. It contains the generic "cake"
+      // keyword, so this explicit exception must run before the F&B branch.
+      if (itemName.includes('rozay cake')) isFB = false;
+
       // Exception: 'tea time', 'gummy', 'grape soda', and 'gelonade' should not be F&B
       if (isFB && (itemName.includes('tea time') || itemName.includes('gummy') || itemName.includes('grape soda') || itemName.includes('gelonade') || itemName.includes('groot'))) isFB = false;
 
@@ -287,6 +291,8 @@ function processItemsForExcel(receipts) {
         }
         return itemName.includes(s);
       });
+
+      if (itemName.includes('rozay cake')) isFlowerStrain = true;
 
       if (!isFlowerStrain && !isFB && !isThcGummy && !isAccessory) {
         if (grossPrice / (qty || 1) <= 50) isFB = true; else isFlowerStrain = true;
